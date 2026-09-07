@@ -210,4 +210,5 @@ make ctx && timeout 900 make 2>&1 | tail -3 && sha1sum -c ll.sha1
 | `docs/FUNCTIONAL_MAP.md` | F1-F9 功能架构视图 | 理解系统边界/命名域 |
 | `docs/ROUTES.md` | 已打通语义路线 (道具→装备→存档) | 涉及背包/属性/存档命名 |
 | `docs/PLAN_DATA.md` | 数据区 de-blob/符号化计划 | 做数据侧工作时 |
+| `docs/RULES_HARDWARE_IO.md` | **GBA 硬件寄存器与 DMA 操作代码规范** (禁止裸指针, 必用 REG_* 与 DmaCopy 宏) | 涉及硬件 IO/DMA 访问时必查 |
 | `docs/REFACTOR_PLAN.md` | 管线重构进度 (R0-R7) + 待拍板方案 | 继续重构时 |

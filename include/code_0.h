@@ -4,6 +4,12 @@
 #include "gba/types.h"
 #include "iwram.h"
 
+struct ObjFadeSeq {
+    u8 pad0[0xB4];
+    u16 f_b4;
+    u16 f_b6;
+};
+
 extern void sub_8000170();
 
 void VBlankIntr(void);
@@ -128,8 +134,8 @@ void MapScene_InitSprites(u8);
 void MapScene_LoadEventAnimations(u8);
 u8 *AnimSlot_Parse(u16, u8 *);
 u8 *AnimSlot_ParseLoop(u16, u8 *);
-void sub_8007A1C(s16); // UpdateSpriteAnim: 推进精灵动画槽帧计数, 并把当前帧图块拷进 0x02006000 图块缓存
-#define UpdateSpriteAnim sub_8007A1C
+void AnimSlot_Step(s16); // UpdateSpriteAnim: 推进精灵动画槽帧计数, 并把当前帧图块拷进 0x02006000 图块缓存
+#define UpdateSpriteAnim AnimSlot_Step
 s32 sub_8007ADC(s16, s16); // 算 (x,y) 16x16 足迹覆盖的至多 4 个瓦片坐标, 在 gMapZoneHeader 的 cells 表查区域; 命中写
                            // gMapZoneType/gMapZoneEntryIdx 返回 1
 #define MapZone_FindAt sub_8007ADC
@@ -157,8 +163,8 @@ void AnimSlots_StepAll();
 void BgTiles_LoadUiSet(u8);
 void BgScroll_LoadFromTable(u16);
 void PlayerSheets_Load();
-void sub_8008BA4(u8, u8); // LoadSpriteAnimSet: 把 gUnk_087EA1A0[setId] 一组精灵动画模型装入 gUnk_030046A0[startSlot..]
-#define LoadSpriteAnimSet sub_8008BA4
+void AnimSlot_LoadSet(u8, u8); // LoadSpriteAnimSet: 把 gUnk_087EA1A0[setId] 一组精灵动画模型装入 gUnk_030046A0[startSlot..]
+#define LoadSpriteAnimSet AnimSlot_LoadSet
 void AnimSlot_Pause(u8);
 void AnimSlot_Resume(u8);
 u8 AnimSlot_Active(u8);
@@ -576,7 +582,7 @@ void sub_8020FB8(void *, u16, u16, u16, u8);
 void sub_802103C(u8 *, u8, u16);
 void sub_8021064(u8);
 void sub_80210C0(void *, u8);
-void sub_8021130();
+void MenuSlot_ResetAll();
 void sub_8021184(u8, u8 *); // 战斗对象槽号/状态同步: arg1+0xBE 槽号→idx, switch((s8)arg0) case 0/3/6/7 更新 gUnk_030007xx 系列
 void sub_80212B4();
 void sub_802151C();
@@ -1000,46 +1006,53 @@ void SioBattle_ResetState();
 u8 SioBattle_GetState();
 void SioBattle_ClearSlots();
 void sub_804F280();
-void sub_804F64C();
+#define Op_CharaControl sub_804F280
+u32 Op_CameraPan(u32 *);
 u32 Op_RemovePartyMember(u32 *);
 u32 Op_AddPartyMember(u32 *);
-u32 sub_804F8D8(u32 *);
-u32 sub_804F974(u32 *);
-u32 sub_804FA04(u32 *);
-u32 sub_804FA94(u32 *);
-void sub_804FB24();
+u32 Op_ScriptBattle(u32 *);
+u32 Op_IfAllFlagsJump(u32 *);
+u32 Op_IfAllFlagsClearJump(u32 *);
+u32 Op_IfAnyFlagJump(u32 *);
+u32 Op_SysEffect(u32 *);
 void ScriptPump_Run();
 void sub_805008C();
 void sub_80501B8();
 void sub_8050434();
 void sub_805063C();
 void sub_8050720();
-u8 sub_80511A0(u32 *arg0);
+#define Op_DialogMessage sub_8050720
+u8 Op_ScriptReturn(u32 *arg0);
 u32 Op_ScriptStop(u32 *);
 void sub_80512C4();
+#define Op_ScriptStreamLZ sub_80512C4
 void sub_80513A0();
+#define Op_ScriptReturnChunk sub_80513A0
 void sub_805144C();
+#define Op_DialogText sub_805144C
 u32 Op_OpenWindow(u32 *);
 s16 sub_8051AEC(s16, s16, s16, s16, u8);  /** 同 sub_801768C 插值家族: 第5参必须 u8 (switch 内 cast (s8)); 结果复用 arg1 做累加器 (default 路径 r0=arg1 直达尾部) **/
 void sub_8051BE4();
+#define Op_DialogChoice sub_8051BE4
 u16 Script_GetFlags();
 void Script_ResetVM();
 void sub_80525E8(u8, u8, u8);
 void sub_80526A0(u8, u8);
 void Script_Abort(u8);
+void System_ResetToLogo(void);
 void BgTiles_LoadSet(u16);
 void TileDma_Reset();
 s16 sub_80527AC(void); // FlushTileDma: 把待传图块经 DMA3 从 0x0203DE00 刷到 VRAM 0x0600B800 并等完成
 #define FlushTileDma sub_80527AC
 u32 TileDma_GetCtx(u32 *);
 u32 Op_LoadTileGfx(u8);
-u32 sub_8052858(u32 *); // ScriptGotoEntry: 脚本指针跳到 gUnk_02016200 + gUnk_02016000[data[1]]
-#define ScriptGotoEntry sub_8052858
+u32 Op_ScriptJump(u32 *); // ScriptGotoEntry: 脚本指针跳到 gUnk_02016200 + gUnk_02016000[data[1]]
+#define ScriptGotoEntry Op_ScriptJump
 u32 Script_Call(u32 *);
-void nullsub_7();
+void Op_Nop();
 u32 Op_DialogSetup(u32 *);
 u32 Op_CloseWindow(u32 *);
-u8 sub_80529B8();
+u8 Op_WaitFrames();
 u32 Op_BgmPlay(u32 *);
 u32 Op_BgmStop(u32 *);
 u32 Op_BgmVolume(u32 *);
@@ -1047,8 +1060,8 @@ u32 Op_BgmFadeIn(u32 *);
 u32 Op_BgmFadeOut(u32 *);
 u32 Op_SfxPlay(u32 *);
 u32 Op_SfxStop(u32 *);
-u32 sub_8052AE8(u32 *);
-u32 sub_8052B34(u32 *);
+u32 Op_RandomJump(u32 *);
+u32 Op_ScriptCallAlt(u32 *);
 u32 Op_WaitCharsStop(u32 *);
 u32 Op_LoadCharaGfx(u32 *);
 u32 Op_LoadCharaPal(u32 *);
@@ -1065,11 +1078,11 @@ u32 Op_SetSwitch(u32 *);
 u32 Op_ClearSwitch(u32 *);
 u32 Op_CameraSnap(u32 *);
 s32 Op_CameraFollow(u32 *);
-u32 Op_WaitCameraSnap(u32 *);
+u32 Op_WaitCameraPan(u32 *);
 u32 Op_LoadCutsceneAnim(u32 *);
 u32 Op_RestartCharaAnim(u32 *);
 u32 Op_WaitCharaAnim(u32 *);
-u32 sub_8052F44(u32 *);
+u32 Op_IfPartyMemberJump(u32 *);
 u32 Op_LoadAnimSet(u32 *);
 u32 Op_AnimSlotResume(u32 *);
 u32 Op_AnimSlotPause(u32 *);
@@ -1090,14 +1103,14 @@ u32 Op_SaveTimerA(u32 *);
 u32 Op_SaveTimerB(u32 *);
 u32 Op_IfSaveFlagJump(u32 *);
 u32 Op_SaveOp(u32 *);
-u32 sub_8053270(u32 *);
-u32 sub_80532DC(
+u32 Op_SetFlagsList(u32 *);
+u32 Op_ClearFlagsList(
     u32 *); // ScriptClearFlags: 把脚本里 data[1]>>1 个 u16 标志号逐个清位(<=0x1FF 走 0x03001C60 位图, 否则 -0x200 走 0x030018F0 位图)
-#define ScriptClearFlags sub_80532DC
+#define ScriptClearFlags Op_ClearFlagsList
 u32 Op_ClearSwitchTail(u32 *);
 u32 Op_IfMoneyJump(u32 *);
 u32 Op_StartLogoFade(u32 *);
 u32 Op_WaitLogoFade(u32 *);
-u32 sub_80533D4(u32 *);
+u32 Op_SetCharacterLevel(u32 *);
 
 #endif

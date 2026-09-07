@@ -10,15 +10,21 @@ MEMORY {
 }
 
 gUnk_08091948 = 0x08091948;
+gMapNpcSlotGroups = 0x08091948;
 gUnk_08393A24 = 0x08393A24;
 gCosTable = 0x0839C26C;   /* float[360] 余弦表 (淡出波) */
 gSinTable = 0x0839BCCC;   /* float[360] 正弦表 (淡出波) */
 gUnk_08093418 = 0x08093418;
+gSkillLearnTable = 0x08093418;
 gClassStatCurveTable = 0x080921F0;
 gStatGrowthCurveTables = 0x080923D8;
 gUnk_08092248 = 0x08092248;
+gLevelUpExpTable = 0x08092248;
+gMsgPoolMain = 0x080936A0;
 gUnk_08095028 = 0x08095028;
+gItemNames = 0x08095028;
 gUnk_08095828 = 0x08095828;
+gCharacterNames = 0x08095828;
 gUnk_080987C4 = 0x080987C4;
 gMapSceneDescriptors = 0x08088D80;
 gMapViewportBoundsTable = 0x08089BC4;
@@ -41,6 +47,13 @@ gUnk_087EA394 = 0x087EA394;
 gUnk_087EB1F4 = 0x087EB1F4;
 gUnk_087EB214 = 0x087EB214;
 gUnk_087EB22C = 0x087EB22C;
+gAnimSlots = 0x030046A0;
+gLogoAnimDirection = 0x03000008;
+gLogoSpriteNodes = 0x0300000A;
+gLogoAnimTimer = 0x0300000C;
+gWindowTransitionProgress = 0x03004604;
+gMenuSlotStates = 0x03000788;
+gMenuMasterCursor = 0x030007BA;
 
 D_87EB2A8 = 0x087EB2A8;
 gUnk_0839CE7C = 0x0839CE7C;
@@ -88,11 +101,21 @@ gUnk_0839B2A4 = 0x0839B2A4;
 gUnk_0839B2B0 = 0x0839B2B0;   /* 12 字节步长表 (sub_801DB3C 分支 arg2<=2) */
 gUnk_087E8430 = 0x087E8430;   /* 精灵图块 LZ77 指针表 (LoadSpriteSheetGfx) */
 gUnk_080B9DFC = 0x080B9DFC;   /* 精灵 OBJ 调色板数组 [][32] (LoadSpriteSheetPal) */
+gSpriteObjPalettes = 0x080B9DFC;
 gUnk_087EA1A0 = 0x087EA1A0;
 gUnk_0862D574 = 0x0862D574;
-gUnk_0862D434 = 0x0862D434;
+gScriptOpcodeHandlers = 0x0862D434;
+gObjPalFadeInSteps = 0x08289B6E;   /* OBJ 调色板 10 帧渐显步进表 (Op_SysEffect subop7, 每步 0x20) */
+gObjPalFadeInFinal = 0x083936A8;   /* 渐显末帧 16 色 → OBJ bank10; 亦为 MapScene_Load 场景调色板备选 (0x08393688 表 +0x20) */
+gFlashFxPaletteTable = 0x0808B1B4; /* = gMenuEntPaletteFrames 项 0x7C (闪光帧组 16 色视图, Op_SysEffect 用) */
 gInvPageItemIds = 0x0839CFAA;   /* 16 项: 菜单页号 -> 道具 id (见 data_805769C.h) */
 gUnk_03004980 = 0x03004980;   /* gInventory 的 u8[] 视图别名 */
+gCameraPanStartX = 0x030047DC;   /* 摄像机平移起始 X (Op_CameraPan) */
+gCameraPanStartY = 0x0300461C;   /* 摄像机平移起始 Y (Op_CameraPan) */
+gCameraPanTargetX = 0x03004630;  /* 摄像机平移目标 X (Op_CameraPan) */
+gCameraPanTargetY = 0x03004830;  /* 摄像机平移目标 Y (Op_CameraPan) */
+gCameraPanDuration = 0x030047B4; /* 摄像机平移总帧数 (0=未平移) */
+gCameraPanStep = 0x03004844;     /* 摄像机平移当前步数 */
 gUnk_087ED904 = 0x087ED904;
 gUnk_08619A60 = 0x08619A60;
 gUnk_08619430 = 0x08619430;
@@ -350,7 +373,7 @@ SECTIONS {
         . = 0x00000E30; gUnk_03000E30 = .;
         . = 0x00000E68; gUnk_03000E68 = .;
         . = 0x00000E69; gUnk_03000E69 = .;
-        . = 0x00000E6C; gUnk_03000E6C = .;
+        . = 0x00000E6C; gScriptCursor = .;
         . = 0x00000E70; gUnk_03000E70 = .;
         . = 0x00000E72; gUnk_03000E72 = .;
         . = 0x00000E74; gUnk_03000E74 = .;
@@ -478,8 +501,10 @@ SECTIONS {
         . = 0x00004610; gHBlankEffectMode = .;
         . = 0x00004614; gMoveCmdSetId = .;
         . = 0x00004618; gUnk_03004618 = .;
+        . = 0x0000461C; gUnk_0300461C = .;
         . = 0x00004624; gScreenIdleEventFlags = .;
         . = 0x0000462C; gChoiceListPtr = .;
+        . = 0x00004630; gUnk_03004630 = .;
         . = 0x00004634; gUnk_03004634 = .;
         . = 0x00004638; gSpawnTileY = .;
         . = 0x0000463C; gMapZoneType = .;
@@ -522,19 +547,23 @@ SECTIONS {
         . = 0x000047C8; gIntroBgTransferStage = .;
         . = 0x000047CC; gUnk_030047CC = .;
         . = 0x000047D0; gSlotPalId = .;
+        . = 0x000047DC; gUnk_030047DC = .;
         . = 0x000047E0; gChoiceSubIdx = .;
         . = 0x000047E4; gMapNpcSetId = .;
         . = 0x000047EC; gMapHeightPx = .;
         . = 0x000047EC; gUnk_030047EC = .;
         . = 0x000047F0; gScreenFadeStep = .;
+        . = 0x000047F4; gPaletteFxPhase = .;
         . = 0x00004800; gViewportFlags = .;
         . = 0x00004820; gEncounterEnabled = .;
         . = 0x00004824; gChoiceDestX = .;
         . = 0x00004828; gBG2ScrollY = .;
+        . = 0x00004830; gUnk_03004830 = .;
         . = 0x00004834; gScreenFadeParam = .;
         . = 0x00004838; gZoneCheckTileXs = .;
         . = 0x0000483C; gUnk_0300483C = .;
         . = 0x00004840; gSceneSubState = .; 
+        . = 0x00004844; gUnk_03004844 = .;
 
         . = 0x00004848; gBG2ScrollX = .;
         . = 0x0000484C; gBG3ScrollX = .;
@@ -596,16 +625,32 @@ SECTIONS {
 
     .text : ALIGN(4) {
         asm/crt0.o(.text);
-        src/code_80002A0.o(.text);
-        src/code_8005020.o(.text);
+        src/engine_core.o(.text);
+        src/scene_mgr.o(.text);
+        src/sprite_engine.o(.text);
+        src/vram_transfer.o(.text);
+        src/map_view.o(.text);
+        src/anim_slot.o(.text);
+        src/player_stats.o(.text);
+        src/menu_ui.o(.text);
         src/save.o(.text);
-        src/code_8010F10.o(.text);
-        src/code_801A3C4.o(.text);
-        src/code_801A5EC.o(.text);
-        src/code_8020D50.o(.text);
-        src/code_80264C0.o(.text);
-        src/code_8044394.o(.text);
-        src/code_804F0B8.o(.text);
+        src/save_menu.o(.text);
+        src/text_engine.o(.text);
+        src/sio_link.o(.text);
+        src/scene_obj_dispatch.o(.text);
+        src/scene_obj_core.o(.text);
+        src/scene_obj_fx.o(.text);
+        src/event_actor.o(.text);
+        src/scene_interact.o(.text);
+        src/event_hub.o(.text);
+        src/cutscene_mgr.o(.text);
+        src/obj_state.o(.text);
+        src/battle_engine.o(.text);
+        src/battle_anim.o(.text);
+        src/battle_rewards.o(.text);
+        src/obj_pool.o(.text);
+        src/sio_battle.o(.text);
+        src/script_vm.o(.text);
         src/sound.o(.text);
 
         asm/m4a_asm.o(.text);
@@ -637,7 +682,10 @@ SECTIONS {
         . = ORIGIN(rom) + 0x7E83F0;
 
         src/data_87E83F0.o(.rodata);
-        data/data1.o(.rodata);
+        data/data1a.o(.rodata);
+        . = ORIGIN(rom) + 0x7EA1A0;
+        src/data_087EA1A0.o(.rodata);
+        data/data1b.o(.rodata);
 
     } >rom =0xFF
 
@@ -651,7 +699,6 @@ gBgPalBackdropWhite = 0x08087216;
 gUiSpritesAuxDesc = 0x087EB2C4;
 gIntroBgTiles = 0x087E9828;
 gIntroBgMaps = 0x087E98C0;
-gMenuEntityPaletteTable = 0x0808A234; /* 124 OBJ palettes, 0x20 bytes each; DMA skips entry[0] */
 
 /* s32 返回类型别名 (sub_8009D34 需要无截断的返回值读取, 见 code_8005020.c) */
 Sprite_EnqueueRender_S32 = Sprite_EnqueueRender;

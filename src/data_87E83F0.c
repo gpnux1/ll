@@ -577,6 +577,7 @@ const u8 gUnk_087E94FC[][4] = {
 
 
 // Four 8x8 portrait positions: top-left, top-right, bottom-left, bottom-right.
+// 0x087E9818
 const u32 gDialogPortraitTilemapPtrs[] = {0x2005840, 0x200586C, 0x2005B00, 0x2005B2C};
 
 // off_87EA33C
@@ -613,6 +614,7 @@ const u32 gDialogPortraitTilemapPtrs[] = {0x2005840, 0x200586C, 0x2005B00, 0x200
 
 /* 对话框头像 LZ77 图形表 (88 项, 每项解压成 0x800 B), 由 DialogPortrait_Set 按索引取用。
  * 目标资产都在 src/data_805769C.c; 表项写成真重定位, 不再依赖 linker.ld 的绝对符号。*/
+// 0x087E9554
 const u32 gDialogPortraitGfxTable[]
     = {(u32)gUnk_080597D8, (u32)gUnk_08059D48, (u32)gUnk_0805A2B4, (u32)gUnk_0805A830, (u32)gUnk_0805ADA0, (u32)gUnk_0805B30C,
        (u32)gUnk_0805B83C, (u32)gUnk_0805BE10, (u32)gUnk_0805C330, (u32)gUnk_0805C82C, (u32)gUnk_0805CD48, (u32)gUnk_0805D300,

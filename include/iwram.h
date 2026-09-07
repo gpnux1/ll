@@ -35,9 +35,12 @@ struct Unk_LzData
 extern u16 gUnk_03000000;
 extern u16 gUnk_03000002;
 extern u16 gUnk_03000004;
-extern u8 gUnk_03000008;
-extern u8 gUnk_0300000A[];
-extern u16 gUnk_0300000C;
+extern u8 gLogoAnimDirection;
+#define gUnk_03000008 gLogoAnimDirection
+extern u8 gLogoSpriteNodes[2];
+#define gUnk_0300000A gLogoSpriteNodes
+extern u16 gLogoAnimTimer;
+#define gUnk_0300000C gLogoAnimTimer
 extern u8 gUnk_03000010[4];
 extern u8 gUnk_03000014[4];
 extern u8 gUnk_03000018[4];
@@ -220,12 +223,13 @@ extern u8 gUnk_03000770;
 extern u8 gUnk_03000781;
 extern u8 gUnk_03000782;
 extern u16 gUnk_03000784;
-extern u8 gUnk_03000788[][5];
+extern u8 gMenuSlotStates[][5];
+#define gUnk_03000788 gMenuSlotStates
 extern u8 gUnk_03000808;
 extern u8 gUnk_03000809;
 extern u8 gUnk_0300080A;
-extern u8 gUnk_030007BA;
-extern u8 gUnk_030007BA;
+extern u8 gMenuMasterCursor;
+#define gUnk_030007BA gMenuMasterCursor
 extern u8 gUnk_0300080C[];
 extern u8 gUnk_03000811;
 extern u8 gUnk_03000812;
@@ -327,7 +331,7 @@ extern Unk_03000E08 gUnk_03000E08[];
 extern u8 gUnk_03000E30;
 extern u8 gUnk_03000E68;
 extern u8 gUnk_03000E69;
-extern u32 gUnk_03000E6C;
+extern u32 gScriptCursor; /* 0x03000E6C: 脚本 VM PC 槽, 存当前 opcode 字节地址 (EWRAM 脚本区) */
 extern u16 gUnk_03000E70;
 extern u8 gUnk_03000E72;
 extern u8 gUnk_03000E74;
@@ -680,6 +684,8 @@ extern u8 gCameraDrawMode;
 extern u16 gHBlankEffectMode;
 extern u16 gMoveCmdSetId;
 extern u8 gUnk_03004618;
+extern u16 gUnk_0300461C;
+#define gCameraPanStartY gUnk_0300461C
 
 /* 已看过的开场整屏图位图: bit i ↔ gScreenIdleIconPageMap[i] (地图 ID);
  * bit 13 (地图 0x78) 由事件标志 0xFD 解锁 (ScreenIdleIcons_BuildList) */
@@ -690,6 +696,8 @@ extern u8 gScreenIdleIconIds[];
 extern u8 gScreenIdleIconCursor;
 
 extern u8 *gChoiceListPtr;
+extern u16 gUnk_03004630;
+#define gCameraPanTargetX gUnk_03004630
 extern u8 gUnk_03004634;
 extern u8 gSpawnTileY;
 /* MapZone_FindAt 命中的区域动作号 (0..4, 0xFF=未命中); MapZone_Trigger 按它分发 */
@@ -735,23 +743,7 @@ extern u16 *gUnk_03004694;
 #define gPendingPortraitPalette gUnk_03004694
 extern u16 gBg1ScrollMode;
 
-typedef struct
-{
-    u8 field_0;
-    u8 field_1;
-    u8 field_2;
-    u8 field_3;
-    u8 field_4;
-    u8 field_5;
-    u8 field_6;
-    u8 field_7;
-    u8 field_8;
-    u8 field_9;
-    u16 field_A;
-    u8 *field_C;
-} Unk_030046A0;
-
-extern Unk_030046A0 gUnk_030046A0[];
+#include "anim_slot.h"
 
 /* 当前地图的区域头表指针 (MapScene_Load 从 0x087EBB20[mapIdx] 装载):
  * {u32 cells; u32 type0..type4} — cells: {u8 count, {u8 xTile, u8 yTile, u8 type, u8 entryIdx}[count]}
@@ -763,6 +755,7 @@ extern s16 gScreenFadeProgress;
 extern u16 gUnk_030047AC;
 extern u16 gCurrentMapId;
 extern u8 gUnk_030047B4;
+#define gCameraPanDuration gUnk_030047B4
 extern u8 gChoiceDestY;
 extern u8 gChoiceGroupIdx;
 
@@ -774,17 +767,37 @@ extern u8 *gUnk_030047CC;
 // extern Unk_03004670 gSlotPalId;
 extern u8 gSlotPalId[];
 /* 每个精灵表槽位(0..11)当前使用的调色板编号, 0xFF = 该槽空。写: SetSlotPalId。 */
+extern u16 gUnk_030047DC;
+#define gCameraPanStartX gUnk_030047DC
 
 extern u8 gMapNpcSetId;
 extern u16 gUnk_030047EC;
 /* Signed per-frame change applied to gScreenFadeProgress. */
 extern s16 gScreenFadeStep;
+extern u16 gPaletteFxPhase; /* 0x030047F4: 调色板特效相位计数 (PaletteEffects_Update 读/清, Op_SysEffect subop4-3 复位) */
 
+/* gViewportFlags 下标语义 (写点: Viewport_UpdateEffects / Op_SysEffect / BgMap_FillRow) */
+enum ViewportFlagIdx
+{
+    VF_EFFECT_EN     = 0,  /* 特效使能位: bit0/1=视口抖动 plane, bit2=白闪 */
+    VF_SHAKE1_OFF    = 1,  /* plane1 抖动偏移 = Rand_TableNext() & VF_SHAKE_MASK */
+    VF_SHAKE2_OFF    = 2,  /* plane2 抖动偏移 = 同上 */
+    VF_FLASH_CNT     = 3,  /* 白闪帧计数 0..0xF (Viewport_UpdateEffects bit2 分支) */
+    VF_SHAKE_MASK    = 4,  /* 抖动随机掩码 (Op_SysEffect subop0: arg 1/2/其它 → 1/3/7) */
+    VF_WHITEOUT_CNT  = 10, /* 白化淡入/出帧计数 (Op_SysEffect subop0xCA) */
+    VF_FADE_LONG_CNT = 11, /* SYSFX_FADE_LONG 长渐变帧计数 (1..0x3E) */
+    VF_SAVEUI_STEP   = 12, /* 存档 UI OBJ 调色板装载步号 0..3 (Op_SysEffect subop8) */
+    VF_BGMAP_FILL    = 13, /* 行填充请求 (BgMap_FillRow 置位, 主循环消费清零) */
+    VF_FADE_PHASE    = 14, /* SYSFX_FADE_2PH 渐变相位闩 (0=第一相, 1=收尾) */
+    VF_FADE_FRAME    = 15, /* 调色板渐变帧计数 (subop4-1/4-4 与 subop7 共用) */
+};
 extern u16 gViewportFlags[];
 extern u8 gEncounterEnabled;
 extern u8 gChoiceDestX;
 
 extern u16 gBG2ScrollY;
+extern u16 gUnk_03004830;
+#define gCameraPanTargetY gUnk_03004830
 
 /* Third ScreenFade_Start argument; currently only its initialization is observed. */
 extern s16 gScreenFadeParam;
@@ -798,6 +811,8 @@ extern u8 gWin0HWaveTable[];
 /* 81 packed WIN0H boundaries generated for the iris transition. */
 #define gWindowTransitionScanlineTable gWin0HWaveTable
 extern u8 gSceneSubState;
+extern u8 gUnk_03004844;
+#define gCameraPanStep gUnk_03004844
 
 extern u16 gBG2ScrollX;
 extern u16 gBG3ScrollX;
@@ -906,6 +921,7 @@ typedef struct
 extern PlayerStats gPartyStats[];
 
 extern u8 gUnk_03004D44;
+extern u16 gUnk_03004D48;
 
 extern u8 gUnk_03004D4C;
 extern u8 gUnk_03004D50;

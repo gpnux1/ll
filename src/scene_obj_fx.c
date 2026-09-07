@@ -6,6 +6,7 @@
 #include "include_asm.h"
 #include "iwram.h"
 #include "m4a.h"
+#include "menu_slot.h"
 #include "save.h"
 #include "sound.h"
 
@@ -247,19 +248,19 @@ void sub_80210C0(void *arg0, u8 arg1)
 }
 
 // @ 0x08021130
-void sub_8021130(void)
+void MenuSlot_ResetAll(void)
 {
     u8 i;
 
     for (i = 0; i < 10; i++)
     {
-        gUnk_03000788[i][0] = 0;
-        gUnk_03000788[i][1] = 0;
-        gUnk_03000788[i][2] = 0;
-        gUnk_03000788[i][3] = 0;
-        gUnk_03000788[i][4] = 0;
+        gMenuSlotStates[i][0] = 0;
+        gMenuSlotStates[i][1] = 0;
+        gMenuSlotStates[i][2] = 0;
+        gMenuSlotStates[i][3] = 0;
+        gMenuSlotStates[i][4] = 0;
     }
-    gUnk_030007BA = 0;
+    gMenuMasterCursor = 0;
 }
 // @ 0x08021184
 void sub_8021184(u8 arg0, u8 *arg1)
@@ -278,20 +279,20 @@ void sub_8021184(u8 arg0, u8 *arg1)
     switch ((s8)b)
     {
         case 0:
-            gUnk_0300076A = gUnk_030007BA;
+            gUnk_0300076A = gMenuMasterCursor;
             break;
         case 3:
-            if ((s8)gUnk_0300076A != (s8)gUnk_03000788[idx][0])
+            if ((s8)gUnk_0300076A != (s8)gMenuSlotStates[idx][0])
             {
                 gUnk_0300076C |= 2;
             }
-            gUnk_0300076A = gUnk_03000788[idx][0];
+            gUnk_0300076A = gMenuSlotStates[idx][0];
             break;
         case 6:
-            if ((s8)gUnk_03000788[idx][2] < gUnk_03000770)
+            if ((s8)gMenuSlotStates[idx][2] < gUnk_03000770)
             {
-                gUnk_03000781 = gUnk_03000788[idx][1];
-                gUnk_03000782 = gUnk_03000788[idx][2];
+                gUnk_03000781 = gMenuSlotStates[idx][1];
+                gUnk_03000782 = gMenuSlotStates[idx][2];
             }
             else
             {
@@ -300,10 +301,10 @@ void sub_8021184(u8 arg0, u8 *arg1)
             }
             break;
         case 7:
-            if ((s8)gUnk_03000788[idx][4] < gUnk_03000808)
+            if ((s8)gMenuSlotStates[idx][4] < gUnk_03000808)
             {
-                gUnk_03000809 = gUnk_03000788[idx][3];
-                gUnk_0300080A = gUnk_03000788[idx][4];
+                gUnk_03000809 = gMenuSlotStates[idx][3];
+                gUnk_0300080A = gMenuSlotStates[idx][4];
             }
             else
             {

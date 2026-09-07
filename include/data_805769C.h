@@ -36,9 +36,101 @@ extern const u8 gDialogPortraitPaletteIds[];
 extern const u32 gDialogPortraitGfxTable[]; /* 88 项, 定义在 src/data_87E83F0.c */
 extern const u32 gDialogPortraitTilemapPtrs[];
 
+/* 菜单实体描述组 (0x0808A04C, 488 B): 26 组, 由 gUnk_087EA138[26] 指针表指向。
+ * 每组 = {u8 count; count × {u8 flags, u8 animShift, u8 palIdx, u8 strlen, u8 glyphs[strlen]}},
+ * 消费端 MenuEnt_ParseAll/Range → MenuEnt_ParseDesc, glyphs 是调色板动画序列。 */
+extern const u8 gMenuEntDescGroups[];
+
 /* 菜单实体 OBJ 调色板表 (0x0808A234): 124 项 × 0x20 字节。
  * 每项第一个半字为保留值，MenuEnt_FlushPalettes 从 +2 DMA 15 色。 */
-extern const u8 gMenuEntityPaletteTable[];
+/* MenuEnt 调色板动画帧库 (0x0808A234, 173 × 0x20 = 5536 B, 项号 0x00..0xAC):
+ * PaletteTransfer_Update 按帧号<<5+2 寻址; 项 0x7C (0x0808B1B4) 为 Op_SysEffect
+ * 闪光帧组 (linker 别名 gFlashFxPaletteTable)。内容分区见 data_805769C.c 注释。 */
+extern const u16 gMenuEntPaletteFrames[];
+
+/* 存档菜单 UI OBJ 调色板 (0x0808B7D4, 2 × 0x20) → OBJ bank14 (0x050001C0):
+ * [0] 蓝系渐变 / [1] 绿系渐变; sub_8011454 三分支各取 32B, sub_80160F4 整表 64B。 */
+extern const u16 gSaveMenuUiPalettes[];
+
+/* 0x0808B814, 24884 B: gUnk_087EA1A0[] 动画模型记录链 (248 组变长, 见 AnimSlot_Parse) */
+extern const u8 gAnimModelGroups[];
+
+/* 精灵资源配置总表 (0x087EA1A0, 248 项): setId → gAnimModelGroups 内组起点。 */
+extern const u8 *const gUnk_087EA1A0[248];
+
+/* 0x08091948, 2216 B: NPC 槽组表 (MapScene_LoadNpcSlotIds/Sprites_LoadMapNPCs) */
+extern const u8 gMapNpcSlotGroups[];
+#define byte_8091948 gMapNpcSlotGroups
+#define gUnk_08091948 gMapNpcSlotGroups
+
+/* 0x080921F0, 88 B: 职业x八维属性 成长曲线号表 9x8 (sub_8009F70) */
+extern const u8 gClassStatCurveTable[];
+#define unk_80921F0 gClassStatCurveTable
+
+/* 0x08092248, 400 B: 等级提升所需经验表 (100 级) */
+extern const u32 gLevelUpExpTable[];
+#define unk_8092248 gLevelUpExpTable
+
+/* 0x080923D8, 4100 B: 成长分段表 (每段[0]=段长, 100B x41) */
+extern const u8 gStatGrowthCurveTables[];
+#define unk_80923D8 gStatGrowthCurveTables
+
+/* 0x080933DC, 60 B: 成长表尾 */
+extern const u8 gStatGrowthTail[];
+#define unk_80933DC gStatGrowthTail
+
+/* 0x08093418, 648 B: 技能/道具表 (byte_8093418 312B + byte_8093550 336B) */
+extern const u8 gSkillLearnTable[];
+#define byte_8093418 gSkillLearnTable
+#define gUnk_08093418 gSkillLearnTable
+extern const u8 byte_8093550[];
+
+/* 0x080936A0, 6536 B: 消息文本 (0xFF 分隔主消息池) */
+extern const u8 gMsgPoolMain[];
+#define byte_80936A0 gMsgPoolMain
+
+/* 0x08095028, 2048 B: 道具名称字符串表 (256 项 x 8 字节) */
+extern const u8 gItemNames[];
+#define stru_8095028 gItemNames
+
+/* 0x08095828, 500 B: 角色名称字符串表 (8 字节/项) */
+extern const u8 gCharacterNames[];
+#define stru_8095828 gCharacterNames
+
+/* 0x08095A1C, 10068 B: 地图 BG 表组 (0x08007F2C/0x08011938 对表: 95A1C/95C94/95F14/9619C/963C0/96B2C/976E4) */
+extern const u8 gMapBgTables[];
+
+/* 0x08098170, 408 B: 存档签名 LUNAR1_12_09+参数族 */
+extern const u8 unk_8098170[];
+#define gSaveMetaArea unk_8098170
+extern const u8 aLunar11209[];
+extern const u8 word_80981B0[];
+extern const u8 word_80981E6[];
+extern const u8 byte_80981EE[];
+
+/* 0x08098308, 17708 B: 数字字形/字符串杂项 (0x087EB1F4 71 项表 + 9888B 大块) */
+extern const u8 gSaveMiscTables[];
+
+/* 0x0809C834, 17188 B: 压缩图块库 ({src,VRAM} 对表 0x08007F00/0x08008ADC 引用) */
+extern const u8 gMapGfxLz77Blocks[];
+
+/* 0x080A0B58, 1980 B: 存档菜单 LZ77 图 (0x080A0B58 1912B + unk_80A12D0 68B, code_8010F10.c 字面量) */
+extern const u8 gSaveMenuGfxLz77[];
+
+/* 0x080A1314, 101096 B: 10C0 头对话资源块 x119 (0x087E8430 表) */
+extern const u8 gDialogDataBlocks[];
+
+/* 0x080B9DFC, 3296 B: 精灵 OBJ 调色板 x103 (每项 16 色 BGR555) */
+extern const u8 gSpriteObjPalettes[];
+
+/* 0x080BAADC, 1144 B: 尾部杂项 (word_80BAADC/unk_80BAB1C/gUnk_080BABA0/byte_80BABE0/unk_80BAE10) */
+extern const u8 gDataTail_080BAADC[];
+
+/* 特效与脚本调色板 / 表指针 (Op_SysEffect & Script VM) */
+extern const u16 gFlashFxPaletteTable[];            /* 0x0808B1B4: 闪光特效 16 色调色板 */
+extern const u8 gObjPalFadeInSteps[];               /* 0x08289B6E: OBJ 调色板 10 帧渐显步进表 */
+extern const u16 gObjPalFadeInFinal[];              /* 0x083936A8: 渐显末帧 16 色 (OBJ bank 10) */
+extern u16 (*const gScriptOpcodeHandlers[])(u32 *); /* 0x0862D434: 80 项脚本 opcode 处理函数表 */
 
 extern const u8 pltt_08057854[];
 extern const u8 tilemap_08057874[];

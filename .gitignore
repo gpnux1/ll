@@ -10,6 +10,7 @@ tools/agbcc/
 docs/reports/
 
 *.dump
+*.dump.dmp
 
 *.json
 
@@ -57,6 +58,7 @@ baserom.o
 # 认领锁 (claim.sh 的运行时状态, 机器/会话相关, 不入库)
 .claims/
 
+.vscode/
 
 .zcode
 
