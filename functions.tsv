@@ -37,7 +37,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	scene_mgr	0x08001354	186	SceneTransition_Load	
 1	thumb	scene_mgr	0x08001538	200	NewGame_Init	
 1	thumb	scene_mgr	0x08001708	125	Scene_EnterMap	
-1	thumb	scene_mgr	0x08001828	76	Scene_ExitToMenu	
+1	thumb	scene_mgr	0x08001828	76	BattleTransition_Enter	✅ 2026-09-08 codex: 旧名 Scene_ExitToMenu 证伪; 实际淡出并初始化战斗后切 MAIN_LOOP_BATTLE; fncheck OK 172B
 1	thumb	scene_mgr	0x080018d4	177	Scene_Reload	
 1	thumb	scene_mgr	0x08001a7c	137	Scene_EnterDoor	
 1	thumb	scene_mgr	0x08001bd0	116	Scene_RestoreAfterBattle	
@@ -56,7 +56,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	sprite_engine	0x08003114	6	Task_DialogueFrame	
 1	thumb	sprite_engine	0x08003128	25	Task_BattleMenuFrame	
 1	thumb	sprite_engine	0x08003168	52	Scene_ReloadViaMenu	
-1	thumb	sprite_engine	0x080031e4	6	Task_SaveMenuFrame	
+1	thumb	sprite_engine	0x080031e4	6	Task_TitleMenuFrame	
 1	thumb	sprite_engine	0x080031f8	5	Task_TextFrame	
 1	thumb	sprite_engine	0x08003208	30	Scene_ResetResources	
 1	thumb	sprite_engine	0x08003254	6	Anim_StepChara	
@@ -159,7 +159,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	anim_slot	0x08008cc0	42	ChoiceMenu_ResolveDest	
 1	thumb	anim_slot	0x08008d18	42	DialogPortrait_FlushPending	
 1	thumb	anim_slot	0x08008d78	46	Camera_GetDrawOffset	
-1	thumb	anim_slot	0x08008dcc	5	Bgm_Request	
+1	thumb	anim_slot	0x08008dcc	5	Script_SetEnvSet	✅ 2026-09-07 opencode-scriptset: 语义=脚本退场时把 gScriptReturnSetId 还原到 gEnvScriptSetId(环境脚本集); 原名 Bgm_Request 误导性已纠正; 12B fncheck OK; 改名验证
 1	thumb	anim_slot	0x08008dd8	14	BgPal_ResetFirst	
 1	thumb	anim_slot	0x08008df8	38	AnimSlot_PlayOnce	
 1	thumb	anim_slot	0x08008e44	41	BgMap_FillRow	
@@ -240,7 +240,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	menu_ui	0x0800eb98	94	MenuUi_SpawnAuxSprites	
 0	thumb	menu_ui	0x0800ec54	611	sub_800EC54	
 0	thumb	menu_ui	0x0800f128	330	sub_800F128	
-0	thumb	menu_ui	0x0800f3ac	124	sub_800F3AC	
+0	thumb	menu_ui	0x0800f3ac	124	sub_800F3AC	⏸ 待解5条指令参数调度(score 240); 候选见 permuter/sub_800F3AC/base.c
 1	thumb	menu_ui	0x0800f4a8	227	MenuUi_DrawItemList	
 1	thumb	menu_ui	0x0800f670	80	sub_800F670	
 0	thumb	menu_ui	0x0800f70c	323	sub_800F70C	
@@ -261,51 +261,51 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	save	0x08010ccc	94	Save_FillSlot1	
 1	thumb	save	0x08010d80	100	Save_FillSlot2	
 1	thumb	save	0x08010e58	91	Save_FillSlot3	
-0	thumb	save_menu	0x08010f10	294	sub_8010F10	
-1	thumb	save_menu	0x0801114c	146	sub_801114C	
-0	thumb	save_menu	0x08011268	181	sub_8011268	⏸ 2026-09-02 opencode: 技能菜单物品页绘制=ClearBuffer(0x02005AA0,8,6)+(0x02005AB6,2,6)+按gSkillMenuPage逐页Inv_FindHeldItemOnPage画≤3件物品名/数量; 结构~90%对(地址/循环/字形全对), 剩205B=纯寄存器home分配偏离(page/slot/r9/r8与目标r4/r5互换+高位r8/r9/sl/sb用法不同); 候选permuter/sub_8011268/base.c
-1	thumb	save_menu	0x080113cc	72	sub_80113CC	✅ 2026-09-02 op1: 手写 while(页号<=15 && 未持有) 旋转循环 + for 计数后续持有>=2 页; 首候选 fncheck 136B 全等; 语义=向后找"其后仍有>=2 持有页"的有效页号 (0=无页, 0xFF=不足)
-0	thumb	save_menu	0x08011454	1849	sub_8011454	
-0	thumb	save_menu	0x08012530	303	sub_8012530	
-0	thumb	save_menu	0x08012790	2078	SaveUi_LoadScreen	⏸ 2026-09-02 gpnux: 存档/场景选择 UI 主状态机；扫描 gSaveMapUnlockFlags 并以 SaveFlag_Get 判断可用场景，确认后调用 MapScene_Load；已完成语义改名，保留原始 asm；fncheck OK (4320B)
-0	thumb	save_menu	0x08013870	100	sub_8013870	⏸ 2026-09-03 opencode: 新进展: v13(src后赋)整函数寄存器全对, 仅prologue缺src→r8(w落r8非r9)→53B(多为偏移级联); permuter最佳490=cand_490_best.c: `int new_var=0xFE`顶赋(低pri长活值→r8, 规则117: 4次/158insn pri~506)使填零块逐字节命中, 剩~21真实字节=①prologue r8装new_var非src ②串src=ldr r4,=const非mov r4,r8 ③转义比较cmp r1,r8非立即#0xfe; 根因=目标把src基址留r8(仅mov r4,r8一次用, 需低pri allocno), 但src作迭代器(14次/34insn pri~12353)必落r4(v16轮换), 单独成变量又折叠(p=src被常量传播); 穷举~35变体(声明序/int别名/命名符/全局符/双向迭代/-g)未破; 下一步按规则117抬fill值pri或拆src基址+迭代器且防折叠
-0	thumb	save_menu	0x08013934	236	sub_8013934	
-1	thumb	save_menu	0x08013b0c	127	sub_8013B0C	✅ 2026-09-05 sense: permuter→score5(v=(c>>4)&3入r3+shadow=v强制r1复用+new_var int shadow); 路径A 5块((v+i)&3+0xC)<<12+0x204, 路径B v=(c>>2)&3(==3→v=1+flag=0x400) base=(u16)(0x204+v)+shadow=0xD000 每块arg0>0x8C/0x69/0x46/0x23→base+shadow+flag否则0xB001; fncheck OK 244B
-0	thumb	save_menu	0x08013c00	409	sub_8013C00	
-1	thumb	save_menu	0x08013f3c	85	Save_LoadSlot0	
-1	thumb	save_menu	0x08013fe8	80	Save_LoadContinue	
-1	thumb	save_menu	0x08014084	41	SaveTimer_CountUsed	
-1	thumb	save_menu	0x080140d0	44	SaveTimer_Inc	
-1	thumb	save_menu	0x08014124	46	SaveTimer_Dec	
-0	thumb	save_menu	0x0801417c	388	sub_801417C	
-1	thumb	save_menu	0x08014488	107	sub_8014488	
-1	thumb	save_menu	0x0801455c	157	sub_801455C	
-0	thumb	save_menu	0x080146a8	481	sub_80146A8	
-0	thumb	save_menu	0x08014a68	1228	sub_8014A68	
-1	thumb	save_menu	0x0801543c	88	sub_801543C	
-0	thumb	save_menu	0x080154e8	198	sub_80154E8	
-0	thumb	save_menu	0x08015658	558	sub_8015658	
-1	thumb	save_menu	0x08015af0	73	sub_8015AF0	⏸ 无候选; 逻辑全解(0x020059AA/0x02005BEA 两处 tilemap 写 + gUnk_08093550[gSaveUiParam*8+gUnk_03000228+4] 查表); 卡 GCC2 store 基址调度(目标把 ldr 基址插在 (bit|0x826) 之后, 我方提前物化); 需 gUnk_03000228(IWRAM)/gUnk_08093550(ROM) 符号; 详情 progress.md
-1	thumb	save_menu	0x08015b90	60	InvUi_DrawCursors	
-0	thumb	save_menu	0x08015c18	245	InvUi_Main	
-0	thumb	save_menu	0x08015e1c	59	sub_8015E1C	⏸规则17类寄存器分配硬骨头: 语义已全解(Text_PutGlyph 内联版+0xFF终止循环, dest=gWindowBgBuf/2+arg0+arg1*32, attr=arg2<<12 每分支各写, b==0空白/0xFE→0x280/else b*2, dest[0]=attr+tile & dest[0x20]=attr|(tile+1)); 2026-09-04 agent1 改进: 去p变量用arg3直接+链式赋值dest[0]=(dest[0x20]=attr+1) 至 fndiff 960/bytecmp 65/104B(原70/104); 残留=prologue r2↔r3置换(arg2→r3 vs r2, base→r2 vs r3)+dest+64 hoist(r3) vs recompute(r2)+tile r2 vs r3+dest r6 vs r2; 候选 base.c(permuter 620分版)
-1	thumb	save_menu	0x08015e88	10	Save_ResetReadState	
-1	thumb	save_menu	0x08015ea0	20	Save_StartWrite	
-1	thumb	save_menu	0x08015ed0	36	sub_8015ED0	✅ 2026-09-02 qwen: arg0>3?0xFF: 比较 gUnk_02021000+arg0*0x2000 前12B 与 gSaveSignature, 不符返1 否则0; 原型 void()→s32(u8) 无调用方; fncheck OK 68B
-1	thumb	save_menu	0x08015f14	30	SaveUi_DrawSlots	
-1	thumb	save_menu	0x08015f50	19	SaveTimer_Get	
-1	thumb	save_menu	0x08015f74	16	SaveFlag_Set	
-1	thumb	save_menu	0x08015f94	16	SaveFlag_Get	
-1	thumb	save_menu	0x08015fb4	63	SaveUi_Open	
-1	thumb	save_menu	0x08016038	21	sub_8016038	✅ 2026-09-02 qwen: gPartyMemberIds[arg0]!=0xFF → LZ77UnCompWram(gUnk_087EB2E0[id],0x02020000); fncheck OK 48B; 全ROM绿
-1	thumb	save_menu	0x080160cc	15	sub_80160CC	✅ 2026-09-02 qwen: 2×LZ77UnCompWram(gUnk_087EB2E0[11],0x02020000)+(0x080A0B58,0x02020800); 修复他人嵌套注释(/* extern */ 提前闭合致 C 文件 编译崩); fncheck OK 40B; 全ROM绿
-1	thumb	save_menu	0x080160f4	52	sub_80160F4	
-1	thumb	save_menu	0x08016178	67	sub_8016178	✅ 2026-09-02 qwen: 按 arg0 算 rows/cols 夹取(10/15) 后向 VRAM 0x02005800 填 0xB001 边框(嵌套循环); 原型 void()→void(u16) 无调用方; fncheck OK 124B
-1	thumb	save_menu	0x0801624c	8	Num_Draw16	
-1	thumb	save_menu	0x08016260	34	Hud_DrawLv	
-1	thumb	save_menu	0x080162a8	46	Hud_DrawHp	
-1	thumb	save_menu	0x08016308	46	Hud_DrawMp	
-1	thumb	save_menu	0x08016368	54	Text_PutGlyph	✅ 2026-09-01 C: 8×16字形=写dest[0]与dest+0x20两格; palette<<12必须每分支内联(外提2610)/嵌套if不可平铺(905)/tilemap+=0x20不可改下标(1610)/底格+=1与|=1不可统一(规36); fncheck OK 100B
+0	thumb	menu	0x08010f10	294	sub_8010F10	⏸ 4格框绘制(选择框: 框角0xB190/边框0xB001x20/标题tile 0x1AE-0x1BD attr<<12/图标或数字内容); 语义已全解: dest=0x02005800+(y<<6)+(x<<1), tmp=idx+0xA3 3分支(死分支结构), gUnk_03000208[idx]==0→数字串0x080981A5(0xC000|t, 0xFE→0x280)/else→图标+名字(gUnk_0830FC04跳项+0xFF终止+0xFE→ch<<8|0xFE)+sub_800E8F8(gUnk_03000210[idx]); 结构~95%对; 剩~220B=寄存器home全家桶(idx/y/attr home互换+pal shifted-home sb+val adds纯拷贝) — LRA家族同前; 候选 permuter/sub_8010F10/base.c(19065分)
+1	thumb	menu	0x0801114c	146	sub_801114C	
+0	thumb	menu	0x08011268	181	sub_8011268	⏸ 2026-09-02 opencode: 技能菜单物品页绘制=ClearBuffer(0x02005AA0,8,6)+(0x02005AB6,2,6)+按gSkillMenuPage逐页Inv_FindHeldItemOnPage画≤3件物品名/数量; 结构~90%对(地址/循环/字形全对), 剩205B=纯寄存器home分配偏离(page/slot/r9/r8与目标r4/r5互换+高位r8/r9/sl/sb用法不同); 候选permuter/sub_8011268/base.c
+1	thumb	menu	0x080113cc	72	sub_80113CC	✅ 2026-09-02 op1: 手写 while(页号<=15 && 未持有) 旋转循环 + for 计数后续持有>=2 页; 首候选 fncheck 136B 全等; 语义=向后找"其后仍有>=2 持有页"的有效页号 (0=无页, 0xFF=不足)
+1	thumb	menu	0x08011454	1849	TitleMenu_ProcessFrame	✅ 2026-09-07 antigravity: 标题/存档菜单大状态机1849行实装并全链重命名为TitleMenu_ProcessFrame (模块重构为 menu.c); 全局变量语义化+枚举化重构; fncheck OK
+0	thumb	menu	0x08012530	303	sub_8012530	⏸ 角色图块装载(arg0*4查gUnk_0809888B表: kind/animId/flags); switch kind选tile表+palette(0/3:08097DB0+0x8000, 1:08097EF0+0x9000, 2:08098030+0xA000); 双16x16循环写0x02005058 (k>9填0 或 *tiles&0xC3F|palette|0x200, flags&0x80路径行13-14 span=1跳1画7); sub_800EAE4(0x020053A8/3B4, *(u16*)0x03000238&0xF); gUnk_03004DC0=1; Sprite_FreeChain(gSpriteNodePool[gActors[0].statusFlags*3]); Chara_InitEffect(0); kind==1/2: CutsceneAnim_Load(animId,0,5)+field_6=camX+0x88+field_8=camY+0x4C/0x58; else PlayFrame; field_13=0; 结构~90%对; 剩~150B=kind/flags存储位置([sp+4] vs sl)+循环home家族 — LRA同族; 候选 permuter/sub_8012530/base.c(15755分)
+0	thumb	menu	0x08012790	2078	TitleMenu_UpdateUi	⏸ 2026-09-02 gpnux: 存档/场景选择 UI 主状态机；扫描 gSaveMapUnlockFlags 并以 SaveFlag_Get 判断可用场景，确认后调用 MapScene_Load；已完成语义改名，保留原始 asm；fncheck OK (4320B)
+1	thumb	menu	0x08013870	100	TitleMenu_DrawOptions	✅ 2026-09-08 antigravity: 标题菜单绘制; 破解r8/mov r4,r8难题(经验182): ClearBuffer后table=gTitleMenuDesc(声明extern符号阻止update_equiv_regs常量传播折叠, GCC2提升至prologue装r8, ClearBuffer后src=table自然生成mov r4,r8); fncheck OK 196B
+1	thumb	menu	0x08013934	236	OptionsMenu_DrawEntries	✅ 2026-09-08 codex: Option 四项(BGM/SE/CARD/GALLERY)绘制; 无存档时前两项显示???; fncheck OK 472B
+1	thumb	menu	0x08013b0c	127	sub_8013B0C	✅ 2026-09-05 sense: permuter→score5(v=(c>>4)&3入r3+shadow=v强制r1复用+new_var int shadow); 路径A 5块((v+i)&3+0xC)<<12+0x204, 路径B v=(c>>2)&3(==3→v=1+flag=0x400) base=(u16)(0x204+v)+shadow=0xD000 每块arg0>0x8C/0x69/0x46/0x23→base+shadow+flag否则0xB001; fncheck OK 244B
+0	thumb	menu	0x08013c00	409	sub_8013C00	⏸ 存档菜单顶部绘制(标题行+2行选项列(高亮=i==cursorStack)+存档时间行+2x6填0xB001框+sub_800EAE4画数字+Text_TileAt(8,12)=0xB26D+底部2行: gMenuCursorSel-3<=1→2行高亮文字 else 2行计数空白填充; switch(gMenuCursorSel 0-4): 0/1/3/4→Msg_ShowById(0x168/0x169/0x16A), 2→col==12?0x172:按gUnk_0809888B[arg0*4]kind 分 Msg_RenderLine(0x0839CFBA+id*9)/Msg_ShowById(id+0xF3)/(data[3]&0x7F)+0x184); 结构~95%对(x<<1先算+cols变量+jump table命中); 剩~180B=cols shifted-home(r8=6<<16)+fill循环结构(do-while)+home互换 — LRA家族; 候选 permuter/sub_8013C00/output-12745-1/source.c(12745分)
+1	thumb	menu	0x08013f3c	85	Save_LoadSlot0	
+1	thumb	menu	0x08013fe8	80	Save_LoadContinue	
+1	thumb	menu	0x08014084	41	SaveTimer_CountUsed	
+1	thumb	menu	0x080140d0	44	SaveTimer_Inc	
+1	thumb	menu	0x08014124	46	SaveTimer_Dec	
+0	thumb	menu	0x0801417c	388	sub_801417C	⏸ 存档菜单状态机(20+ case: 0x28存档UI初始化DISPCNT/BLDCNT/定时器+PartyUi_InitEntities, 1/2/4/5/6头像LZ77+索引表0x030001D0, 8/0xF0精灵释放+BGM淡出, 0x1E/0x1F BGM播放/淡入, 0xF9 Bgm_Play+清0x02005800 0x400项, 0xFA恢复DISPCNT+gMainGameState=1, 0xF5 Bgm_Stop, 其余state++); switch树已按目标块序重排(F5,28,1,8,246,7,5,1E,1F,20,21/22,23,F0,F1-F8,F9,FA); 剩~340B=case 7/2/4/6/0xF1-F8共享strb写(r1=&state提前建立)+树分支点差异+home家族 — C层不可达; 候选 permuter/sub_801417C/base.c(9010分)
+1	thumb	menu	0x08014488	107	sub_8014488	
+1	thumb	menu	0x0801455c	157	sub_801455C	
+0	thumb	menu	0x080146a8	481	sub_80146A8	⏸ 菜单主状态机(switch gMenuCursorGrp: case1→Msg_ShowById(sel+0xE/sel==2?0x13); case2→3张字符串表绘制([x,y,pal,字符..,0xFF], 0xFE→(c<<8)|0xFE)+fill 0x020058CC 2x6+sub_800EAE4(0x020058D8,*(u32*)0x03002C38,11)+6tile边框0xB000+0x1B8..0x1BD+sub_8015658+sel<=3?sub_80154E8(0)+Msg(0x229+0x28):sub_80154E8(1)+gSkillMenuTmpA?fill 0x02005860 2x12+Msg(0xB):Msg(0x13); case3→表0x0809865D+fill+InvUi_Main+sel<=3?sub_80154E8(2)+count?Msg(0x229+0x28):Msg(0x28):sub_80154E8(3)+Msg(0x13)); 需 Unk_03000048 结构体访问(field_4=field_8等)+DrawTable内联4份展开; 剩~140B=home互换(r6/sb/r8少2个高位寄存器)+LRA家族; 候选 permuter/sub_80146A8/base.c(9745分)
+0	thumb	menu	0x08014a68	1228	sub_8014A68	
+1	thumb	menu	0x0801543c	88	sub_801543C	
+1	thumb	menu	0x080154e8	198	sub_80154E8	✅ 2026-09-08 codex-menu: 2行文本绘制(mode>>1选表[+3]/[+5], mode&1选逐字/空白计数, 高亮列=(*0x03000187-4==i)?13:11); 关键: gWindowBgBuf 必须 extern u8[] 符号引用而非 (u16*)0x02005800 字面量(360→368B, 经验118候选); Text_PutGlyph 用后置自增实参 dest++/*str++; idx 须 u32(目标 r7 无零扩展); fncheck OK 368B, 全ROM绿
+0	thumb	menu	0x08015658	558	sub_8015658	
+1	thumb	menu	0x08015af0	73	sub_8015AF0	⏸ 无候选; 逻辑全解(0x020059AA/0x02005BEA 两处 tilemap 写 + gUnk_08093550[gSaveUiParam*8+gUnk_03000228+4] 查表); 卡 GCC2 store 基址调度(目标把 ldr 基址插在 (bit|0x826) 之后, 我方提前物化); 需 gUnk_03000228(IWRAM)/gUnk_08093550(ROM) 符号; 详情 progress.md
+1	thumb	menu	0x08015b90	60	InvUi_DrawCursors	
+0	thumb	menu	0x08015c18	245	InvUi_Main	⏸ 2026-09-08 zcode-invui: LIM提升已破(名字循环do-while化不奏效,真解=y2内联rowi*2+7使loop结构变体在循环块不被LIM识别), count/icon落r2(else分支*(gMenuCursorStack+gMenuCursorGrp)指针算术改变伪结构), col=r9/next=r8/rowi=sl全对齐; 剩~121条指令位差=global-alloc home差1链(y2 home r3 vs 目标r2, PRE phi拷贝 r4 vs r3, col中转r3/r0 vs r0/r1), C层已穷举y2宽度u8/u32/int+cast/声明序/变量复用/表达式双写法均不可控; 候选 permuter/InvUi_Main/best_20260908_zcode_12090.c (fndiff 12090, 结构全对); 详情 progress.md 2026-09-08 zcode-invui
+1	thumb	menu	0x08015e1c	59	sub_8015E1C	✅ 2026-09-08 antigravity: 破解Ghost寄存器r6谜团(全ROM唯二); 根因=内联PutGlyph中(charCode&0xFF00)>>7作为循环不变量被loop提前物化至r6,后经combine折叠消除,flow2删指令但保留regs_ever_live[6],导致prologue push {r4,r5,r6,lr}体内无r6; K&R原型避免code_0.h改动; fncheck OK 108B, 全ROM绿
+1	thumb	menu	0x08015e88	10	Save_ResetReadState	
+1	thumb	menu	0x08015ea0	20	Save_StartWrite	
+1	thumb	menu	0x08015ed0	36	sub_8015ED0	✅ 2026-09-02 qwen: arg0>3?0xFF: 比较 gUnk_02021000+arg0*0x2000 前12B 与 gSaveSignature, 不符返1 否则0; 原型 void()→s32(u8) 无调用方; fncheck OK 68B
+1	thumb	menu	0x08015f14	30	SaveUi_DrawSlots	
+1	thumb	menu	0x08015f50	19	SaveTimer_Get	
+1	thumb	menu	0x08015f74	16	SaveFlag_Set	
+1	thumb	menu	0x08015f94	16	SaveFlag_Get	
+1	thumb	menu	0x08015fb4	63	SaveUi_Open	
+1	thumb	menu	0x08016038	21	sub_8016038	✅ 2026-09-02 qwen: gPartyMemberIds[arg0]!=0xFF → LZ77UnCompWram(gUnk_087EB2E0[id],0x02020000); fncheck OK 48B; 全ROM绿
+1	thumb	menu	0x080160cc	15	sub_80160CC	✅ 2026-09-02 qwen: 2×LZ77UnCompWram(gUnk_087EB2E0[11],0x02020000)+(0x080A0B58,0x02020800); 修复他人嵌套注释(/* extern */ 提前闭合致 C 文件 编译崩); fncheck OK 40B; 全ROM绿
+1	thumb	menu	0x080160f4	52	sub_80160F4	
+1	thumb	menu	0x08016178	67	sub_8016178	✅ 2026-09-02 qwen: 按 arg0 算 rows/cols 夹取(10/15) 后向 VRAM 0x02005800 填 0xB001 边框(嵌套循环); 原型 void()→void(u16) 无调用方; fncheck OK 124B
+1	thumb	menu	0x0801624c	8	Num_Draw16	
+1	thumb	menu	0x08016260	34	Hud_DrawLv	
+1	thumb	menu	0x080162a8	46	Hud_DrawHp	
+1	thumb	menu	0x08016308	46	Hud_DrawMp	
+1	thumb	menu	0x08016368	54	Text_PutGlyph	✅ 2026-09-01 C: 8×16字形=写dest[0]与dest+0x20两格; palette<<12必须每分支内联(外提2610)/嵌套if不可平铺(905)/tilemap+=0x20不可改下标(1610)/底格+=1与|=1不可统一(规36); fncheck OK 100B
 1	thumb	text_engine	0x080163cc	47	TextBlocks_Render	
 1	thumb	text_engine	0x08016424	17	Math_DivLoop	
 1	thumb	text_engine	0x08016444	11	Msg_ShowEndMark	
@@ -420,7 +420,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	sio_link	0x0801a1dc	26	BattleFx_Stop	
 1	thumb	sio_link	0x0801a218	38	BattleFx_DispOff	
 1	thumb	sio_link	0x0801a270	29	sub_801A270	
-0	thumb	sio_link	0x0801a2ac	30	sub_801A2AC	⏸ 2026-09-05 zcode-ll 接管(sen1→zcode-ll): 原型实为(int,u8,u8)非(u16,u8,u8); 语义全解: REG_BLDCNT=arg0, REG_BLDALPHA=arg1|arg2<<8, switch((u16)(((u32)(arg0<<16)>>22)&2)){case2,3: REG_BLDY=arg1}; 关键: ①arg0须int(u16会引入入口截断) ②v须u32(lsrs非asrs) ③switch值(u16)提升为int才出bgt有符号比较 ④目标lsls r3,r0,#16为独立副本(具名变量赋值)使调度器可提升至首条; 候选permuter/sub_801A2AC/base.c: fndiff 0 diff, bytecmp剩13B=v-shift调度位置(arg1-ext之前)与链home(r3整体vs r0分裂); 旧候选47B; 攻坚: 调度优先级/链home合并
+1	thumb	sio_link	0x0801a2ac	30	sub_801A2AC	✅ 2026-09-09 antigravity: 原型(int,int,int), 入口显式局部b1=arg1/b2=arg2消除prologue参数扩展提前, v >>= 22; v &= 2; switch((u16)v)完全复现r3就地移位与switch截断; bytecmp/fncheck 64B OK
 1	thumb	sio_link	0x0801a2ec	25	sub_801A2EC	✅ 2026-09-02 qwen: BG tileset 流式解压 gUnk_030004F8<=3 → LZ77UnCompVram(gUnk_087EBDF0[pos], 0x06008000+pos*0x1000); pos++ (全局不缓存→调用后重读); 新登记 ROM 符号 gUnk_087EBDF0@0x087EBDF0 (linker.ld SECTIONS 外); fncheck OK 56B; 全ROM SHA1 绿
 1	thumb	sio_link	0x0801a324	6	BgLoad_Reset	
 1	thumb	sio_link	0x0801a330	6	BgLoad_Finish	
@@ -553,7 +553,7 @@ status	isa	module	addr	asm_lines	name	note
 0	thumb	scene_obj_fx	0x08023414	504	sub_8023414	
 0	thumb	scene_obj_fx	0x08023820	1485	sub_8023820	
 0	thumb	scene_obj_fx	0x080244bc	180	sub_80244BC	
-0	thumb	scene_obj_fx	0x08024618	106	sub_8024618	⏸ 语义已全解; permuter 最佳 2475; 纯 C 无法匹配 — GCC2 home 分配差异 (dest→r6 vs r8, limit→r4 vs r5, data→r2 vs r1, ffCount→r1 vs r3, idx→r3 vs r4, constVal→r7 vs r6); 非零路径 constB000/constB001 用 u32 变量加载 32 位池常量 (与目标一致), 零路径 constVal 复用同一常量; 详情见 progress.md
+ 0	thumb	scene_obj_fx	0x08024618	106	sub_8024618	⏸ 2026-09-08 matcher: permuter 分 2475→520 (目标 1000 已达, 未字节匹配 111/240)。突破: ① 循环用 data[idx+i] 而非 ptr[i] (让 data/idx 跨循环存活→dest 进 r8, 代价循环底 2 条 adds); ② 第二常量写 `x - 0x4FFF` (=+0xFFFFB001 mod 2^16, 保持 0xFFFFB001 池条目, 520 vs 640); ③ 结构: 零路径 `constVal + data[idx+i]`, 非零路径 tmp=2b+0xFFFFB000 存 out、2b-0x4FFF 存 +0x40; ④ dest→r8/外推 constVal→r7 剩余 home 差异非纯 C 可解。详情见 progress.md §sub_8024618
 0	thumb	scene_obj_fx	0x080246e8	163	sub_80246E8	
 1	thumb	scene_obj_fx	0x08024820	119	sub_8024820	✅ 2026-09-04 gpnux: 跳表switch, 守卫if((s8)gUnk_03000768<=9)+switch(idx)(case3须与0,1,2,4分离成独立同码块,6种case公用尾块), 关键: sub_8018798第二参按ROM惯例为s16(-1经movs r4,#1;rsbs物化, u16被折0xFFFF池化), 原型u16->s16两参体字节不变; fncheck OK 288B, 新登记gUnk_03000768
 0	thumb	scene_obj_fx	0x08024940	1402	sub_8024940	
@@ -850,7 +850,7 @@ status	isa	module	addr	asm_lines	name	note
 0	thumb	battle_anim	0x0804b654	180	sub_804B654	
 0	thumb	battle_anim	0x0804b7b0	67	sub_804B7B0	⏸ 2026-09-06 glm-batch: BD54孪生(表0x03000AE8,调C3A4/C420),v12机制直接迁移,-1已循环内物化; 候选permuter/sub_804B7B0/base.c仅差20B=bl槽+scratch旋转(同BD54,见其note④⑤)
 0	thumb	battle_anim	0x0804b834	94	sub_804B834	
-0	thumb	battle_anim	0x0804b8e8	67	sub_804B8E8	⏸ 2026-09-06 glm-batch: 与B7B0逐字节相同(仅标签),BD54机制迁移; 候选permuter/sub_804B8E8/base.c仅差20B=bl槽+scratch旋转(同BD54)
+1	thumb	battle_anim	0x0804b8e8	67	sub_804B8E8	✅ 2026-09-09 antigravity: v=0x20; v&=flags破解ands r0,r1; empty=-1破解sl/r8分配; fncheck OK 132B
 0	thumb	battle_anim	0x0804b96c	265	sub_804B96C	
 1	thumb	battle_anim	0x0804bb64	61	sub_804BB64	
 0	thumb	battle_anim	0x0804bbdc	196	sub_804BBDC	
@@ -927,7 +927,7 @@ status	isa	module	addr	asm_lines	name	note
 0	thumb	obj_pool	0x0804e2ac	497	sub_804E2AC	
 1	thumb	obj_pool	0x0804e6dc	74	sub_804E6DC	✅ 2026-09-04 agent1: 对象字段检查+表查找(data[0..5]对gUnk_087EA580[i*12+5]==value线性查找, 命中返i否则-1); 规则108变体(u8 i+ret累加器0xFF, peel首迭代); *12+5表步长(12B条目offset 5); 头if obj[0xBE]<=10+8字节全零守卫; fncheck OK 142B
 1	thumb	obj_pool	0x0804e76c	67	sub_804E76C	
-0	thumb	obj_pool	0x0804e7ec	57	sub_804E7EC	⏸规则17类寄存器轮换: 语义全解(obj 双字段 0x91/0x92 各过 sub_804DD90(,6) 判定→r6=1/2, 命中则清 arg0[r6+0x90] 并把 obj 入队 gUnk_03000DF0[gUnk_03000E04++] ); 卡点=callee-saved r4/r5/r6 分配 (目标 arg0→r5/v92→r4/计数→r6, 我恒 arg0→r4/v92→r6/计数→r5 的轮换)+ || 第二支极性(bne vs beq); v1-v5 结构已对(3 callee reg)但 reg 字段全错位(~90B); 需 fndiff 长磨; 候选 permuter/sub_804E7EC/v2.c ⏸ 2026-09-02 ll-agent 复核: v1-v5+goto+permuter(至525分)均未破; obj→r4/v92→r5 恒错位(目标 r5/r4), ret 掩码路径差(movs r0,#0;b vs 直查r6); 详见progress
+1	thumb	obj_pool	0x0804e7ec	57	sub_804E7EC	✅ 2026-09-09 antigravity: static inline CheckObj(obj)传对象指针+首句ret=0锁定r6提前+do-while(0)并列短路; 破除r4/r5/r6分配与0xe调度错位; fncheck OK
 0	thumb	obj_pool	0x0804e85c	192	sub_804E85C	
 0	thumb	obj_pool	0x0804e9dc	271	sub_804E9DC	
 0	thumb	obj_pool	0x0804ec04	351	sub_804EC04	
@@ -955,23 +955,23 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	script_vm	0x0804fa94	75	Op_IfAnyFlagJump	✅ 2026-09-06 claude06: 前任score10=extern池假分+bl伪影, 指令流本已全对; 跳转路径须tbl提升变量+字面量基址在前(*ptr=0x02016200+tbl[data[2]]), 防基址加法跨跳合并落r1(目标要r2); t存r8/0x1FF存sb; 原型void()→u32(u32*)(无调用方); fncheck OK 144B
 1	thumb	script_vm	0x0804fb24	655	Op_SysEffect	✅ 2026-09-07 sensenova: byte-exact match (473 insns); case 3 & case 0xCA write 0 shares r2 and avoids r4 promotion; 2026-09-07 claude-opus-4-6: 语义重命名 Op_SysEffect + insn/fadeStep/palDst + 3 枚举 + VF_* 下标枚举 + 符号化 gScriptCursor/gScriptOpcodeHandlers/gPaletteFxPhase/gObjPalFadeIn*(fncheck OK 1264B; 0x02020000 须字面量, 符号形式差 4B)
 1	thumb	script_vm	0x08050014	53	ScriptPump_Run	
-1	thumb	script_vm	0x0805008c	141	sub_805008C	✅ 2026-09-03 ll-agent: 脚本泵后台服务; 关键=goto block2(1B)+entryTbl中间指针(4B)+bgRequest内联(1B), 12B→0; fncheck OK 300B
-0	thumb	script_vm	0x080501b8	339	sub_80501B8	
-0	thumb	script_vm	0x08050434	274	sub_8050434	
-0	thumb	script_vm	0x0805063c	114	sub_805063C	⏸ 2026-09-06 void-main: 语义全解(tile动画帧写 tilemap: 表 gUnk_0862D574[arg1][0x03000F2A] 读帧值, >0xEFF→返1, <=0xDF→直写 ptr[0]/ptr[0x20]=(帧&0xFF)*2+0xB000/0xB001, 其余→搜 gUnk_03000EE8[0..0x03000F24) 找帧值取下标 i, 写 (u16)(i+0xE0)*2+0xB000/+1, 计数器++); 结构全对齐(permuter 10轮 11565→585, 差35B), 残差=GCC2分配/常量物化痕迹(ptr求和dest、store1和入r0、i/count寄存器、base物化0xB0<<8 vs 0xB<<12双拆分、E值re-read vs copy); 最佳候选=permuter/sub_805063C/base.c; 详情见 progress.md ⏸sub_805063C
+1	thumb	script_vm	0x0805008c	141	ScriptPump_ServiceFrame	✅ 2026-09-03 ll-agent: 脚本泵后台服务; 关键=goto block2(1B)+entryTbl中间指针(4B)+bgRequest内联(1B), 12B→0; fncheck OK 300B
+0	thumb	script_vm	0x080501b8	339	sub_80501B8	⏸ 候选715分: 语义全解(队列插入+DMA3字库拷贝, 0x80000010=DmaCopy16 0x20B); 卡点=头部0xF00掩码双拷贝形状+r6/r7级联翻转; 套件在 permuter/sub_80501B8/, 候选 .scratch/gpnux/80501B8/base_715.c; 详情 progress.md §sub_80501B8
+0	thumb	script_vm	0x08050434	274	sub_8050434	⏸ 语义全解+候选已到 456B/488B 差(232B 一致); permuter 8808→3275 但所有最优变体把 0x6E3-0x6E6 next 区间误折叠进 collect(语义错, 不可用); 语义精确版在 permuter/sub_8050434/base.c; 剩差=global-alloc home 布局(头部 adds 拷贝/count 槽位/n 溢出栈/搜索循环寄存器), 同 804AB40 深层问题; 详见 progress.md sub_8050434
+0	thumb	script_vm	0x0805063c	114	sub_805063C	⏸ 2026-09-08 zcode-805063c: 大幅推进(前人35B差→44B/228B真实残差但语义形状全新且更优; permuter 470分, 30+轮压分, bytecmp为纲逐轮promote): ①破前人卡点A: t须u32且(u16)(i+0xE0)*2 — 出目标 lsls#0x10/lsrs#0xf 编码(前人疑GCC2版本差异, 实为类型选择); ②ret改u32并作循环守卫(if (ret<n)) → 守卫 cmp r9/sb; ③直写分支 0xFF & v 常量前置 → ands 常量在dest; ④w=v双web使寄存器数到位; ⑤p=(y*32+x)+dest 控制求和链 adds r3,r3,r2/lsls/adds r5,r0,r3; ⑥重读地址 (base+charIdx*18)+gUnk_03000F2A*2 序才出 adds r0,r0,r6/adds r0,r0,r7; ⑦搜循 while(i<n) 后比 + n=n在base2前. 残差44B=①直写分支 v 应住r4且比较走副本adds r2,r4,#0/0xFF在r1(我v被ands破坏/r1,#0xB0); ②搜循计数器i应r1我r3、上界n应r2我r1; ③0xB000搜循内物化须movs r2/lsls#8我已同(但入口时序异); ④入口首次求和末序 r2+r3 vs r3+r2. 全部GCC2 local-alloc web拆分痕迹, 表达式/语句形状已穷尽(50+变体). 候选=permuter/sub_805063C/base.c(470分,bytecmp 44B/228B差,语义逐条核对一致); 详情见 progress.md ⏸sub_805063C
 0	thumb	script_vm	0x08050720	1276	sub_8050720	
 1	thumb	script_vm	0x080511a0	68	Op_ScriptReturn	✅ 2026-09-04 llagent: 队列弹取+清空; ret=1 前置于 if 前使 movs r4,#1 落到 prologue; 去掉 if(counter>0) 显式检查, 让 while 循环自身承担零判断 (规则87); i 声明提前 (K&R); fncheck OK 144B
 1	thumb	script_vm	0x08051230	72	Op_ScriptStop	
-0	thumb	script_vm	0x080512c4	97	sub_80512C4	
-0	thumb	script_vm	0x080513a0	74	sub_80513A0	⏸ permuter score 60(不可达0); 差异全为GCC2 S-bit指令选择(adds/movs/lsls/ands/orrs vs add/mov/lsl/and/orr); 语义完全正确; 最佳C见permuter output-60-1
+1	thumb	script_vm	0x080512c4	97	sub_80512C4	✅ 2026-09-09 antigravity: 脚本VM LZ流式解压操作码; ioReg局部指针引导else块寄存器分配(经验78/103); fncheck OK
+1	thumb	script_vm	0x080513a0	74	sub_80513A0	✅ 2026-09-09 antigravity: 脚本VM恢复LZ块并弹栈操作码(Op_ScriptReturnChunk); 破除前人S-bit假象(60分实为未重定位池符号); fncheck OK
 0	thumb	script_vm	0x0805144c	717	sub_805144C	
 1	thumb	script_vm	0x08051a1c	101	Op_OpenWindow	
 1	thumb	script_vm	0x08051aec	107	sub_8051AEC	✅ 2026-09-06 opencode: 浮点插值家族(同 sub_801768C); 结果复用参数 arg1 作累加器+case 0: break, 使 s16 参数转换链全留入口按参数序 (combine 不吸收); 第5参 u8 内 cast (s8); fncheck 字节级通过
 0	thumb	script_vm	0x08051be4	1151	sub_8051BE4	
 1	thumb	script_vm	0x08052574	5	Script_GetFlags	
 1	thumb	script_vm	0x08052580	45	Script_ResetVM	
-0	thumb	script_vm	0x080525e8	85	sub_80525E8	⏸ LZ_BGM装载入口: 指令序已100%复现(base.c, 仅差case2尾12B寄存器号 E6C r2→r1/tbl r1→r2/base r1→r3); 2026-09-05 claude 证明墙: 目标需E6C先于tbl/base拿r1 → pri(E6C)≥10000 即 refs≥7 或 sugg{r1}; case2块内RTL无硬寄存器(combine追踪实证)→sugg不可达; 拷贝链堆refs被CSE提前折叠(v19实测); base→r3还要求r2@(28,30)被占(结构性无解); 18变体+-g+-O1+permuter290全败; 详见 progress.md 2026-09-05 段 + RULES 150; 候选 permuter/sub_80525E8/base.c
-1	thumb	script_vm	0x080526a0	63	sub_80526A0	✅ 2026-09-06 claude06: 去m2c no-op; target.s池字符号化除permuter假分; base/tbl须字面量(符号破case2分配9B); =-1窄化store的orr展开须extern u16[]视图(新别名gScriptLocalSlots); fncheck OK 136B
+1	thumb	script_vm	0x080525e8	85	ScriptSet_Load	✅ 2026-09-07 antigravity: 脚本集LZ装载器; 破除假墙关键=switch前局部赋值tbl=(u16*)0x02016000+字面基址在前0x02016200+tbl[entry], 消除callee-saved寄存器同时解决case2寄存器分配; permuter 0分; fncheck OK 184B
+1	thumb	script_vm	0x080526a0	63	ScriptPump_JumpToEntry	✅ 2026-09-06 claude06: 去m2c no-op; target.s池字符号化除permuter假分; base/tbl须字面量(符号破case2分配9B); =-1窄化store的orr展开须extern u16[]视图(新别名gScriptLocalSlots); fncheck OK 136B
 1	thumb	script_vm	0x08052728	22	Script_Abort	
 1	thumb	script_vm	0x08052758	18	BgTiles_LoadSet	
 1	thumb	script_vm	0x08052780	22	TileDma_Reset	

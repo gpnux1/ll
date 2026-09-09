@@ -358,7 +358,7 @@ void sub_800E668(u8 arg0)
     gUnk_03000048.field_C = gUnk_03000048.field_4;
     gUnk_03000048.field_E = gUnk_03000048.field_6;
 
-    if (gCutsceneActive == 0)
+    if (gTitleIntroState == TITLE_INTRO_DISABLED)
     {
         if (gUnk_03004D40 == 0)
         {

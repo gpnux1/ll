@@ -10,7 +10,8 @@
 handler 读 `data[1..]` 参数、执行动作、推进 `*ptr`、返回 1=继续执行 / 0=本帧等待 (等动画/转场完成)。
 
 **核心机制**:
-- 分发表 `gUnk_0862D434[]` (ROM, `u16 (*)(u32 *)`): 下标 = `*(u8*)gScriptPtr` (opcode 号)
+- 分发表 `gScriptOpcodeHandlers[]` (原 gUnk_0862D434, ROM, `u32 (*)(u32 *)`): 下标 = `*(u8*)gScriptCursor` (opcode 号)
+- 脚本 PC 槽 `gScriptCursor` (原 gUnk_03000E6C, 0x03000E6C u32): 存当前 opcode 字节地址; 主泵每帧 `gScriptOpcodeHandlers[*(u8*)gScriptCursor](&gScriptCursor)`
 - 主泵 `ScriptPump_Run` (每帧由 Task_MapExplore 末尾调用): 采样按键 → `while(分发表[opcode](&ptr) == 1)` 循环执行, 遇 0 让出
 - `gUnk_03000E70` = VM 状态位图: bit0=运行中, bit4(0x10)=窗口BG拷贝请求 (Op_OpenWindow 置位, sub_805008C 消费: BG0 滚动清零+0x800B 拷贝), bit6(0x40)=tile 传输待刷 (FlushTileDma 完成后清), bit8(0x100)=关窗后 BG 色块重载请求 (Op_CloseWindow 置位, BgTiles_LoadSet(0) 消费; 旧记 "bit9=窗口关闭后?" 系 bit 编号偏差), bit9(0x200)=LZ 流式解压进行中 (主泵暂停), bit10(0x400)=LZ 完成后 PC 跳解压缓冲入口
 - 调用跳转表 `gUnk_02016000[]`(u16 偏移表) + `gUnk_02016200`(脚本数据基址) 实现 jump/call
@@ -39,7 +40,8 @@ handler 读 `data[1..]` 参数、执行动作、推进 `*ptr`、返回 1=继续�
 | 0x08051A1C | ✅C | `Op_OpenWindow` | 开窗口: WindowBgBuf 填 0xB000, BG0CNT=charbase2/screenbase31, 状态\|=0x10 |
 | 0x08051AEC | ✅C | `sub_8051AEC` | 浮点插值助手 (同 sub_801768C 家族): base + step*amp*f(step/total,mode)/total; 无调用点 (疑似死代码); 结果复用参数 arg1 (经验 173) |
 | 0x0804F0B8 | ✅C | `CheckObjectKindSlot` (已有名) | 死代码 (无调用点) |
-| 0x0804F10C/17C/280/64C/7F8/F8D8/974/FA04/FB24/80501B8/8050434/805063C/8050720/80511A0/80512C4/80513A0/805144C/8051BE4/80525E8/80529B8/8052AE8/8052F44/8053270 | ❌ | (待匹配) | 804F280=大型角色控制 opcode (调 Chara_SetGfxPal/FreeSprite/StartScriptAnim/AnimWaitDone/Chara_SetWalkPath); 80525E8=BGM/脚本装载入口(场景加载/NewGame 调用; 80526A0 已单独 ✅ 见上); 8052F44=队伍成员条件跳转; 8053270=循环指令 |
+| 0x0804F10C/17C/280/64C/7F8/F8D8/974/FA04/FB24/80501B8/805063C/8050720/80511A0/80512C4/80513A0/805144C/8051BE4/80525E8/80529B8/8052AE8/8052F44/8053270 | ❌ | (待匹配) | 804F280=大型角色控制 opcode (调 Chara_SetGfxPal/FreeSprite/StartScriptAnim/AnimWaitDone/Chara_SetWalkPath); 80525E8=BGM/脚本装载入口(场景加载/NewGame 调用; 80526A0 已单独 ✅ 见上); 8052F44=队伍成员条件跳转; 8053270=循环指令 |
+| 0x08050434 | ⏸ | `sub_8050434` | TileDma 请求收集器 (对话字模装载第一步): 扫 entry 的 u16 tile 表 (v=tile&0xFF00), v>0x6E6 时 0x800=id 终止/0xF00 终止/其他收集去重进 gUnk_03000EE8, v∈[0x6E3,0x6E6] 跳过, v<0x6E3 收集; F24>0x1D 硬停; 尾部从 gUnk_087ED904[1] (Set141 字模 LZ) 双 32B DmaCopy16(3) 炸开到 0x0203DE00 (row/col 推导, src2=src1+0x400); 调用者 Op_LoadTileGfx(0x6F1E)/sub_804AC60(0x4F1E); 候选 456B/488B 差, 语义全解见 progress.md (2026-09-08) |
 
 ## opcode 处理器 (真 C, 按功能分组)
 
@@ -109,7 +111,7 @@ handler 读 `data[1..]` 参数、执行动作、推进 `*ptr`、返回 1=继续�
 
 ## 未匹配 21 个清单
 
-804F280(大型角色控制), 804F64C, 804F7F8, 804F974, 804FA04, 804FB24,
+804F280(大型角色控制), 804F64C, 804F7F8, 804F974, 804FA04,
 805008C, 80501B8, 8050434, 805063C, 8050720, 80511A0, 80512C4, 80513A0, 805144C, 8051BE4,
 80525E8(BGM/脚本装载), 80529B8, 8052AE8, 8052F44(队伍条件跳转), 8053270(循环)
 + 已匹配 asm: 8052B34, 8053360(Op_IfMoneyJump)。
@@ -118,6 +120,21 @@ handler 读 `data[1..]` 参数、执行动作、推进 `*ptr`、返回 1=继续�
   新别名 gScriptLocalSlots; fncheck OK 136B。
 + 已匹配真C: 804FA94 —— 任一 flag 置位条件跳转: 前任 score 10 = extern 池假分 + bl 伪影,
   指令流本已全对; 跳转路径须 tbl 提升变量+字面量基址在前防跨跳合并 (经验 166);
++ 已匹配真C: 0x0804FB24 `Op_SysEffect` —— 脚本 VM 万能系统/屏幕特效 op (opcode 0x4D, 3 字节
+  `4D <subop> <arg>`): 按 insn[2] 分执行(arg!=0)/复位(arg==0)两族再按 insn[1] 分派 —
+  抖动(gViewportFlags[VF_EFFECT_EN]/[VF_SHAKE_MASK])/白闪(EN|=4)/开 BG 层(mapId==0x63→BG2 否则 BG3)/
+  相机缓动(gDrawCamEaseActive)/5 步调色板渐变序列(VF_FADE_PHASE/FRAME/LONG_CNT 计数,
+  DMA gFlashFxPaletteTable[0]→OBJ bank4, 清 gCutsceneGfxBuf→BG PLTT)/存档菜单(Save_Fsm+SaveUi_OpenLoad)/
+  OBJ 调色板 10 帧渐显(DMA gObjPalFadeInSteps[0..9]→0x05000002+.., 末帧 gObjPalFadeInFinal→0x05000140)/
+  满血复活/BGM 恢复/整图装载(MapBg_LoadFull(0x81+arg), IntroBg_Load)/白化淡入淡出(BLD 0x1E41)/
+  等 A 键软复位(subop 6 SYSFX_WAIT_A, gNewKeysRaw&1 → Script_Abort(1)+System_ResetToLogo, 未按 return 不推进 PC)。
+  分发表 slot 0x4D; fncheck OK 1264B (2026-09-07 sensenova 匹配; 同日 claude-opus-4-6 语义重命名)。
+  代码可读性 (2026-09-07): 子命令/渐变步/抖动档/存档UI步 4 个枚举 (SysFxSubOp/SysFxPalStep/
+  SysFxShakeMask/SysFxSaveUiStep, 定义在 code_804F0B8.c), gViewportFlags 下标枚举 ViewportFlagIdx
+  (iwram.h, VF_EFFECT_EN..VF_FADE_FRAME); 局部 ppScriptCursor/insn/fadeStep/palDst;
+  gUnk_030047F4→gPaletteFxPhase (PaletteEffects_Update 配套相位计数)。
+  ⚠ 坑: `palDst=(u16*)0x02020000` 不能换 gCutsceneGfxBuf 符号 — 地址常量会触发 GCC2
+  循环不变量保存 r4 (差 4B), 同 sub_80526A0 的 0x02016200 字面量坑。
   原型 void() → u32(u32*) (无调用方零风险); fncheck OK 144B (2 bl 忽略)。
 + 已匹配真C: 804F10C —— 搜索函数: GetObjPool 空闲槽里找首个 sub_804E76C 命中者, 返内部下标或 -1
   (sub_80489E8 先筛 sub_8045F10==2 的槽); 需 int idx + s8 tmp 中间变量复现截断调度, fncheck OK 110B。

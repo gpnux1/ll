@@ -97,7 +97,7 @@
 | `gIntroBgPalettes` | 0x08086C1C, 0x4C0B | 19×0x40B = 每图 2 个 16 色库: 图 0-9 仅 bank0 色 0 单色底, 图 10-18 bank0 为 16 级渐变; bank1 均 15 级渐变 | IntroBg_Load → PLTT[0..31] |
 | `gBgPalBackdropWhite` | 0x08087216 | u16 0x7FFF (白), 后 4B 对齐填充 | IntroBg_Load / BgPal_ResetFirst → PLTT[0] (Backdrop 色) |
 
-调用方: MOD-08 脚本 VM opcode 0x4D 处理器 (sub_804FB24 内部 switch): `IntroBg_Load(data[2])` 与 `IntroBg_Load(0)`。
+调用方: MOD-08 脚本 VM opcode 0x4D 处理器 (Op_SysEffect 内部 switch): `IntroBg_Load(data[2])` 与 `IntroBg_Load(0)`。
 图像渲染验证: 每张 = 256x160 屏上单个大物件 (25-31 色), 空屏区由 BgMap_FillRow 填充。
 
 ## 子系统 C: 菜单 UI 实体 (0x03000058)

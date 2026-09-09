@@ -1,5 +1,6 @@
 #include "anim_slot.h"
 #include "code_0.h"
+#include "data_87E83F0.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -170,7 +171,7 @@ s32 MapZone_Trigger(void)
             gSpawnFacingDir = *rec;
             rec++;
             gMoveCmdSetId = rec[0] + (rec[1] << 8);
-            gMainGameState = 3;
+            gGameState = GAME_STATE_SCENE_REQUEST_MAP;
             SwitchFlags_ClearRange();
             return 1;
         case 1:
@@ -182,13 +183,13 @@ s32 MapZone_Trigger(void)
             gSpawnFacingDir = *rec;
             rec++;
             gMoveCmdSetId = rec[0] + (rec[1] << 8);
-            gMainGameState = 4;
+            gGameState = GAME_STATE_SCENE_ENTER_MAP;
             return 1;
         case 2:
             rec += gMapZoneEntryIdx * 4;
             gChoiceGroupIdx = rec[0];
             gChoiceSubIdx = rec[1];
-            gMainGameState = 8;
+            gGameState = GAME_STATE_ENTER_DOOR;
             SwitchFlags_ClearRange();
             return 1;
         case 3:
@@ -196,7 +197,7 @@ s32 MapZone_Trigger(void)
             scriptId = *rec;
             if (SwitchFlags_Test(rec[1]) != 0)
                 return 0;
-            sub_80526A0(scriptId, 2);
+            ScriptPump_JumpToEntry(scriptId, 2);
             return 1;
         case 4:
             rec += gMapZoneEntryIdx * 4;
@@ -209,7 +210,7 @@ s32 MapZone_Trigger(void)
                 return 0;
             if (SwitchFlags_Test(rec[0]) != 0)
                 return 0;
-            sub_80526A0(scriptId, 2);
+            ScriptPump_JumpToEntry(scriptId, 2);
             return 0;
         default:
             return 1;
@@ -614,7 +615,7 @@ void AnimSlot_BankReload(void)
 void Win0H_WaveDmaByVCount(void)
 {
     u16 waveIdx;
-    u8 subState = (u8)(gSceneSubState - 1);
+    u8 subState = (u8)(gScreenTransitionState - 1);
     if (subState > 1)
     {
         return;
@@ -664,7 +665,7 @@ void ScreenFx_SetMode(u16 mode)
             break;
     }
 
-    gSceneSubState = mode;
+    gScreenTransitionState = mode;
 }
 
 // @ 0x08008A3C
@@ -904,9 +905,9 @@ u16 Camera_GetDrawOffset(void)
 }
 
 // @ 0x08008DCC
-void Bgm_Request(u8 songId)
+void Script_SetEnvSet(u8 songId)
 {
-    gCurrentSongId = songId;
+    gEnvScriptSetId = songId;
 }
 
 // @ 0x08008DD8

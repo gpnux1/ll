@@ -47,6 +47,8 @@ gUnk_087EA394 = 0x087EA394;
 gUnk_087EB1F4 = 0x087EB1F4;
 gUnk_087EB214 = 0x087EB214;
 gUnk_087EB22C = 0x087EB22C;
+gUnk_087EB278 = 0x087EB278;
+gOptionsMenuLabels = 0x087EB278;
 gAnimSlots = 0x030046A0;
 gLogoAnimDirection = 0x03000008;
 gLogoSpriteNodes = 0x0300000A;
@@ -54,6 +56,13 @@ gLogoAnimTimer = 0x0300000C;
 gWindowTransitionProgress = 0x03004604;
 gMenuSlotStates = 0x03000788;
 gMenuMasterCursor = 0x030007BA;
+gScriptVmFlags = 0x03000E70;
+gScriptDialogPhase = 0x03000E72;
+gScriptCallStackDepth = 0x03000E78;
+gScriptCallStack = 0x03000E80;
+gDialogWindowTileX = 0x03000ECB;
+gDialogWindowTileY = 0x03000ECC;
+gScriptSetTable = 0x087ED6D4;
 
 D_87EB2A8 = 0x087EB2A8;
 gUnk_0839CE7C = 0x0839CE7C;
@@ -122,6 +131,16 @@ gUnk_08619430 = 0x08619430;
 gSaveSignature = 0x08098199;   /* 12B "LUNAR1_12_09" 存档签名 */
 gUnk_080981E6 = 0x080981E6;    /* u16[] 存档块长度表 {2, 0x5A, 8, 0} */
 gUnk_080981EE = 0x080981EE;    /* u8[] 6B/项 出生/传送参数表 {npcSetId, tileX, tileY, facing, moveCmd u16} */
+gUnk_02005058 = 0x02005058;    /* 菜单 tile 写入缓冲 */
+gUnk_020053A8 = 0x020053A8;    /* 数字绘制 dest (副菜单) */
+gUnk_020053B4 = 0x020053B4;    /* 数字绘制 dest (主菜单) */
+gUnk_03004DC0 = 0x03004DC0;    /* == gBgTileReloadFlag (别名视图) */
+gUnk_08097DB0 = 0x08097DB0;    /* 动画 tile 表 u16[] (palette 0x800) */
+gUnk_08097EF0 = 0x08097EF0;    /* 动画 tile 表 u16[] (palette 0x900) */
+gUnk_08098030 = 0x08098030;    /* 动画 tile 表 u16[] (palette 0xA00) */
+gUnk_0809888B = 0x0809888B;    /* 角色显示参数表 u8[] */
+gUnk_080981A5 = 0x080981A5;    /* 数字字形/物品名辅助表 */
+gUnk_0830FC04 = 0x0830FC04;    /* 装备名表 (u8[] 0xFF 终止项, 名字绘制源) */
 gUnk_087EB1E8 = 0x087EB1E8;    /* 存档块指针表 {&gUnk_03004D48, gSaveTimers, gSaveFlags, ...} */
 gDialogPortraitTilemapPtrs = 0x087E9818; /* four dialog portrait tilemap positions */
 gUnk_087EB2E0 = 0x087EB2E0;    /* 角色头像 LZ77 指针表 (存档/队伍菜单用) */
@@ -132,6 +151,25 @@ gSongHeaderTable = 0x087ED910;    /* 歌曲头指针表 (BGM/SFX 共用, MPlaySt
 gUnk_0809E4E4 = 0x0809E4E4;    /* 角色调色板/图形表 [N][32] (sub_8016068 DMA 源) */
 gUnk_08098308 = 0x08098308;    /* 数字/字形 tile 属性表 (sub_80161F4 VRAM 填充源) */
 gUnk_080936A0 = 0x080936A0;    /* 字节表, sub_8018750 扫描 0xFF 计数 */
+gUnk_08089B90 = 0x08089B90;
+gUnk_0808B7D4 = 0x0808B7D4;
+gUnk_08095A1C = 0x08095A1C;
+gUnk_08095C94 = 0x08095C94;
+gUnk_08095F14 = 0x08095F14;
+gUnk_080963C0 = 0x080963C0;
+gUnk_08096B2C = 0x08096B2C;
+gUnk_080972C0 = 0x080972C0;
+gUnk_08097344 = 0x08097344;
+gUnk_080973A8 = 0x080973A8;
+gUnk_08097514 = 0x08097514;
+gUnk_08097B60 = 0x08097B60;
+gUnk_08098630 = 0x08098630;
+gUnk_0809863B = 0x0809863B;
+gUnk_0809C834 = 0x0809C834;
+gUnk_0809E644 = 0x0809E644;
+gUnk_080A0B58 = 0x080A0B58;
+gUnk_080A12D0 = 0x080A12D0;
+gUnk_083937E8 = 0x083937E8;
 
 SECTIONS {
     ewram (NOLOAD) : ALIGN(4) {
@@ -199,6 +237,9 @@ SECTIONS {
 
         . = 0x000001F0; gScreenIdleIconIds = .;
         . = 0x00000200; gScreenIdleIconCursor = .;
+        . = 0x00000204; gUnk_03000204 = .;
+        . = 0x00000208; gUnk_03000208 = .;
+        . = 0x00000210; gUnk_03000210 = .;
 
         . = 0x00000220; gSaveCurSlot = .;
         . = 0x00000221; gSaveModeFlag = .;
@@ -206,7 +247,25 @@ SECTIONS {
         . = 0x00000225; gSkillMenuTmpB = .;
         . = 0x00000226; gPartyMenuIdx = .;
         . = 0x00000227; gSkillMenuPage = .;
+        . = 0x00000229; gUnk_03000229 = .;
         . = 0x0000022B; gUnk_0300022B = .;
+        . = 0x0000022C; gUnk_0300022C = .;
+        . = 0x00000230; gUnk_03000230 = .;
+        . = 0x00000230; gCardAlbumCursor = .;
+        . = 0x00000230; gSoundTestSfxId = .;
+        . = 0x00000232; gUnk_03000232 = .;
+        . = 0x00000232; gCardAlbumPage = .;
+        . = 0x00000232; gSoundTestBgmId = .;
+        . = 0x00000233; gUnk_03000233 = .;
+        . = 0x00000233; gCardCursorY = .;
+        . = 0x00000233; gSoundTestPlayingBgmIdPlusOne = .;
+        . = 0x00000234; gUnk_03000234 = .;
+        . = 0x00000234; gTitleFadeStep = .;
+        . = 0x00000234; gTitleAttractCountdown = .;
+        . = 0x00000236; gUnk_03000236 = .;
+        . = 0x00000236; gCardRecvId = .;
+        . = 0x00000238; gUnk_03000238 = .;
+        . = 0x00000238; gCardSendId = .;
         . = 0x00000240; gUnk_03000240 = .;
         . = 0x00000248; gUnk_03000248 = .;
         . = 0x00000310; gUnk_03000310 = .;
@@ -371,8 +430,8 @@ SECTIONS {
         . = 0x00000E05; gUnk_03000E05 = .;
         . = 0x00000E08; gUnk_03000E08 = .;
         . = 0x00000E30; gUnk_03000E30 = .;
-        . = 0x00000E68; gUnk_03000E68 = .;
-        . = 0x00000E69; gUnk_03000E69 = .;
+        . = 0x00000E68; gScriptReturnSetId = .;
+        . = 0x00000E69; gScriptPendingEntry = .;
         . = 0x00000E6C; gScriptCursor = .;
         . = 0x00000E70; gUnk_03000E70 = .;
         . = 0x00000E72; gUnk_03000E72 = .;
@@ -381,6 +440,8 @@ SECTIONS {
         . = 0x00000E80; gUnk_03000E80 = .;
         . = 0x00000EA0; gUnk_03000EA0 = .;
         . = 0x00000EC0; gUnk_03000EC0 = .;
+        . = 0x00000EC8; gUnk_03000EC8 = .;
+        . = 0x00000EC9; gUnk_03000EC9 = .;
         . = 0x00000ECA; gUnk_03000ECA = .;
         . = 0x00000ECB; gUnk_03000ECB = .;
         . = 0x00000ECC; gUnk_03000ECC = .;
@@ -390,6 +451,7 @@ SECTIONS {
         . = 0x00000F2A; gUnk_03000F2A = .;
         . = 0x00000F2C; gUnk_03000F2C = .;
         . = 0x00000F2E; gUnk_03000F2E = .;
+        . = 0x00000F30; gUnk_03000F30 = .;
         . = 0x00000F38; gSoundTaskFlags = .;
         . = 0x00000F3A; gPlayingSongId = .;
         . = 0x00000F3C; gBgmVolume = .;
@@ -415,6 +477,7 @@ SECTIONS {
         . = 0x000018F0; gSwitchFlags = .;
         . = 0x00001940; gSioRecvWord = .;
         . = 0x00001944; gMainGameState = .;
+        . = 0x00001944; gGameState = .;
         . = 0x00001948; gGameTimer = .;
         . = 0x00001950; gUnk_03001950 = .;
         . = 0x00001988; gHBlankScrollCounter = .;
@@ -422,13 +485,16 @@ SECTIONS {
         . = 0x000019B0; gHeldKeysRaw = .;
         . = 0x000019C0; gHBlankWaveV = .;
         . = 0x00001AC0; gMainTaskSlot = .;
+        . = 0x00001AC0; gMainLoopMode = .;
         . = 0x00001AD0; gUnk_03001AD0 = .;    
+        . = 0x00001AD0; gSioRecvPacket = .;
         . = 0x00001B50; gSioLinkState = .;
         . = 0x00001B54; gHBlankWaveRow = .;
         . = 0x00001B60; gHBlankWaveH = .;
         . = 0x00001C60; gEventFlags = .;
         . = 0x00001CA0; gNewKeysRaw = .;
         . = 0x00001CB0; gUnk_03001CB0 = .;
+        . = 0x00001CB0; gSioSendPacket = .;
         . = 0x00001D30; gSioRetryTimer = .;
         . = 0x00001D80; gIntrMainBuf = .;
 
@@ -437,6 +503,7 @@ SECTIONS {
         . = 0x000025A0; gFrameCounter = .;
         . = 0x000025A4; gRandCursor = .;
         . = 0x000025A8; gUnk_030025A8 = .;
+        . = 0x000025A8; gCardExchangeStatus = .;
         . = 0x000025B0; gPlayerMoveDir = .;
 
         . = 0x000025B4; gCameraPosX = .;
@@ -447,12 +514,14 @@ SECTIONS {
         . = 0x000025D8; gDialogueActive = .;
         . = 0x000025E0; gFollowerHistY = .;
         . = 0x000025F0; gCutsceneActive = .;
+        . = 0x000025F0; gTitleIntroState = .;
         . = 0x000025F4; gSceneEntryFlag = .;
         . = 0x000025F8; gCameraTargetX = .;
         . = 0x000025FC; gCameraPosY = .;
         . = 0x00002600; gScenePhase = .;
         . = 0x00002604; gLogoEffectState = .;
         . = 0x00002608; gUnk_03002608 = .;
+        . = 0x00002608; gTitleFadeTimer = .;
         . = 0x0000260C; gWarpAnimState = .;
         . = 0x00002C30; gCurSpriteH = .;
         . = 0x00002C34; gBattleResultType = .;
@@ -505,7 +574,7 @@ SECTIONS {
         . = 0x00004624; gScreenIdleEventFlags = .;
         . = 0x0000462C; gChoiceListPtr = .;
         . = 0x00004630; gUnk_03004630 = .;
-        . = 0x00004634; gUnk_03004634 = .;
+        . = 0x00004634; gMapScriptSetId = .;
         . = 0x00004638; gSpawnTileY = .;
         . = 0x0000463C; gMapZoneType = .;
         . = 0x00004640; gChoiceListLen = .;
@@ -562,12 +631,13 @@ SECTIONS {
         . = 0x00004834; gScreenFadeParam = .;
         . = 0x00004838; gZoneCheckTileXs = .;
         . = 0x0000483C; gUnk_0300483C = .;
-        . = 0x00004840; gSceneSubState = .; 
+        . = 0x00004840; gSceneSubState = .;
+        . = 0x00004840; gScreenTransitionState = .;
         . = 0x00004844; gUnk_03004844 = .;
 
         . = 0x00004848; gBG2ScrollX = .;
         . = 0x0000484C; gBG3ScrollX = .;
-        . = 0x00004850; gCurrentSongId = .;
+        . = 0x00004850; gEnvScriptSetId = .;
 
         . = 0x00004854; gCameraSnapFlag = .;
         . = 0x00004860; gUnk_03004860 = .;
@@ -596,8 +666,11 @@ SECTIONS {
         . = 0x00004AC0; gPartyStats = .;
         . = 0x00004D40; gUnk_03004D40 = .;
         . = 0x00004D44; gUnk_03004D44 = .;
+        . = 0x00004D44; gSaveFsmState = .;
         . = 0x00004D48; gUnk_03004D48 = .;
         . = 0x00004D4C; gUnk_03004D4C = .;
+        . = 0x00004D50; gUnk_03004D50 = .;
+        . = 0x00004D50; gActiveSaveSlot = .;
         . = 0x00004D60; gSaveTimers = .;
 
         . = 0x00004DBC; gUnk_03004DBC = .;
@@ -606,6 +679,7 @@ SECTIONS {
         . = 0x00004DC8; gSaveFlags = .;
 
         . = 0x00004DD0; gUnk_03004DD0 = .;
+        . = 0x00004DD0; gSaveSramBlock = .;
         . = 0x00004DD4; gSaveUiParam = .;
         . = 0x00004DD8; gSaveBusyB = .;
         . = 0x00004DDC; gSavedDispCnt = .;   /* 存档菜单进入前的 REG_DISPCNT 备份 */
@@ -634,7 +708,7 @@ SECTIONS {
         src/player_stats.o(.text);
         src/menu_ui.o(.text);
         src/save.o(.text);
-        src/save_menu.o(.text);
+        src/menu.o(.text);
         src/text_engine.o(.text);
         src/sio_link.o(.text);
         src/scene_obj_dispatch.o(.text);
@@ -676,6 +750,8 @@ SECTIONS {
     .rodata ALIGN(4) : SUBALIGN(4) {
         src/data_805769C.o(.rodata);
         data/data.o(.rodata);
+        . = ORIGIN(rom) + 0x61C784;
+        src/data_script.o(.rodata);
         src/m4a_tables.o(.rodata);
         data/sound_data.o(.rodata);
         src/agb_sram.o(.rodata);
@@ -686,6 +762,9 @@ SECTIONS {
         . = ORIGIN(rom) + 0x7EA1A0;
         src/data_087EA1A0.o(.rodata);
         data/data1b.o(.rodata);
+        . = ORIGIN(rom) + 0x7ED6D4;
+        src/data_087ED6D4.o(.rodata);
+        data/data1c.o(.rodata);
 
     } >rom =0xFF
 
@@ -707,3 +786,14 @@ Sprite_EnqueueRender_S32 = Sprite_EnqueueRender;
 gCutsceneGfxBuf = 0x02020000;
 gSpritePoolBackup = 0x0203F000;
 gQueue34C0Backup = 0x0203FE00;
+
+/* ==== Title & Card Menu ROM Assets ==== */
+gTitleLogoGfx_GameArts = 0x080963C0;
+gTitleLogoGfx_Esp = 0x08096B2C;
+gSaveMenuStringTable = 0x080936A0;
+gTitleMenuDesc = 0x08098622;
+gCardAlbumMenuDesc = 0x08098630;
+gCardDetailMenuDesc = 0x0809863B;
+gCardBgMapTable = 0x08089B90;
+gOptionsMenuDesc = 0x08098630;
+gGalleryMenuDesc = 0x0809863B;

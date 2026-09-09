@@ -64,7 +64,7 @@ void VBlank_UpdateGameScreen(void)
 
     if (gLogoEffectState == 0)
     {
-        sub_805008C();
+        ScriptPump_ServiceFrame();
     }
 
     SceneBg_Reload();
@@ -249,7 +249,7 @@ void VBlankIntr(void)
             DmaCopy16(3, gOamBuffer, OAM, 0x400);
 
             MapBg_FlushPending();
-            sub_805008C();
+            ScriptPump_ServiceFrame();
 
             REG_BLDCNT = gBlendControl;
             if (gBlendControl & 0x80)
@@ -327,7 +327,7 @@ s32 Sio_LinkTask(void)
         case 0:
             REG_RCNT = 0xC000;
             VBlankIntrWait();
-            Sio_SetXferCtx(&gUnk_03001AD0, &gUnk_03001CB0, 0x10, 0);
+            Sio_SetXferCtx((u32 *)&gSioRecvPacket, (u32 *)&gSioSendPacket, 0x10, 0);
             gSioSession.unk5E = 1;
             gSioSession.unk2 = 1;
             gSioLinkState++;
@@ -446,7 +446,7 @@ void System_SoftReset(u32 arg0)
     gPendingSpriteLoad = 0;
     gLogoEffectState = 0;
     gPaletteFxMode = 0;
-    gSceneSubState = 0;
+    gScreenTransitionState = 0;
     gScreenFadeFlags = 0;
     gSceneEntryFlag = 0xFF;
 
@@ -656,7 +656,7 @@ void Display_RestartAfterLoad(void)
 void System_ResetToLogo(void)
 {
     gVBlankPipelineMode = 0;
-    gMainGameState = 0xB;
+    gGameState = GAME_STATE_TITLE_MENU;
     gScenePhase = 0;
     Bgm_Stop();
     VBlankIntrWait();
@@ -776,18 +776,31 @@ void SwitchFlags_ClearRange(void)
     }
 }
 
+// 游戏系统初始化与冷启动入口
+// 流程概述:
+// 1. 复位系统寄存器与 RAM (RegisterRamReset)
+// 2. 配置 Waitstate 与 Prefetch (REG_WAITCNT = 0x4014)
+// 3. 安装中断处理例程 (IntrMain 与 gIntrTable 拷入 IWRAM)
+// 4. 开启中断 (VBlank, HBlank, GamePak)
+// 5. 设置初始任务状态:
+//    - gMainLoopMode = MAIN_LOOP_GAME (主世界任务分发 Task_DispatchGameState)
+//    - gGameState = GAME_STATE_TITLE_MENU (Task_TitleMenuFrame -> TitleMenu_ProcessFrame)
+//    - gScenePhase = 0
+// 6. 初始化声音引擎 (Sound_Init) 与菜单插槽 (MenuSlot_ResetAll)
 // @ 0x08001128
 void System_Init(void)
 {
+    /* BIOS reset flag 3 clears EWRAM and IWRAM while preserving the BIOS-owned
+     * top of IWRAM that contains the active stacks and interrupt vector. */
     RegisterRamReset(3);
     REG_WAITCNT = WAITCNT_PREFETCH_ENABLE | WAITCNT_WS0_N_3 | WAITCNT_WS0_S_1;
-    gMainTaskSlot = 0;
+    gMainLoopMode = MAIN_LOOP_GAME;
     Palette_FillWhite();
     DmaCopy32(3, gIntrTable, gUnk_03001950, sizeof(gUnk_03001950));
     DmaCopy16(3, IntrMain, gIntrMainBuf, sizeof(gIntrMainBuf));
 
     INTR_VECTOR = gIntrMainBuf;
-    gMainGameState = 0xB;
+    gGameState = GAME_STATE_TITLE_MENU;
     gScenePhase = 0;
 
     REG_IE = INTR_FLAG_VBLANK | INTR_FLAG_HBLANK | INTR_FLAG_GAMEPAK;
@@ -848,16 +861,29 @@ void DummyIntr4() { }
 // @ 0x08001288
 void DummyIntr5() { }
 
-// AgbMain
-//  @ 0x0800128C
+// AgbMain - 游戏最顶层执行主入口
+//
+// 调度模型架构:
+// 1. gMainLoopCallbacks 双任务插槽轮转 (gMainLoopMode):
+//    - 0: Task_DispatchGameState (常规主世界调度: 地图/剧情/菜单/标题)
+//    - 1: BattleTask_Run (独立战斗主循环)
+// 2. 开机阶段流转:
+//    - System_Init() 选择 MAIN_LOOP_GAME / GAME_STATE_TITLE_MENU
+//    - Task_TitleMenuFrame 每帧调用 TitleMenu_ProcessFrame (标题与存档界面状态机)
+//    - 玩家选择 "はじめから" (新游戏) -> TitleMenu_ProcessFrame 选择 GAME_STATE_NEW_GAME
+//    - 下一帧 Task_DispatchGameState 调用 gGameStateCallbacks[GAME_STATE_NEW_GAME]
+//    - NewGame_Init() 构造初始主角/物品并调用 ScriptSet_Load(1, 0, 1) 装载 Burg 村剧情脚本
+// @ 0x0800128C
 void AgbMain(void)
 {
-    gMainTaskSlot = 0;
+    /* System_Init repeats this assignment after RAM reset. Keeping the first
+     * store matches the original boot binary and documents the intended mode. */
+    gMainLoopMode = MAIN_LOOP_GAME;
     System_Init();
 
     while (1)
     {
-        gMainTasks[gMainTaskSlot]();
+        gMainLoopCallbacks[gMainLoopMode]();
         VBlankIntrWait();
         SoundMain_Frame();
     }

@@ -1,4 +1,5 @@
 #include "code_0.h"
+#include "data_87E83F0.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "gba/macro.h"
@@ -183,7 +184,7 @@ end:
 //   state==3: 若 (sub_80187B4()&0x40)!=0 或 data[1]==0 → *ptr+=4;
 //             否则 *ptr = gUnk_02016200 + gUnk_02016000[data[1]]; 清 state 返 1。
 //   state==0: 初始化 gAfterBattleCounter=1 / gBattleResultType=data[3] /
-//             gUnk_030025B8=data[2]+0xBA|0x1C(按 data[2] 符号) / gMainGameState=5; 返 0。
+//             gUnk_030025B8=data[2]+0xBA|0x1C(按 data[2] 符号) / gGameState=GAME_STATE_BATTLE_ENTER; 返 0。
 // 注: 用 `goto setup` 把 setup 块强制放成分支目标(冷路径)才匹配 `beq setup` 布局;
 //     非 goto 写法分支被反转成 `bne` 使 setup 落 fall-through (差 127B)。待 flag 重构。
 // 注: 跳转表需 `u16 idx = data[1] * 2` 中间量, 否则 ldr 基址被调度提到 lsls 前。
@@ -217,15 +218,15 @@ setup:
         gUnk_030025B8 = pBytecode[2] + 0xBA;
     else
         gUnk_030025B8 = pBytecode[2] + 0x1C;
-    gMainGameState = 5;
+    gGameState = GAME_STATE_BATTLE_ENTER;
     return 0;
 }
 // @ 0x0804F974
 // 脚本条件跳转: data[1] 为 flag 表字节数, 循环 count/2 个 u16 flag id
 // (id<=0x1FF 查 EventFlags_Test, 否则查 SwitchFlags_Test(id-0x200)), 任一为真 →
-// 指针跳到 0x02016200 + tbl[data[2]], 全假 → 指针推进 *ptr + t + 3; 恒返 1。
-// 注: ① 跳转路径必须写 `u16 *tbl = (u16*)0x02016000;` 提升变量 + 字面量基址,
-//     `*ptr = tbl[data[2]] + 0x02016200;` — 符号形式或加和顺序会让 GCC 把基址加法
+// 指针跳到 0x02016200 + jtbl[data[2]], 全假 → 指针推进 *ptr + t + 3; 恒返 1。
+// 注: ① 跳转路径必须写 `u16 *jtbl = (u16*)0x02016000;` 提升变量 + 字面量基址,
+//     `*ptr = jtbl[data[2]] + 0x02016200;` — 符号形式或加和顺序会让 GCC 把基址加法
 //     跨跳合并进公共尾部 (基址落 r1, 目标要 r2, 差 5B)。
 // ② 推进路径必须用嵌套块内新变量 `u32 step = t + 3; *ptr = *ptr + step;` —
 //     让 t+3 独立于 *ptr 装载 (目标 mov r1,r8; adds r1,#3; ldr r0,[r6]; adds r0,r0,r1)。
@@ -234,7 +235,7 @@ u32 Op_IfAllFlagsJump(u32 *pScriptCursor)
     u8 *pBytecode;
     u8 t;
     u8 n;
-    u16 *tbl;
+    u16 *jtbl;
     u16 i;
     u16 v;
     u8 res;
@@ -242,7 +243,7 @@ u32 Op_IfAllFlagsJump(u32 *pScriptCursor)
     pBytecode = (u8 *)*pScriptCursor;
     t = pBytecode[1];
     n = t >> 1;
-    tbl = (u16 *)0x02016000;
+    jtbl = (u16 *)0x02016000;
     for (i = 0; n > i; i++)
     {
         v = pBytecode[i * 2 + 3] | (pBytecode[i * 2 + 4] << 8);
@@ -254,7 +255,7 @@ u32 Op_IfAllFlagsJump(u32 *pScriptCursor)
             break;
     }
     if (res != 0)
-        *pScriptCursor = tbl[pBytecode[2]] + 0x02016200;
+        *pScriptCursor = jtbl[pBytecode[2]] + 0x02016200;
     else
     {
         u32 step = t + 3;
@@ -271,7 +272,7 @@ u32 Op_IfAllFlagsClearJump(u32 *pScriptCursor)
     u32 off;
     u16 i;
     u16 v;
-    u16 *tbl;
+    u16 *jtbl;
     u8 res;
 
     pBytecode = (u8 *) (*pScriptCursor);
@@ -294,10 +295,10 @@ u32 Op_IfAllFlagsClearJump(u32 *pScriptCursor)
         }
     }
 
-    tbl = (u16 *) 0x02016000;
+    jtbl = (u16 *) 0x02016000;
     if (res == 0)
     {
-        *pScriptCursor = 0x02016200 + tbl[pBytecode[2]];
+        *pScriptCursor = 0x02016200 + jtbl[pBytecode[2]];
     }
     else
     {
@@ -311,8 +312,8 @@ u32 Op_IfAllFlagsClearJump(u32 *pScriptCursor)
 // 脚本条件跳转 (任一 flag 置位版, 镜像 Op_IfAllFlagsJump): data[1] 为 flag 表字节数, 循环 count/2 个
 // u16 flag id (id<=0x1FF 查 EventFlags_Test, 否则查 SwitchFlags_Test(id-0x200)), 任一为真 →
 // 指针跳到 gUnk_02016200 + gUnk_02016000[data[2]], 全假 → 指针推进 data + count + 3; 恒返 1。
-// 注: t 全程存 r8 (推进路径 mov r1,r8)、0x1FF 存 sb; 跳转路径必须写 tbl 提升变量 + 字面量基址
-// 在前的和 (`tbl = (u16*)0x02016000;` 提到 if 前, `*ptr = 0x02016200 + tbl[data[2]]`) ——
+// 注: t 全程存 r8 (推进路径 mov r1,r8)、0x1FF 存 sb; 跳转路径必须写 jtbl 提升变量 + 字面量基址
+// 在前的和 (`jtbl = (u16*)0x02016000;` 提到 if 前, `*ptr = 0x02016200 + jtbl[data[2]]`) ——
 // 直写/符号形式会让 GCC 把基址加法跨跳合并进公共尾部 (基址落 r1, 目标要 r2, 差 5B)。
 // `n > i` / `v > 0x1FF` 的操作数序对应 cmp r7,r4 / cmp r1,sb, 勿翻转。
 // res 无初值 = 原始代码如此 (零循环时读 r1 残值, 目标同样无初始化指令)。
@@ -324,7 +325,7 @@ u32 Op_IfAnyFlagJump(u32 *pScriptCursor)
     u32 off;
     u16 i;
     u16 v;
-    u16 *tbl;
+    u16 *jtbl;
     u8 res;
 
     pBytecode = (u8 *) (*pScriptCursor);
@@ -347,10 +348,10 @@ u32 Op_IfAnyFlagJump(u32 *pScriptCursor)
         }
     }
 
-    tbl = (u16 *) 0x02016000;
+    jtbl = (u16 *) 0x02016000;
     if (res != 0)
     {
-        *pScriptCursor = 0x02016200 + tbl[pBytecode[2]];
+        *pScriptCursor = 0x02016200 + jtbl[pBytecode[2]];
     }
     else
     {
@@ -438,7 +439,7 @@ u32 Op_SysEffect(u32 *pScriptCursor)
 
             case SYSFX_BG_PAL_CLEAR - 1:
                 /* 0x02020000 (=gCutsceneGfxBuf) 必须写字面量: 符号形式是地址常量,
-                 * GCC2 会把指针存 r4 跨循环复用 (差 4B), 见 sub_80526A0 同款坑 */
+                 * GCC2 会把指针存 r4 跨循环复用 (差 4B), 见 ScriptPump_JumpToEntry 同款坑 */
                 palDst = (u16 *)0x02020000;
                 for (fadeStep = 0; fadeStep <= 0x5F; fadeStep++)
                 {
@@ -657,7 +658,7 @@ void ScriptPump_Run(void)
 {
     u16 keys;
 
-    if ((gUnk_03000E70 & 1) != 0 && (gUnk_03000E70 & 0x200) == 0)
+    if ((gScriptVmFlags & 1) != 0 && (gScriptVmFlags & 0x200) == 0)
     {
         keys = ~REG_KEYINPUT;
         gUnk_03000F2E = keys & ~gUnk_03000F2C;
@@ -670,24 +671,24 @@ void ScriptPump_Run(void)
 }
 
 // @ 0x0805008C
-// 脚本泵的逐帧后台服务: 在脚本活动期间 (bit0=脚本中, bit9=暂停) 按 gUnk_03000E70 的请求位
+// 脚本泵的逐帧后台服务: 在脚本活动期间 (bit0=脚本中, bit9=暂停) 按 gScriptVmFlags 的请求位
 // 刷新 BG0 滚动/瓦片/LZ 块; LZ 解压完成后把脚本指针跳到解压缓冲 gUnk_02016200 的入口表项。
-// 注: ① op==0||0x17 且 bgRequest==0 才走第一 DMA 块, 否则(含非 0/0x17 op)重读 gUnk_03000E70
+// 注: ① op==0||0x17 且 bgRequest==0 才走第一 DMA 块, 否则(含非 0/0x17 op)重读 gScriptVmFlags
 //     若 bit4 置位走第二 DMA 块 —— `goto block2` 使编译器生成 bne 直跳 E2, 差 1B;
 //     ② LZ 表须 `u16 *entryTbl = gUnk_02016000;` 中间指针 (permuter 发现, 修池加载序, 差 4B);
 //     ③ bgRequest 必须内联 (抽变量多 1B)。fncheck OK 300B。
-void sub_805008C(void)
+void ScriptPump_ServiceFrame(void)
 {
     u8 op;
     u16 bgRequest;
     u16 *entryTbl;
 
-    if ((gUnk_03000E70 & 1) != 0 && (gUnk_03000E70 & 0x200) == 0)
+    if ((gScriptVmFlags & 1) != 0 && (gScriptVmFlags & 0x200) == 0)
     {
         op = *(u8 *)gScriptCursor;
         if (op == 0 || op == 0x17)
         {
-            bgRequest = gUnk_03000E70 & 0x10;
+            bgRequest = gScriptVmFlags & 0x10;
             if (bgRequest == 0)
             {
                 REG_BG0HOFS = bgRequest;
@@ -699,7 +700,7 @@ void sub_805008C(void)
                 goto block2;
             }
         }
-        if (gUnk_03000E70 & 0x10)
+        if (gScriptVmFlags & 0x10)
         {
         block2:
             REG_BG0HOFS = 0;
@@ -707,24 +708,24 @@ void sub_805008C(void)
             DmaSetUnchecked(3, 0x02005800, 0x0600F800, 0x80000400);
         }
     }
-    if ((gUnk_03000E70 & 0x40) != 0 && FlushTileDma() < 0)
-        gUnk_03000E70 &= ~0x40;
-    if ((gUnk_03000E70 & 0x100) != 0)
+    if ((gScriptVmFlags & 0x40) != 0 && FlushTileDma() < 0)
+        gScriptVmFlags &= ~0x40;
+    if ((gScriptVmFlags & 0x100) != 0)
     {
         BgTiles_LoadSet(0);
-        gUnk_03000E70 &= ~0x100;
+        gScriptVmFlags &= ~0x100;
     }
-    if ((gUnk_03000E70 & 0x200) != 0)
+    if ((gScriptVmFlags & 0x200) != 0)
     {
         if (LZ_UncompressChunk() == 0)
         {
-            if ((gUnk_03000E70 & 0x400) != 0)
+            if ((gScriptVmFlags & 0x400) != 0)
             {
                 entryTbl = gUnk_02016000;
-                gScriptCursor = (u32)(gUnk_02016200 + entryTbl[gUnk_03000E69]);
-                gUnk_03000E70 &= ~0x400;
+                gScriptCursor = (u32)(gUnk_02016200 + entryTbl[gScriptPendingEntry]);
+                gScriptVmFlags &= ~0x400;
             }
-            gUnk_03000E70 &= ~0x200;
+            gScriptVmFlags &= ~0x200;
         }
     }
 }
@@ -741,16 +742,16 @@ u8 Op_ScriptReturn(u32 *pScriptCursor)
 {
     u8 ret = 1;
     u8 i;
-    if (gUnk_03000E78 != 0)
+    if (gScriptCallStackDepth != 0)
     {
-        gUnk_03000E78--;
-        *pScriptCursor = gUnk_03000E80[gUnk_03000E78];
+        gScriptCallStackDepth--;
+        *pScriptCursor = gScriptCallStack[gScriptCallStackDepth];
     }
     else
     {
         *pScriptCursor = *pScriptCursor + 1;
-        Bgm_Request(gUnk_03000E68);
-        gUnk_03000E70 &= 0xFFFE;
+        Script_SetEnvSet(gScriptReturnSetId);
+        gScriptVmFlags &= 0xFFFE;
         i = 0;
         while (i < gUnk_03000ECA)
         {
@@ -772,10 +773,10 @@ u32 Op_ScriptStop(u32 *pScriptCursor)
     u32 action;
 
     pBytecode = (u8 *)*pScriptCursor;
-    if ((gUnk_03000E70 & 0x200) == 0)
+    if ((gScriptVmFlags & 0x200) == 0)
     {
         pBytecode++;
-        Bgm_Request(gUnk_03000E68);
+        Script_SetEnvSet(gScriptReturnSetId);
         state = *pBytecode != 0 ? 1 : 3;
         action = state;
         switch (action)
@@ -787,7 +788,7 @@ u32 Op_ScriptStop(u32 *pScriptCursor)
                 break;
         }
 
-        gUnk_03000E70 &= ~1;
+        gScriptVmFlags &= ~1;
         for (i = 0; i < gUnk_03000ECA; i++)
         {
             gUnk_03000EA0[i] = 0;
@@ -800,9 +801,86 @@ u32 Op_ScriptStop(u32 *pScriptCursor)
     return 0;
 }
 // @ 0x080512C4
-INCLUDE_ASM("asm/nonmatchings", sub_80512C4);
+u32 sub_80512C4(u32 *ptr)
+{
+    u8 *data;
+    u8 entry;
+    int chunkSize;
+    u8 songId;
+    struct LzHeader *lzData;
+    u32 uncompSize;
+    u16 *entryTbl;
+    vu16 *ioReg;
+
+    data = (u8 *)(*ptr);
+    gUnk_03000EC0[gUnk_03000ECA] = gScriptReturnSetId;
+    gUnk_03000EC8 = entry;
+    gUnk_03000EC9 = songId;
+    data++;
+    songId = *data;
+    data++;
+    entry = *data;
+    data++;
+    gUnk_03000EA0[gUnk_03000ECA] = (u32)data;
+    chunkSize = 0x400;
+    gUnk_03000ECA++;
+    gScriptReturnSetId = songId;
+    lzData = (struct LzHeader *)gScriptSetTable[songId];
+    uncompSize = lzData->uncompressedSize;
+    ioReg = (vu16 *)0x04000000;
+    if ((*ioReg & 0x80) == 0x80)
+    {
+        LZ_InitContext((u8 *)0x02016000, lzData, uncompSize);
+        LZ_UncompressChunk();
+    }
+    else
+    {
+        ioReg = (vu16 *)0x02016000;
+        LZ_InitContext((u8 *)ioReg, lzData, chunkSize);
+        gScriptVmFlags |= 0x200;
+    }
+    entryTbl = (u16 *)0x02016000;
+    gScriptPendingEntry = entry;
+    gScriptVmFlags |= 0x400;
+    gScriptCursor = (u32)(0x02016200 + entryTbl[entry]);
+    gScriptVmFlags |= 2;
+    songId = 0;
+    return songId;
+}
 // @ 0x080513A0
-INCLUDE_ASM("asm/nonmatchings", sub_80513A0);
+u32 sub_80513A0(u32 *ptr)
+{
+    struct LzHeader *lz;
+    u32 savedCursor;
+    u32 size;
+    int chunkSize;
+    u8 setId;
+    vu16 *ioReg;
+
+    gUnk_03000ECA--;
+    chunkSize = 0x400;
+    gUnk_03000F30 = gUnk_03000EC0[gUnk_03000ECA];
+    setId = gUnk_03000EC0[gUnk_03000ECA];
+    gScriptReturnSetId = setId;
+    lz = (struct LzHeader *)gScriptSetTable[setId];
+    size = lz->uncompressedSize;
+    ioReg = (vu16 *)0x04000000;
+    if ((*ioReg & 0x80) == 0x80)
+    {
+        LZ_InitContext((u8 *)0x02016000, lz, size);
+        LZ_UncompressChunk();
+    }
+    else
+    {
+        ioReg = (vu16 *)0x02016000;
+        LZ_InitContext((u8 *)ioReg, lz, chunkSize);
+        gScriptVmFlags |= 0x200;
+    }
+    gScriptCursor = 0x02016200;
+    savedCursor = gUnk_03000EA0[gUnk_03000ECA];
+    gScriptCursor = savedCursor;
+    return 0;
+}
 // @ 0x0805144C
 INCLUDE_ASM("asm/nonmatchings", sub_805144C);
 // @ 0x08051A1C
@@ -837,7 +915,7 @@ u32 Op_OpenWindow(u32 *pScriptCursor)
         bgcnt &= ~BGCNT_WRAP;
         bgcnt &= ~BGCNT_TXT512x512;
         REG_BG0CNT = bgcnt;
-        gUnk_03000E70 |= 0x10;
+        gScriptVmFlags |= 0x10;
         *pScriptCursor = value + 1;
     }
     return 1;
@@ -865,7 +943,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_8051BE4);
 // @ 0x08052574
 u16 Script_GetFlags(void)
 {
-    return gUnk_03000E70;
+    return gScriptVmFlags;
 }
 
 // @ 0x08052580
@@ -874,34 +952,66 @@ void Script_ResetVM(void)
     u8 i;
 
     gScriptCursor = (u32)gUnk_02016200;
-    gUnk_03000E70 = 0;
-    gUnk_03000E72 = 0;
-    gUnk_03000ECB = 1;
-    gUnk_03000ECC = 0xC;
-    gUnk_03000E78 = 0;
+    gScriptVmFlags = 0;
+    gScriptDialogPhase = 0;
+    gDialogWindowTileX = 1;
+    gDialogWindowTileY = 0xC;
+    gScriptCallStackDepth = 0;
     for (i = 0; i <= 7; i++)
     {
-        gUnk_03000E80[i] = 0;
+        gScriptCallStack[i] = 0;
     }
     gUnk_03000ECA = 0;
 }
 // @ 0x080525E8
-INCLUDE_ASM("asm/nonmatchings", sub_80525E8);
+void ScriptSet_Load(u8 setId, u8 entry, u8 mode)
+{
+    struct LzHeader *lzData;
+    u32 uncompSize;
+    u16 *jtbl;
+
+    gScriptReturnSetId = setId;
+    lzData = (struct LzHeader *)gScriptSetTable[setId];
+    uncompSize = lzData->uncompressedSize;
+    if (REG_DISPCNT & 0x80)
+    {
+        LZ_InitContext((u8 *)0x02016000, lzData, uncompSize);
+        LZ_UncompressChunk();
+    }
+    else
+    {
+        LZ_InitContext((u8 *)0x02016000, lzData, 0x400);
+        gScriptVmFlags |= 0x200;
+    }
+    jtbl = (u16 *)0x02016000;
+    switch (mode)
+    {
+        case 1:
+        default:
+            gScriptCursor = 0x02016200;
+            break;
+        case 2:
+            gScriptPendingEntry = entry;
+            gScriptVmFlags |= 0x400;
+            gScriptCursor = 0x02016200 + jtbl[entry];
+            break;
+    }
+}
 // @ 0x080526A0
 // 脚本 VM 启动/跳转: 按 arg1 模式设置脚本指针 gScriptCursor, 然后清局部槽并置运行标志。
 //   arg1==2 -> 跳到脚本区第 arg0 项入口 (gUnk_02016200 + gUnk_02016000[arg0])
 //   arg1==3 -> 保持脚本指针不变
 //   其它    -> 复位到脚本区基址 gUnk_02016200
-// 之后把 8 个 u16 局部槽 (gScriptLocalSlots) 全置 0xFFFF, 置运行标志 bit0, 清 gUnk_03000E72。
+// 之后把 8 个 u16 局部槽 (gScriptLocalSlots) 全置 0xFFFF, 置运行标志 bit0, 清 gScriptDialogPhase。
 // 注: base 0x02016200 / 表基址 0x02016000 必须写字面量, 换 gUnk_02016200/gUnk_02016000 符号
 //     会改变 case2 块寄存器分配 (差 9B); `= -1` 是窄化 store 的 ldrh/orr/strh 展开形状,
 //     写 `|= 0xFFFF` 或经局部指针/强转视图访问都会被折叠成直接 store (字节错)。
-void sub_80526A0(u8 arg0, u8 arg1)
+void ScriptPump_JumpToEntry(u8 arg0, u8 arg1)
 {
     u8 i;
-    u16 *tbl;
+    u16 *jtbl;
 
-    tbl = (u16 *)0x02016000;
+    jtbl = (u16 *)0x02016000;
     switch (arg1)
     {
     default:
@@ -909,7 +1019,7 @@ void sub_80526A0(u8 arg0, u8 arg1)
         gScriptCursor = 0x02016200;
         break;
     case 2:
-        gScriptCursor = 0x02016200 + tbl[arg0];
+        gScriptCursor = 0x02016200 + jtbl[arg0];
         break;
     case 3:
         break;
@@ -918,8 +1028,8 @@ void sub_80526A0(u8 arg0, u8 arg1)
     {
         gScriptLocalSlots[i] = -1;
     }
-    gUnk_03000E70 = gUnk_03000E70 | 1;
-    gUnk_03000E72 = 0;
+    gScriptVmFlags = gScriptVmFlags | 1;
+    gScriptDialogPhase = 0;
 }
 
 // @ 0x08052728
@@ -991,7 +1101,7 @@ u32 Op_LoadTileGfx(u8 arg0)
     sub_8050434((u32)(arg0 * 18) + (u32)gUnk_0862D574 + gUnk_03000F2A * 2, 0x6F1E);
     if (gUnk_03000F24 != 0)
     {
-        gUnk_03000E70 |= 0x40;
+        gScriptVmFlags |= 0x40;
         return 1;
     }
     return 0;
@@ -1015,11 +1125,11 @@ u32 Script_Call(u32 *pScriptCursor)
     u16 ofs;
 
     pBytecode = (u8 *)*pScriptCursor;
-    if (gUnk_03000E78 <= 7)
+    if (gScriptCallStackDepth <= 7)
     {
-        gUnk_03000E80[gUnk_03000E78] = (u32)(pBytecode + 2);
+        gScriptCallStack[gScriptCallStackDepth] = (u32)(pBytecode + 2);
         ofs = *(u16 *)((u32)gUnk_02016000 + pBytecode[1] * 2);
-        gUnk_03000E78++;
+        gScriptCallStackDepth++;
         *pScriptCursor = ofs + (u32)gUnk_02016200;
     }
     else
@@ -1071,7 +1181,7 @@ u32 Op_CloseWindow(u32 *pScriptCursor)
             } while (status & mask);
         }
         REG_DISPCNT &= ~DISPCNT_BG0_ON;
-        gUnk_03000E70 |= 0x100;
+        gScriptVmFlags |= 0x100;
         *pScriptCursor = value + 1;
     }
     return 0;
@@ -1083,10 +1193,10 @@ u8 Op_WaitFrames(u8 **pScriptCursor)
     u8 ret = 0;
     u8 idx = pBytecode[1];
     pBytecode = 0;
-    if ((gUnk_03000E70 & 0x20) == 0)
+    if ((gScriptVmFlags & 0x20) == 0)
     {
         gUnk_03000E74 = 0;
-        gUnk_03000E70 |= 0x20;
+        gScriptVmFlags |= 0x20;
     }
     else if (gUnk_03000E74 < idx)
     {
@@ -1095,7 +1205,7 @@ u8 Op_WaitFrames(u8 **pScriptCursor)
     else
     {
         gUnk_03000E74 = 0;
-        gUnk_03000E70 &= ~0x20;
+        gScriptVmFlags &= ~0x20;
         *pScriptCursor += 2;
         ret = 1;
     }
@@ -1200,15 +1310,15 @@ u32 Op_RandomJump(u32 *pScriptCursor)
     u8 *pBytecode;
     u8 diff;
     u16 val;
-    u16 *tbl;
+    u16 *jtbl;
 
     pBytecode = (u8 *)*pScriptCursor;
-    tbl = (u16 *)0x02016000;
-    val = tbl[pBytecode[1]];
+    jtbl = (u16 *)0x02016000;
+    val = jtbl[pBytecode[1]];
     if (pBytecode[1] < pBytecode[2])
     {
         diff = pBytecode[2] - pBytecode[1];
-        val = tbl[(u8)(pBytecode[1] + ((u32 (*)(void))Rng_LcgNext)() % (diff + 1))];
+        val = jtbl[(u8)(pBytecode[1] + ((u32 (*)(void))Rng_LcgNext)() % (diff + 1))];
     }
     *pScriptCursor = 0x02016200 + val;
     return 1;
@@ -1220,11 +1330,11 @@ u32 Op_ScriptCallAlt(u32 *pScriptCursor)
     u16 ofs;
 
     pBytecode = (u8 *)*pScriptCursor;
-    if (gUnk_03000E78 <= 7)
+    if (gScriptCallStackDepth <= 7)
     {
-        gUnk_03000E80[gUnk_03000E78] = (u32)(pBytecode + 2);
+        gScriptCallStack[gScriptCallStackDepth] = (u32)(pBytecode + 2);
         ofs = *(u16 *)((u32)gUnk_02016000 + pBytecode[1] * 2);
-        gUnk_03000E78++;
+        gScriptCallStackDepth++;
         *pScriptCursor = ofs + (u32)gUnk_02016200;
     }
     else
@@ -1335,7 +1445,7 @@ u32 Op_SceneChangePlain(u32 *pScriptCursor)
 // @ 0x08052CD0
 u32 Op_WaitSceneIdle(u32 *pScriptCursor)
 {
-    if (gSceneSubState == 0)
+    if (gScreenTransitionState == 0)
     {
         (*pScriptCursor)++;
         return 1;
@@ -1353,7 +1463,7 @@ u32 Op_LoadMap(u32 *pScriptCursor)
     gSpawnTileX = pBytecode[4];
     gSpawnTileY = pBytecode[5];
     gSpawnFacingDir = pBytecode[6];
-    gMainGameState = 2;
+    gGameState = GAME_STATE_SCENE_LOAD;
     gVBlankPipelineMode = 1;
     *pScriptCursor = (u32)(pBytecode + 7);
     return 0;
@@ -1942,7 +2052,7 @@ u32 Op_IfMoneyJump(u32 *pScriptCursor)
     }
     else
     {
-        *pScriptCursor = (u32)(pBytecode + 4);
+        *pScriptCursor += 4;
     }
     return 1;
 }

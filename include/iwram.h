@@ -2,6 +2,7 @@
 #define _IWRAM_H
 
 #include "gba/types.h"
+#include "menu.h"
 
 #define NULL 0
 
@@ -25,12 +26,15 @@ struct LzContext
     u32 remainingSize;
 };
 
-struct Unk_LzData
+struct LzHeader
 {
     u32 uncompressedSize;
     u32 size;
     u8 data[1];
 };
+
+typedef struct LzHeader LzHeader;
+#define Unk_LzData LzHeader
 
 extern u16 gUnk_03000000;
 extern u16 gUnk_03000002;
@@ -107,7 +111,31 @@ extern u8 gSkillMenuTmpA;
 extern u8 gSkillMenuTmpB;
 extern u8 gPartyMenuIdx;
 extern u8 gSkillMenuPage;
+extern u8 gUnk_03000229;
+extern u8 gUnk_03000204;
+extern u8 gUnk_03000208;
+extern u32 gUnk_03000210;
 extern u8 gUnk_0300022B;
+extern u32 gUnk_0300022C;
+/* Option sound-test state. BGM/SFX rows are displayed as ??? until a valid
+ * save enables them. The playing BGM byte stores id+1 so zero means stopped. */
+extern u16 gSoundTestSfxId;
+#define gCardAlbumCursor gSoundTestSfxId
+#define gUnk_03000230 gSoundTestSfxId
+extern u8 gSoundTestBgmId;
+#define gCardAlbumPage gSoundTestBgmId
+#define gUnk_03000232 gSoundTestBgmId
+extern u8 gSoundTestPlayingBgmIdPlusOne;
+#define gCardCursorY gSoundTestPlayingBgmIdPlusOne
+#define gUnk_03000233 gSoundTestPlayingBgmIdPlusOne
+/* Number of PRESS START update frames left before attract mode. */
+extern u8 gTitleAttractCountdown;
+#define gTitleFadeStep gTitleAttractCountdown
+#define gUnk_03000234 gTitleAttractCountdown
+extern u16 gCardRecvId;
+#define gUnk_03000236 gCardRecvId
+extern u16 gCardSendId;
+#define gUnk_03000238 gCardSendId
 extern u8 gUnk_03000240;
 extern u32 gUnk_03000248;
 extern u16 gUnk_03000310;
@@ -329,19 +357,27 @@ typedef struct
 } Unk_03000E08;
 extern Unk_03000E08 gUnk_03000E08[];
 extern u8 gUnk_03000E30;
-extern u8 gUnk_03000E68;
-extern u8 gUnk_03000E69;
+extern u8 gScriptReturnSetId; /* 0x03000E68 ScriptSet_Load 记挂的脚本集号; 脚本退场时还原到 gEnvScriptSetId */
+extern u8 gScriptPendingEntry; /* 0x03000E69 mode==2 记挂的入口号, 解压完成后跳 entryTbl[本值] */
 extern u32 gScriptCursor; /* 0x03000E6C: 脚本 VM PC 槽, 存当前 opcode 字节地址 (EWRAM 脚本区) */
-extern u16 gUnk_03000E70;
-extern u8 gUnk_03000E72;
+extern u16 gScriptVmFlags;
+#define gUnk_03000E70 gScriptVmFlags
+extern u8 gScriptDialogPhase;
+#define gUnk_03000E72 gScriptDialogPhase
 extern u8 gUnk_03000E74;
-extern u8 gUnk_03000E78;
-extern u32 gUnk_03000E80[];
+extern u8 gScriptCallStackDepth;
+#define gUnk_03000E78 gScriptCallStackDepth
+extern u32 gScriptCallStack[];
+#define gUnk_03000E80 gScriptCallStack
 extern u32 gUnk_03000EA0[];
 extern u8 gUnk_03000EC0[];
+extern u8 gUnk_03000EC8;
+extern u8 gUnk_03000EC9;
 extern u8 gUnk_03000ECA;
-extern u8 gUnk_03000ECB;
-extern u8 gUnk_03000ECC;
+extern u8 gDialogWindowTileX;
+#define gUnk_03000ECB gDialogWindowTileX
+extern u8 gDialogWindowTileY;
+#define gUnk_03000ECC gDialogWindowTileY
 extern u8 gUnk_03000ED8;
 extern u16 gScriptLocalSlots[];
 extern u16 gUnk_03000EE8[];
@@ -365,7 +401,8 @@ extern u8 gSfxTrackFadeBits;
 extern u8 gSwitchFlags[0x50];
 
 extern s32 gSioRecvWord;
-extern u8 gMainGameState;
+extern u8 gGameState;
+#define gMainGameState gGameState
 extern u32 gGameTimer; // 3001948
 extern u32 gUnk_03001950[14];
 extern u16 gHBlankScrollCounter;
@@ -376,15 +413,16 @@ extern u16 gHeldKeysRaw;
 
 extern u8 gHBlankWaveV[];
 
-extern u8 gMainTaskSlot;
-extern u32 gUnk_03001AD0;
+extern u8 gMainLoopMode;
+#define gMainTaskSlot gMainLoopMode
+// 0x03001AD0: gSioRecvPacket (declared in menu.h)
 extern u32 gSioLinkState;
 extern u8 gHBlankWaveRow;
 extern u8 gHBlankWaveH[];
 
 extern u8 gEventFlags[0x40];
 extern u16 gNewKeysRaw;
-extern u32 gUnk_03001CB0;
+// 0x03001CB0: gSioSendPacket (declared in menu.h)
 
 extern u32 gSioRetryTimer;
 extern u32 gIntrMainBuf[512];
@@ -448,7 +486,10 @@ extern Actor gUnk_03001EE0[];
 extern u8 gVBlankPipelineMode;
 extern u32 gFrameCounter;
 extern u8 gRandCursor;
-extern u32 gUnk_030025A8;
+
+
+extern u32 gCardExchangeStatus;
+#define gUnk_030025A8 gCardExchangeStatus
 extern u8 gPlayerMoveDir;
 extern s16 gCameraPosX;
 extern u8 gUnk_030025B8;
@@ -458,13 +499,16 @@ extern u16 gFollowerHistX[8];
 extern u16 gEncounterCounter;
 extern u8 gDialogueActive;
 extern u16 gFollowerHistY[8];
-extern u8 gCutsceneActive;
+extern u8 gTitleIntroState;
+#define gCutsceneActive gTitleIntroState
 extern u8 gSceneEntryFlag;
 extern u16 gCameraTargetX;
 extern s16 gCameraPosY;
+
 extern u16 gScenePhase;
 extern u8 gLogoEffectState;
-extern u16 gUnk_03002608;
+extern u16 gTitleFadeTimer;
+#define gUnk_03002608 gTitleFadeTimer
 extern u8 gWarpAnimState;
 
 extern u8 gSpriteHeight;
@@ -698,7 +742,7 @@ extern u8 gScreenIdleIconCursor;
 extern u8 *gChoiceListPtr;
 extern u16 gUnk_03004630;
 #define gCameraPanTargetX gUnk_03004630
-extern u8 gUnk_03004634;
+extern u8 gMapScriptSetId; /* 0x03004634 当前地图环境脚本集号 (来自 MapSceneDescriptor.scriptSetId, MapScene_Load 消费) */
 extern u8 gSpawnTileY;
 /* MapZone_FindAt 命中的区域动作号 (0..4, 0xFF=未命中); MapZone_Trigger 按它分发 */
 extern u8 gMapZoneType;
@@ -810,14 +854,16 @@ extern u8 gUnk_0300483C;
 extern u8 gWin0HWaveTable[];
 /* 81 packed WIN0H boundaries generated for the iris transition. */
 #define gWindowTransitionScanlineTable gWin0HWaveTable
-extern u8 gSceneSubState;
+/* Nonzero while ScreenFx_SetMode has an in-flight window/palette transition. */
+extern u8 gScreenTransitionState;
+#define gSceneSubState gScreenTransitionState
 extern u8 gUnk_03004844;
 #define gCameraPanStep gUnk_03004844
 
 extern u16 gBG2ScrollX;
 extern u16 gBG3ScrollX;
 
-extern u8 gCurrentSongId;
+extern u8 gEnvScriptSetId; /* 0x03004850 当前环境脚本集号 (脚本退场 Script_SetEnvSet 还原; 进存档) */
 extern u8 gCameraSnapFlag;
 extern u8 gUnk_03004860;
 extern u8 gChestFlags[32];
@@ -920,19 +966,23 @@ typedef struct
 
 extern PlayerStats gPartyStats[];
 
-extern u8 gUnk_03004D44;
+extern u8 gSaveFsmState;
+#define gUnk_03004D44 gSaveFsmState
 extern u16 gUnk_03004D48;
 
 extern u8 gUnk_03004D4C;
-extern u8 gUnk_03004D50;
+extern u8 gActiveSaveSlot;
+#define gUnk_03004D50 gActiveSaveSlot
 extern u8 gSaveTimers[];
 
 extern u16 gUnk_03004DBC;
 extern u8 gBgTileReloadFlag;
+extern u8 gUnk_03004DC0;
 extern u8 gSaveBusyA;
 extern u8 gSaveFlags[];
 
-extern u8 gUnk_03004DD0;
+extern u8 gSaveSramBlock;
+#define gUnk_03004DD0 gSaveSramBlock
 extern u8 gSaveUiParam;
 extern u8 gSaveBusyB;
 extern u16 gSavedDispCnt; /* 0x03004DDC 存档菜单进入前的 REG_DISPCNT */

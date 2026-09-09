@@ -49,7 +49,7 @@ extern const u8 gMenuEntDescGroups[];
 extern const u16 gMenuEntPaletteFrames[];
 
 /* 存档菜单 UI OBJ 调色板 (0x0808B7D4, 2 × 0x20) → OBJ bank14 (0x050001C0):
- * [0] 蓝系渐变 / [1] 绿系渐变; sub_8011454 三分支各取 32B, sub_80160F4 整表 64B。 */
+ * [0] 蓝系渐变 / [1] 绿系渐变; TitleMenu_ProcessFrame 三分支各取 32B, sub_80160F4 整表 64B。 */
 extern const u16 gSaveMenuUiPalettes[];
 
 /* 0x0808B814, 24884 B: gUnk_087EA1A0[] 动画模型记录链 (248 组变长, 见 AnimSlot_Parse) */
@@ -294,7 +294,7 @@ typedef struct
     /* 0x08 */ u8 bg3Mode; /* BG3/显示模式参数 */
     /* 0x09 */ u8 npcSlotGroupId; /* NPC 图形/调色板槽组 */
     /* 0x0A */ u8 bg2Mode; /* BG2/场景附加模式参数 */
-    /* 0x0B */ u8 sceneFlag; /* 场景标志 */
+    /* 0x0B */ u8 scriptSetId; /* 环境脚本集号: MapScene_Load 装入 gMapScriptSetId 并 ScriptSet_Load 之 */
     /* 0x0C */ u16 collisionTileMax; /* 地图碰撞判定阈值 */
     /* 0x0E */ u16 tilemapId; /* 地图 tilemap 资源索引 */
     /* 0x10 */ u16 tileSetId; /* 地图 tile 资源索引 */

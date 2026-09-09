@@ -1,9 +1,11 @@
 # Build artifacts
 build/
+build_debug/
 
 *.gba
 *.elf
 *.map
+linker_debug.ld
 
 tools/agbcc/
 # 生成的报表 (gen_reports.py 可随时重建, 不入库)
@@ -11,9 +13,12 @@ docs/reports/
 
 *.dump
 *.dump.dmp
-
+gccdump*
+docs/
+docs/*.md
 *.json
-
+Screenshots
+scripts
 scripts/ida/
 scripts/data/
 data/raw_data

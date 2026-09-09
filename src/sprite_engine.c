@@ -780,7 +780,7 @@ void Anim_BuildOamChain(u8 arg0, u8 *arg1) {
     if(arg0 <= 0x12)
     {
         vramOffset = 0x800;
-        if (gMainGameState == 0xB)
+        if (gGameState == GAME_STATE_TITLE_MENU)
         {
             vramOffset = 0x400;
         }
@@ -1015,16 +1015,16 @@ void Task_DispatchGameState(void)
 {
     ReadKeys();
     RenderQueue_Clear();
-    gUnk_087E83F8[gMainGameState]();
+    gGameStateCallbacks[gGameState]();
 }
 
 // 地图场景切换，加载数据精灵
 //  @ 0x080030B0
 void SceneTransition_RequestMap()
 {
-    if (gSceneSubState == 0 && gScenePhase == 1)
+    if (gScreenTransitionState == 0 && gScenePhase == 1)
     {
-        gMainGameState = 2;
+        gGameState = GAME_STATE_SCENE_LOAD;
         gVBlankPipelineMode = 1;
     }
     else if (gScenePhase != 1)
@@ -1048,7 +1048,7 @@ void Task_DialogueFrame(void)
 // @ 0x08003128
 void Task_BattleMenuFrame(void)
 {
-    if (!(0x80 & gScreenFadeFlags) && (gSceneSubState == 0))
+    if (!(0x80 & gScreenFadeFlags) && (gScreenTransitionState == 0))
     {
         ChoiceMenu_HandleInput(gNewKeysRaw);
     }
@@ -1061,10 +1061,10 @@ void Task_BattleMenuFrame(void)
 // @ 0x08003168
 void Scene_ReloadViaMenu()
 {
-    if (gSceneSubState == 0 && gScenePhase == 1)
+    if (gScreenTransitionState == 0 && gScenePhase == 1)
     {
         Followers_SyncToTail();
-        gMainGameState = 2;
+        gGameState = GAME_STATE_SCENE_LOAD;
         gVBlankPipelineMode = 1;
     }
     else if (gScenePhase != 1)
@@ -1082,9 +1082,11 @@ void Scene_ReloadViaMenu()
 }
 
 // @ 0x080031E4
-void Task_SaveMenuFrame()
+void Task_TitleMenuFrame()
 {
-    sub_8011454();
+    /* The title FSM prepares CPU-side state; these two calls finish the frame
+     * by advancing palette transitions and publishing the queued OAM. */
+    TitleMenu_ProcessFrame();
     PaletteEffects_Update();
     OAM_FlushFromQueue();
 }
@@ -1980,4 +1982,3 @@ INCLUDE_ASM("asm/matchings", Chara_MoveBy);
 //         ptr2E80->x += val;
 //     }
 // }
-

@@ -1,4 +1,9 @@
 include config.mk
+# config.mk 之后的命令行覆盖: DEBUG=1 时产物改名 (build_debug/ll_debug.*)
+
+ifeq ($(DEBUG),1)
+BUILD_NAME := ll_debug
+endif
 
 MAKEFLAGS += --no-print-directory
 
@@ -36,6 +41,10 @@ AS      := $(PREFIX)as
 ### FILES ###
 
 OBJ_DIR := build
+ifeq ($(DEBUG),1)
+# 调试构建 (-O1): .text 膨胀, 独立产物目录/名字 + 放松 ROM 锚点的链接脚本, 不跑 SHA1
+OBJ_DIR    := build_debug
+endif
 ROM     := $(BUILD_NAME).gba
 ELF     := $(BUILD_NAME).elf
 MAP     := $(BUILD_NAME).map
@@ -65,9 +74,16 @@ OBJS_REL := $(patsubst $(OBJ_DIR)/%,%,$(OBJS))
 
 ASFLAGS  := -mcpu=arm7tdmi -mthumb-interwork  -I sound
 CPPFLAGS := -nostdinc -I tools/agbcc/include -iquote include
-CC1FLAGS := -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -fprologue-bugfix
+CC1FLAGS := -mthumb-interwork -Wimplicit -Wparentheses -O2 -g -fhex-asm -fprologue-bugfix
 
 LDSCRIPT    := linker.ld
+
+ifeq ($(DEBUG),1)
+# 调试构建: .text 总量必须 ≤ 8MB (ROM 上限) — -O0 膨胀 +68KB 会溢出 75KB (数据 blob
+# 为原 ROM 固定内容无法压缩), 故用 -O1 (实测 script_vm.o: O2=16752 / O1=16808 / O0=22828)
+CC1FLAGS := -mthumb-interwork -Wimplicit -Wparentheses -O1 -g -fhex-asm -fprologue-bugfix
+LDSCRIPT  := linker_debug.ld
+endif
 
 # LIBS := tools/agbcc/lib/libgcc.a tools/agbcc/lib/libc.a
 LIBPATH := -L $(ROOT_DIR)/tools/agbcc/lib
@@ -89,7 +105,14 @@ CONTEXT_FLAGS := -DM2C -DPLATFORM_GBA=1 -Dsize_t=int
 
 $(shell mkdir -p $(ASM_BUILDDIR) $(C_BUILDDIR) $(DATA_BUILDDIR))
 
+ifeq ($(DEBUG),1)
+# fix_debug_rom 需要 ll.elf (正式版符号表=旧地址来源): 先隐式构建正式版
+all: rom
+	@$(MAKE) DEBUG= BUILD_NAME=ll OBJ_DIR=build rom >/dev/null
+	@python3 scripts/fix_debug_rom.py
+else
 all: compare
+endif
 
 compare: rom
 	$(SHA1) $(BUILD_NAME).sha1
@@ -100,6 +123,16 @@ progress:
 	@awk -F'\t' 'NR>1 && NF>1 {t++; if ($$1==1) m++} END {printf "匹配进度: %d/%d (%.1f%%)\n", m, t, m*100/t}' functions.tsv
 
 rom: $(ROM)
+
+rom: $(ROM)
+
+# DEBUG 构建链接脚本: 由 gen_debug_ld.py 从 linker.ld 生成
+# ① rom region 8M->16M; ② .text 段剔除 GAP 名单文件 + 尾部补洞锚 (保数据起点
+#   0x0805769C 不漂移); ③ GAP 文件整体搬 0x08800000 空区; ④ 数据区与锚 A/B 原样保留
+# 数据区内指向 GAP 函数的指针由 fix_debug_rom.py 链接后修补 (见 DEBUG 修补规则)
+DBG_GAP ?= event_hub event_actor
+linker_debug.ld: linker.ld scripts/gen_debug_ld.py
+	@python3 scripts/gen_debug_ld.py --gap "$(DBG_GAP)"
 
 $(ELF): $(OBJS) $(LDSCRIPT)
 	@echo "$(LD) -T $(LDSCRIPT) -Map $(MAP) <objects> -o $@"
@@ -192,5 +225,6 @@ check_format:
 clean: tidy
 
 tidy:
-	$(RM) -r build
+	$(RM) -r build build_debug
 	$(RM) $(BUILD_NAME).gba $(BUILD_NAME).elf $(BUILD_NAME).map
+	$(RM) ll.gba ll.elf ll.map ll_debug.gba ll_debug.elf ll_debug.map

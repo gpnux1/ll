@@ -3,25 +3,26 @@
 #include "data_805769C.h"
 
 // 87E83F0
-const MainTaskFunc gMainTasks[] = {
-    Task_DispatchGameState, // Game Task
-    BattleTask_Run, // Battle Task
+const MainLoopCallback gMainLoopCallbacks[] = {
+    Task_DispatchGameState,
+    BattleTask_Run,
 };
 
-const UnkFunc gUnk_087E83F8[] = {NewGame_Init,
-                                 Task_MapExplore,
-                                 SceneTransition_Load,
-                                 SceneTransition_RequestMap,
-                                 Scene_EnterMap,
-                                 Scene_ExitToMenu,
-                                 Scene_Reload,
-                                 Task_DialogueFrame,
-                                 Scene_EnterDoor,
-                                 Task_BattleMenuFrame,
-                                 Scene_ReloadViaMenu,
-                                 Task_SaveMenuFrame,
-                                 Scene_RestoreAfterBattle,
-                                 Task_TextFrame};
+/* Indexed by enum GameState. The order is ROM data and must not change. */
+const GameStateCallback gGameStateCallbacks[] = {NewGame_Init,
+                                                 Task_MapExplore,
+                                                 SceneTransition_Load,
+                                                 SceneTransition_RequestMap,
+                                                 Scene_EnterMap,
+                                                 BattleTransition_Enter,
+                                                 Scene_Reload,
+                                                 Task_DialogueFrame,
+                                                 Scene_EnterDoor,
+                                                 Task_BattleMenuFrame,
+                                                 Scene_ReloadViaMenu,
+                                                 Task_TitleMenuFrame,
+                                                 Scene_RestoreAfterBattle,
+                                                 Task_TextFrame};
 
 const u32 gUnk_087E8430[] = {
     0x80A1314, 0x80A16C8, 0x80A1AA8, 0x80A1EA4, 0x80A2288, 0x80A2694, 0x80A2ABC, 0x80A2F04, 0x80A3304, 0x80A36E4, 0x80A3AD4, 0x80A3EC4,

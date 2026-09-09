@@ -1701,7 +1701,7 @@ const u8 gMenuEntDescGroups[] = {
 const u16 gMenuEntPaletteFrames[] = INCBIN_U16("data/raw_data/gMenuEntPaletteFrames.bin");
 
 /* 存档菜单 UI OBJ 调色板 (0x0808B7D4, 64 B = 2 × 0x20) → OBJ PLTT bank 14 (0x050001C0)。
- * 使用点: sub_8011454 (存档菜单主控, 未匹配) 三处分支各 DMA 首 32 字节 (0x80000020);
+ * 使用点: TitleMenu_ProcessFrame (存档菜单主控, 未匹配) 三处分支各 DMA 首 32 字节 (0x80000020);
  * sub_80160F4 (code_8010F10.c, ✅C) 整表 64 字节 DMA。
  * 内容: [0] 蓝系渐变 (底色 25ad → 6bff 高光), [1] 绿系渐变 (同底色/尾色, 中段 0c21..03e0 绿阶),
  * 共享尾部 018c..6bff; 疑为存档 UI 两态/两组元素配色。 */
@@ -1723,7 +1723,7 @@ const u8 gClassStatCurveTable[] = INCBIN_U8("data/raw_data/unk_80921F0.bin");
 
 /* gLevelUpExpTable (0x08092248, 400 B): 经验表 */
 // 0x08092248
-const u8 gLevelUpExpTable[] = INCBIN_U8("data/raw_data/unk_8092248.bin");
+const u32 gLevelUpExpTable[] = INCBIN_U32("data/raw_data/unk_8092248.bin");
 
 /* gStatGrowthCurveTables (0x080923D8, 4100 B): 成长分段表 (每段[0]=段长, 100B x41) */
 // 0x080923D8
@@ -1755,7 +1755,7 @@ const u8 gItemNames[] = INCBIN_U8("data/raw_data/stru_8095028.bin");
 // 0x08095828
 const u8 gCharacterNames[] = INCBIN_U8("data/raw_data/stru_8095828.bin");
 
-/* 地图 BG 表组 (0x08095A1C..0x08098170): 被 MapBg_LoadInterior/SceneBg_Reload/sub_8011454
+/* 地图 BG 表组 (0x08095A1C..0x08098170): 被 MapBg_LoadInterior/SceneBg_Reload/TitleMenu_ProcessFrame
  * 经 {src,VRAM} 对表 (0x08007F2C/0x08011938) 引用的 LZ77 图块与调色板。 */
 // 0x08095A1C
 const u8 unk_8095A1C[] = INCBIN_U8("data/raw_data/unk_8095A1C.bin");
@@ -1783,7 +1783,7 @@ const u8 unk_8097EF0[] = INCBIN_U8("data/raw_data/unk_8097EF0.bin");
 const u8 unk_8098030[] = INCBIN_U8("data/raw_data/unk_8098030.bin");
 
 /* 存档槽元数据区 (0x08098170..0x08098308, 408 B): 存档签名 + 槽参数族。
- * 消费端: Save_Fsm / Save_FillSlot* / Save_LoadContinue / SaveUi_LoadScreen。 */
+ * 消费端: Save_Fsm / Save_FillSlot* / Save_LoadContinue / TitleMenu_UpdateUi。 */
 // 0x08098170
 const u8 unk_8098170[] = INCBIN_U8("data/raw_data/unk_8098170.bin");
 // 0x08098180
@@ -1805,7 +1805,7 @@ const u8 unk_809824A[] = INCBIN_U8("data/raw_data/unk_809824A.bin");
 // 0x08098308
 const u8 gSaveMiscTables[] = INCBIN_U8("data/raw_data/gSaveMiscTables.bin");
 
-/* 地图图块 LZ77 库 (0x0809C834..0x080A0B58): BgTiles_LoadUiSet/MapBg_LoadInterior/sub_8011454
+/* 地图图块 LZ77 库 (0x0809C834..0x080A0B58): BgTiles_LoadUiSet/MapBg_LoadInterior/TitleMenu_ProcessFrame
  * 引用的压缩图块组。 */
 // 0x0809C834
 const u8 unk_809C834[] = INCBIN_U8("data/raw_data/unk_809C834.bin");
@@ -1826,8 +1826,8 @@ const u8 unk_809E644[] = INCBIN_U8("data/raw_data/unk_809E644.bin");
 // 0x0809E664 (opaque 9460B, 未引用)
 const u8 gUnk_0809E664[] = INCBIN_U8("data/raw_data/gUnk_0809E664.bin");
 
-/* 存档菜单 LZ77 图块 (0x080A0B58, 1912 B): LZ77UnCompWram → 0x02020800 (sub_80160CC/sub_8011454)。
- * 紧随其后 0x080A12D0 (68 B) 为存档菜单 OBJ 调色板, sub_80160F4/sub_8011454 DMA 到 0x05000340。 */
+/* 存档菜单 LZ77 图块 (0x080A0B58, 1912 B): LZ77UnCompWram → 0x02020800 (sub_80160CC/TitleMenu_ProcessFrame)。
+ * 紧随其后 0x080A12D0 (68 B) 为存档菜单 OBJ 调色板, sub_80160F4/TitleMenu_ProcessFrame DMA 到 0x05000340。 */
 // 0x080A0B58
 const u8 unk_80A0B58[] = INCBIN_U8("data/raw_data/unk_80A0B58.bin");
 // 0x080A12D0

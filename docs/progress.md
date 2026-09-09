@@ -115,7 +115,8 @@
 | sub_8045A10 | 0x08045A10 | 0x8048簇 | code_8044394.c | ⏸ 2026-09-03 gpnux: tile动画资源检查 `val=gUnk_08093418[obj[0x99+i]*5+4]`, 两次 sub_804E76C(obj,3,1/2)>=0 时 val-2 / val/2, 返回 `(s16)(t-val)<0 ? 0 : 1` (t=*(u16*)(obj+0x70))。头部 108B 对 (含 ldr 偏移差=经验 77 双字面池假象), 卡尾部 ~22B: 目标在比较前做 `adds r1,r4,#0` (val 拷贝到 r1) + `asrs #0x10` (s16 扩展 t) + `lsls #0x10` 归一化差值。穷举 20+ 写法: s16 t / u16 t / (s16)(t-val) / diff=t-val / v=val 拷贝 / v=t 拷贝 / b=b x=t t=bptr 等刷引用 — 无一触发该拷贝+扩展序 (均出 `subs r0,r6,r4` 直接减)。permuter 280s 平台期 score 220。机制证据: s16 t 与 u16 t 仅 t>=0x8000 时结果不同 (t 是帧计数, 实际等价), 但铁律禁语义合入。头部另一坑: 我方 ldr r2,[pc,#0x40] vs 目标 [pc,#0x44] — 目标池含 2 字面量 (含 0x8093418 外第二个), 我方 1 个, C 源头无法控制, 唯一靠 home/语句重排让 GCC 多产一个 literal, 未见可行写法。完整变体存档 .scratch/gpnux/45a10/ (mk*.sh 一键重建 base.c + bytecmp 链)。⚠ 基线本身红: HEAD 有 12 个 status=1 函数字节 FAIL (见 INCIDENTS), 接手者先甄别 |
 | sub_8016C88 | 0x08016C88 | SIO簇 | code_1.c | ✅ 2026-09-02 gpnux (156B, fncheck OK, 1 bl 槽)。SIO 联机初始化: `IME=0 → IE &= 0xFF3F (清串行/DMA0 IRQ) → IME=1 → RCNT=0 (通用口切回 SIO) → SIOCNT=0x2000 复位 → SIOCNT |= 0x4003 (多玩家+使能+起始位) → CpuFill32(0, gSioState, 0x130) → state[0x14]=[0x18]=0x10 → 五个缓冲指针 state+0x30/0x50/0x70/0xB0/0xF0 填进 [0x1C..0x2C] → IME=0 → IE \|= 0x80 (开 DMA0 IRQ) → IME=1`。唯一坑: **`CpuFill32` 必须写在 `state = gSioState;` 之前** —— 宏展开的 `movs r6,#0; str r6,[sp]` 在目标里落在 `ldr r7,=gSioState` 前面, 反过来写差 4 字节 (一次命中, 无需 permuter)。寄存器复用: `movs r0,#1; mov r8,r0` + 末尾 `mov r0,r8; strh r0,[r5]` = 两处 `REG_IME = 1` 的常量被 CSE 塞进 callee-saved r8 (跨 `bl CpuSet` 存活, 经验 76 的同一形态)。语义名 `Sio_InitLink` 已试, 但 rename_fn.sh 在 sha1sum 步被**他人红基线**触发回滚 (asm/ 切片未回滚 → 链接报 undefined reference, 靠 `gen_asm.py --sync` 修好, 见 INCIDENTS), 基线转绿后再补改名 |
 | sub_8016D24 | 0x08016D24 | SIO簇 | code_1.c | ⏸ 语义全解 + 结构 ~90% 对 (132 vs 140 指令, 差 61B, 多为寄存器 home 级联)。SIO 联机主循环: 顶部 `sio=(SioMultiCnt*)REG_ADDR_SIOCNT; siocnt=*(u32*)sio;` (一次 32 位读, 跨 bl 存活于 r6) → switch(stage): case0: `mode=siocnt; mode&=0x88;` 若 !=8 直接结束; `si=siocnt; si&=4;` 若 si==0 且 unk_14==0x10 → 临界区 (IME=0 / IE&=0xFF7F / IE|=0x40 / IME=1 / 字节 RMW 清 SIOCNT bit14 / REG_TM3CNT=0xBFC0 / REG_IF=0xC0 / isParent=mode) → stage=1 并 **fallthrough**; case1: unk_2!=0 时 unk_8<=7 则 ++ 否则 stage=2 → **fallthrough**; case2: `sub_8016E80(arg0)`; default 什么都不做。末尾 `counter++` 后拼状态字返回: `status = (isParent==8?0x80:0) | unk_3 | (unk_2<<8)`; `if (errorFlags) status |= 0x1000`; `extra = (unk_8>>3)<<15`; `if (((siocnt>>4)&3) > 1) return 0x4000|extra|status; return status|extra;`。已验证的关键写法 (224B→61B): ① **`x = v; x &= K;` 先拷贝再掩码** (照 Bg0_InitClear 的 `d &= ~3; d &= ~0xC;` 家族风格) 才出目标那两条 `adds r4,r6,#0 / adds r0,r6,#0`; ② **SIOCNT 高位字节清位必须经 s32 临时量** (`tmp=*(vu8*)(REG_ADDR_SIOCNT+1); tmp&=~0x40; *(vu8*)(...)=tmp;`) —— 直接对 vu8 写 `&= ~0x40` 会被折成 `movs #0xbf`, 经 int 临时量才产出目标的 `movs r0,#0x41; rsbs r0,r0,#0; ands` (arm_split_constant 拆负常量); ③ isParent 位必须写成 **三元表达式** `(?0x80:0) | ...` 才有目标的双分支各算一遍 OR 链; ④ arg0 在目标里落 `ip`(r12) 而非 callee-saved。未破的 4 处: (a) ID 提取目标是 `lsls r0,r6,#0x1a; lsrs r0,r0,#0x1e` (u32 位域/双移位形状), 而 `(siocnt>>4)&3` 一律折成 `lsrs #4; movs #3; ands` —— 疑似需要一个 **u32 容器的位域视图** (SioMultiCnt 是 u16 容器, 换它会触发重载); (b) 目标 `adds r2,r0,#0` 把三元结果再拷进 status 累加器, 我的被 CSE 合并; (c) 目标尾部 `ldr r1,=gUnk_03004DF0` 后 `adds r7,r1,#0` 的第二份 state 基址拷贝; (d) 由此级联的 r2/r3/r6/r7 全排列。候选: permuter/sub_8016D24/base.c (61B); 定量诊断法见 EXPERIENCE 经验 117, 兼职法见经验 87/120 | |
-| sub_804B7B0 / sub_804B8E8 | 0x0804B7B0 | 0x804B簇 | code_1b.c | ⏸ 结构 100% 对齐 (64 条指令一一对应, 只差 66B 的寄存器 home 级联)。**sub_804B8E8 与本函数逐字节完全相同** (只差标签), 解一个即解两个。语义: 对 `gUnk_03000AE8` 16B 表里 `[arg0 .. arg0+arg1)` 这段槽位逐个处理 —— `if ((s8)entry->field_0 == -1) continue;` → `if ((entry->field_0 & 0x20) == 0) sub_804C3A4(entry->field_1, 1);` → `sub_804C420(arg0 + i);` → `entry->field_0 |= 0xFF; entry->field_1 |= 0xFF; entry->field_2 = entry->field_3 = 0;`。已验证写法: ① 必须 `Unk_03000AE8 *base = (Unk_03000AE8 *)gUnk_03000AE8;` + `entry = &base[arg0 + i];` (复用同一 C 文件 的 sub_804C4D8 家族形状); ② 掩码必须是**变量** (`mask = 0xFF;` 放循环体内由 LICM 提到 preheader) —— 直接写 `|= 0xFF` 会被整条 RMW 折叠 (经验 76, 实测 100B); ③ `(s8)entry->field_0 != -1` 与 `(entry->field_0 & 0x20)` 要写成**两次独立访存** (ldrb + ldrsb 各一次, 目标就是两条 load), 合并成一个 u8 临时量会少一条 ldrsb。卡点=纯 global-alloc 抢槽: 目标把 r8/r9/r10 给 {mask, arg0, base} 而在循环内重物化 -1 (`movs r2,#1; negs r2,r2`) 与 0 (`movs r0,#0`); 我的候选把 r8 给了 0 的 hoist (`mov r8, r6`) 于是 base 被重物化, 级联出 66B。permuter 能到 40B, 但靠的是 `(*(new_var = &entry))->field_2 = 0;` 伪语句 + `|= 0xFF` 字面量 (语义扭曲, 铁律 4 禁, 未采纳)。下一步建议: 找能阻止 CSE 把 0 提进 callee-saved 的写法 (例如让 field_2/field_3 的 0 与 ldrsb 的索引 0 共用同一物化点), 或按经验 87 让某个常量兼职。定量法见 EXPERIENCE 经验 117 | |
+| sub_804B8E8 | 0x0804B8E8 | 0x804B簇 | battle_anim.c | ✅ 2026-09-09 antigravity (132B, fncheck OK). 破译两大难点: ① `v = 0x20; v &= flags; if (v == 0)` 复合赋值迫使常量居第一操作数, 精准生成 `movs r0, #0x20; ands r0, r1; cmp r0, #0` (避免被 GCC 交换成 `ands r1, r0`, 见经验 201); ② 循环外 `int empty = -1;` 声明, 循环内 `base = gUnk_03000AE8; mask = 0xFF; entry = base + (arg0 + i) * 16; ...; u8 flags = entry[0]; u32 v = *(s8 *)&entry[0]; if (v == empty) continue;` 使 base 进 sl, mask 进 r8, empty 进循环重物化 (`movs r2, #1; negs r2, r2; cmp r0, r2`), 100% 字节对齐。 |
+| sub_804B7B0 | 0x0804B7B0 | 0x804B簇 | battle_anim.c | ⏸ 与 sub_804B8E8 逐字节完全相同 (只差标签), 机制已由 sub_804B8E8 全解 (见经验 201), 待直接合入验证 |
 | sub_8014084 | 0x08014084 | 0x8014簇 | code_1.c | 统计 `gUnk_03004D60[0..0x57]` 里非零半字节的个数，结果写 u16 `gUnk_03004DE4`。两条分支各自重复 `lsrs/adds/ldrb` 再选掩码（0xF0/0xF），公共尾部由 cross-jump 合并。**关键: 一个 `u32 val` 先装 `(u32)&gUnk_03004DE4` 做初始清零、循环里再装载入的字节** —— 这样地址伪寄存器在入口块内死亡, 循环里的计数器地址成为第二个跨块伪寄存器, 才会出现目标的 `adds r3, r1, #0` 并让 i→r2/字节→r1 归位; 直觉写法(宏解引用两次)只有一个地址伪寄存器, 占住 r1 把 i 挤到 r3(660分)。新注册 `gUnk_03004DE4`(iwram.h + linker.ld, 插在 4DD8 与 4DF0 之间)。→ 经验 87 |
 | sub_80140D0 | 0x080140D0 | 0x8014簇 | code_1.c | 同一半字节数组的"递增且封顶 5": 奇索引→高半字节、偶→低半字节。**关键: 奇路径必须写 `hi = nib << 4; byte = hi \| (byte & 0xF);`** —— u8 临时迫使截断绑在移位上, combine 合成 `lsls #0x1c; lsrs #0x18`, 且两操作数皆 u8 后末尾不再补 `lsls/lsrs #0x18`; 写成单表达式 `(u8)(nib << 4) \| ...` 则截断挪到 `orrs` 之后(630分)。偶路径 `(byte & 0xF0) \| nib` 本就无末尾截断, 两分支不对称是正常的。→ 经验 86 |
 | sub_8014124 | 0x08014124 | 0x8014簇 | code_1.c | 同数组的"递减若非零"（原 1385 分挂起项, 按经验 86 一次解开）。奇/偶路径都是 `nib = ...; if (nib == 0) nib = 1; nib -= 1;`，**`nib -= 1` 必须是独立语句**: 写成 `(nib - 1)` 内联会让 int 结果与 nib 共用寄存器(`subs r1,#1`)，目标要的是 `subs r1, r0, #1`(奇)/`subs r0, #1`(偶) 两种不同形态。奇路径再套经验 86 的 u8 临时 `hi`; 偶路径 `(byte & 0xF0) \| nib` 因 `nib -= 1` 已截断而保留末尾 `lsls/lsrs #0x18`(目标确有) |
@@ -2968,9 +2969,45 @@ obj[0xBE] 匹配的下标 i (i<=4), 调 sub_801DD04(obj, i, *(u16*)(obj+0x6C)+ar
    30B (指针 home 换 r2/r3); ④ 5th 实参 0 与 obj[0xAB]=0 用独立 zero 变量 (经验 135 同族);
 permuter base=0 + fndiff 0, fncheck OK 240B. 尾部 b8 读写经 pool 复用后逐字节命中.
 
-## sub_8024618 (2026-09-04 opencode)
+## sub_8024618 (2026-09-04 opencode; 2026-09-08 matcher 续攻)
 
-⏸ 未匹配。语义已完全解析, permuter 最佳 score=2475, 纯 C 无法压到 0。
+⏸ 未匹配 (字节 111/240)。permuter 最佳 score: 2475 → **520** (2026-09-08, 目标 1000 已达)。
+
+### 2026-09-08 续攻记录 (matcher)
+
+从 2475 一路压到 520 的每一步都来自**纯 C 结构改造**, 没有用 register asm / 内联汇编。
+候选套件留在 `permuter/sub_8024618/`, base.c = 最终 520 版本 (人类可读, 含注释)。
+
+**关键突破 (按贡献排序):**
+
+1. **块顺序 = 零路径当分支尾**: 写 `if (ptr[i] != 0) { 非零 } else { 零 }` 让 GCC2 产出目标
+   的 `cmp r0,#0; beq zero_label` (非零路径 fall-through)。倒着写 (零路径在前) 寄存器流完全不同。
+2. **`if (ptr[i] == 0)` 直接比较 (不落 `b` 局部)**: 零路径才不折叠 `constVal + ptr[i]`, 保留两次
+   `ldrb` 重读 (与目标一致)。先 `b = ptr[i]` 再比较会让 GCC2 把第一存折叠成纯 constVal (丢指令)。
+3. **循环用 `data[idx+i]` 而不是 `ptr[i]`**: 让 data 和 idx 两个 allocno 跨第二循环存活,
+   寄存器压力 +1 → **dest 从 r7 顶进 r8** (约 500 分)。代价: 循环底 `ptr[i]` 的 `adds rX,rY,#0`
+   变成 `adds rX,idx,i; adds rX,rX,data` 两条 (约 100 分), 净赚约 400 分。这是 `ptr[i]` 派
+   (v16, 1665 分) 与 `data[idx+i]` 派 (520 分) 的本质分野。
+4. **`out` 指针只在非零分支赋值使用**: `out = (u16 *)(dest + i*2); tmp = 2b+0xFFFFB000; *out = tmp;`
+   第一存经 tmp (u32 变量) 才不会把 0xFFFFB000 折叠掉; 零路径两个存都用内联地址。
+   注意 permuter 曾产出"new_var 只在 else 赋值、零路径也读它"的 UB 候选 (score 765/1175 类),
+   全部**不合格** — 零路径首迭代 new_var 未初始化 → 写错地址。人工核对访存是必须的。
+5. **第二常量写 `x - 0x4FFF`** (而非 `x + 0xFFFFB001`): 直接 `+0xFFFFB001` 会被 GCC2 折叠成
+   池 0x0000B001 (u16 截断吸收高 16 位), 池少 0xFFFFB001 条目 (640 分); `- 0x4FFF` (= +0xFFFFB001
+   mod 2^16, 语义等价因 u16 截断) 让 GCC2 保持 0xFFFFB001 池条目 → 520 分。附注释说明。
+6. **prologue 顺序**: `limit` 计算必须在 `dest` 之前 (目标先 lsls/lsrs 再 ldr/adds/mov r8);
+   arg1+0x99 要经 `lp` 临时变量强制 `(arg1+0x99)+limit` 顺序 (否则 GCC2 重组为 arg1+limit+0x99)。
+
+**剩余 520 分构成**: regalloc 40 字段 (200) + reorder 2 (120) + insert 1 (100) + delete 1 (100)。
+主要是 home 分配仍差: 目标 data→r1/idx→r4/limit→r5/constVal→r6, 我方 data→r5/idx→r6/
+constVal→r7 (data/idx 存活的副作用)。要归零需目标式 "data 早死 + r7 作 const scratch" 的
+分配, 但那条路 (ptr[i] 派) 实测 1665 分, 得不偿失。判定: 520 是纯 C 结构能到的局部最优附近,
+再往下要动 agbcc global-alloc 排序。
+
+**已排除**: register asm (经验 62 禁)、goto (经验 100 禁)、permuter 的 UB 偷改 (constVal=i、
+跨分支用未赋值 new_var — 全部语义破坏, 分数低但字节不真)。
+
+### 语义 (旧记录保留)
 
 ### 语义
 - `arg0`: u16* tilemap 基址; `dest = (u8*)arg0 + 0x442` 为目标写入指针
@@ -4692,3 +4729,786 @@ source.c (3170, y 改 int 不可读)。permuter 产物 <2905 的都是 score 假
   force_reg 伪寄存器 life=1 不可提升) + flags 先读 + `index*16 + base` 操作数序防等价替换。
 四孪生候选全部收敛到 **20B 差** (bl 槽 8B + scratch 旋转 12B), 详见 EXPERIENCE 181。
 scratch 旋转 (flags/v/-1 的 r0/r1/r2 分配) 为最后一道 local-alloc tiebreak, 待后续攻克。
+
+**⏸ sub_804621C (105 行, MOD-07 对象池找槽/过滤助手)** — 2026-09-06 opencode:
+- 语义: `u8 f(u8 *obj, u8 *out, u8 mask)` 返回 count。找 pool 槽 5..0xB 中 sub_8045F10(..,0x1FF)==2
+  的 (活动对象), 再过一遍 `(pool[slot][0xAC] & mask) == (obj[0xAC] & mask)` 过滤, 写 out[0..]。
+- 结构里程碑: buf 必须 `[0xC]` (栈 12B, 清 7 项); filtered 须先算 (GetObjPool 之前); 3 参签名
+  prototype 冲突→升 u8 原型后 callers 零字节差 (全部传 ptr,ptr,const)。
+- 卡点 (已定性 global-alloc): 4 个跨 sub_8045F10 调用的长寿命值, 目标分配 arg1→r9(arg2→r10/filtered→r8/pool→r7
+  (push 3 高), 我方 arg1→r8/arg2→r9/filtered→r7/pool→r6 (push 2 高, 整体低一位)。
+  qtydump.sh: local-alloc 块块 0 qty → 决策在 global-alloc, C 写法层改不动。连同 `cmp r4,#0xc;bcc`
+  (agbcc 对 u8<12 一律折成 cmp #0xb;bls) 一起归档 EXPERIENCE 失败存档。
+- 已试 ~30 变体无效 (decl 序/buf 尺寸/pool 类型/循环形态/goto/别名/permuter×2)。候选存
+  permuter/sub_804621C/base.c。释放 : 已转挂起。
+
+## 2026-09-07 opencode: 数据区 blob 搬移批 (data_805769C.c, 0x0808A04C..0x080BAF54)
+
+> 依据 `scripts/data.json` (name/address/size), 把 `data/data.s` 的 `rom_data` blob 头部连续区域
+> 逐块搬到 `src/data_805769C.c` 并配语义命名 + `// 0x08xxxxxx` 地址注释。每块搬移后
+> 更新 blob 起点 (`data/data.s` incbin 偏移), `make` + `sha1sum -c` 全绿 (744/1059)。
+
+### 搬出的块 (按地址序)
+
+| 地址 | 符号 | 大小 | 语义 | 依据 |
+|---|---|---|---|---|
+| 0x0808A04C | `gMenuEntDescGroups` | 0x1E8 | 菜单实体描述组 26 组, `gUnk_087EA138[26]` 指向; 每组 `{u8 count; count×{flags, animShift, palIdx, strlen, glyphs[]}}`; MenuEnt_ParseAll/Range→ParseDesc 消费, glyphs 是调色板动画序列 | data.json 指针表 + 逐组解码验证 |
+| 0x0808A234 | `gMenuEntityPaletteTable` | 0xF80 | 124 个菜单实体 OBJ 调色板 (124×0x20), PaletteTransfer_Update 按序列字节查表 DMA | 已在 linker.ld 有绝对符号, 移除改由 C 定义 |
+| 0x0808B1B4 | `gFlashFxPaletteTable` | 0x1C0 | 14×0x20 闪光特效调色板, sub_804FB24 (脚本 opcode) blend/闪光分支 DMA 16 色到 OBJ bank 4 | asm 引用 0x0808B1B4 |
+| 0x0808B374 | `gMenuEntPaletteFramesTail` | 0x460 | 35×0x20 MenuEnt 调色板帧库后段 (大表项号 0x8A..0xAC, PaletteTransfer_Update 帧号寻址) | 见 progress.md 2026-09-07 追踪 |
+| 0x0808B7D4 | `gSaveMenuUiPalettes` | 0x40 | 存档菜单 UI 2×0x20, sub_8011454/sub_80160F4 DMA 到 OBJ bank 14 (0x050001C0) | code_8010F10.c:729 |
+| 0x0808B814 | `gData_0808B814` | 0x2F740 | 混合数据区: 精灵动画模型组 (gUnk_087EA1A0[248] 指向) + byte_8091948 NPC槽组表 + 成长曲线/经验表 + 技能道具表 + 消息文本 + 名字串 + 地图BG表 + 存档数据族; 均经 linker.ld 绝对符号访问 | 指针表扫描 + 68 个代码引用点 |
+
+### 关键发现
+- **data.json 的块切分与代码引用高度一致**: 26 个菜单实体组正好被 0x087EA138 指针表 (26 项) 一一指向,
+  格式 `{count, records}` 逐组解码零误差 (计数值、strlen、palIdx 全吻合)。
+- **0x0808B814 是混合区不是纯动画池**: 初始名 `gSpriteAnimModels` 会误导, 改名 `gData_0808B814`。
+  内含 68 个被代码引用的独立符号 (经验表/道具表/NPC 槽组/存档签名 aLunar11209 等),
+  全部通过 linker.ld 绝对符号 + 原字节保留, 未做进一步切分 (后续可逐个拆出具名)。
+- **搬移方法**: 数据定义写在 `data_805769C.c` 末尾 (紧跟 gMapViewportBoundsTable 之后, 保持 ROM 顺序),
+  再改 `data/data.s` 的 incbin 起点偏移, `arm-none-eabi-nm -n` 验证符号落址 == data.json 地址。
+- 新 raw bin: `data/raw_data/gData_0808B814.bin` (由 baserom 0x0808B814..0x080BAF54 提出)。
+
+## 2026-09-07 sensenova: sub_804FB24 473指令全量完全匹配 (0 字节差, 1264 B)
+
+- **函数**: `sub_804FB24` (`0x0804FB24`, 模块 `src/code_804F0B8.c`, 660 行汇编, 473 条指令 / 1264 字节)
+- **语义**: 脚本 VM 的视口控制 / 颜色混合 / 屏幕特效 opcode 解释器 (Op_ 核心分发器)。
+- **核心突破与卡点根因**:
+  1. **最后的 1 字节瓶颈**: 候选一直稳定在全函数 472/473 指令一致, 仅差偏移 `0x4dc` (Target: `8282 strh r2, [r0, #20]` vs 候选: `8284 strh r4, [r0, #20]`)。
+  2. **深入 RTL 排查根因**:
+     在 `else` 分支 (`data[2] == 0`) 中, 入口通过 `ldrb r2, [r3, #2]; cmp r2, #0` 将 `r2` 置为 0。整个 switch 分派树直达 `case 0xCA` 期间从未改写 `r2`。
+     然而在 `case 3:` 中写 `gDrawCamEaseActive = data[2];` (QI mode) 使用了伪寄存器 `reg:QI 26` (映射到 `r2`); 而 `case 0xCA:` 写 `gViewportFlags[10] = 0;` (HI mode) 则使用了 CSE 识别出的常数 0 伪寄存器 `reg:SI 27`。
+     因为两分支同在分派树下, `reg:QI 26` 与 `reg:SI 27` 并发存活, `global_alloc` 冲突图判定 `26 conflicts 27`, 无法分配同一物理寄存器, 导致 `reg:SI 27` 被迫提升到 `r4`, 并在入口生成 `adds r4, r2, #0`, 尾部产生 `strh r4, [r0, #20]`。
+  3. **对称写 0 破解冲突**:
+     注意到 `if` 分支内 `case 3:` 写入 `gDrawCamEaseActive = 1;`, `else` 分支逻辑上即为 `gDrawCamEaseActive = 0;`。将 `case 3:` 改写为 `gDrawCamEaseActive = 0;` 后, 两个 case 完全复用相同的 0 伪寄存器, 冲突彻底消除! 入口 `adds r4, r2, #0` 瞬间消失, 尾部自然生成 `strh r2, [r0, #20]`, permuter 分数直接归 0!
+  4. **原型统一与直接调用**:
+     在 `permuter/sub_804FB24_1/base.c` 中声明为 `extern void MapBg_LoadFull();` (K&R 无参), 因此原本即为无强转直接调用。合入工程后, 将 `include/code_0.h` 的原型声明同步修正为 `void MapBg_LoadFull();`, 并将 `src/code_8005020.c` 定义调整为兼容的 K&R 风格 `void MapBg_LoadFull(arg0) u8 arg0;`, 使 `src/code_804F0B8.c` 同样保持干净的直接调用 `MapBg_LoadFull(data[2] + 0x81);`, 两函数均 100% 字节精确匹配。
+- **验证**: `python3 scripts/fncheck.py sub_804FB24 MapBg_LoadFull` 均验证通过 (0 字节差)。
+
+
+## 2026-09-07 claude-opus-4-6: sub_804FB24 → Op_SysEffect 改名 (全链, fncheck/SHA1 绿)
+
+- **触发**: 玩家实测触发该 opcode 后内存 dump 断点验证: r0=0x03000E6C=脚本 PC 槽, 槽值 0x02016EB2,
+  脚本字节 `4D 64 00` = subop 0x64/arg 0 → `Bgm_Continue()` 分支; gUnk_0862D434 slot 0x4D → 0x0804FB25 确认。
+- **语义定性**: 脚本 VM 万能系统/屏幕特效 op (opcode 0x4D, 3 字节 `4D <subop> <arg>`), arg!=0=执行/
+  arg==0=复位, 按 insn[1] 分派: 抖动/白闪/BG 层开关/相机缓动/5 步调色板渐变/存档菜单/等 A 软复位/
+  OBJ 调色板 10 帧渐显/满血/BGM 恢复/整图装载/白化淡入淡出。详见 MOD-08 新增条目。
+- **改名**: `scripts/rename_fn.sh sub_804FB24 Op_SysEffect` (ll.cfg→code.s→4 引用文件→gen_asm→fncheck
+  1264B OK→make+SHA1 绿)。code_0.h 原型仅换名不动签名。
+- **ROM 数据建议名** (待登记): 0x08289B6E = gObjPalFadeInSteps (case7 的 10×0x20 OBJ 调色板渐显步进表),
+  0x083936A8 = gObjPalFadeInFinal (末帧 16 色→OBJ bank10)。
+- **误注修正**: docs/ATLAS.md / FAMILIES.md / remaining.md 仍列其为未匹配 — 系 sensenova 合入前的
+  旧报表, gen_reports.py 可再生成, 未手改。
+
+## 2026-09-07 claude-opus-4-6: Op_SysEffect 语义重命名深化 (枚举/符号化/下标枚举)
+
+- **目标**: 在保字节精确前提下把Op_SysEffect 全部可读性命名落实。
+- **改动**:
+  1. 函数 `sub_804FB24` → `Op_SysEffect` (rename_fn.sh 全链); 参数 `ptr`→`ppScriptCursor`; 局部 `data`→`insn`,
+     `step`→`fadeStep`, `clear`→`palDst`。
+  2. 枚举 ×4 (code_804F0B8.c 内): `SysFxSubOp`(SYSFX_SHAKE..SYSFX_WHITEOUT, 14 个子命令)、
+     `SysFxPalStep`(subop4 的 arg 1..5: PAL_BLACKIN/FLASH_SETUP/BG_PAL_CLEAR/FADE_2PH/FADE_LONG,
+     case 标签用 `SYSFX_XXX - 1` 保持原 switch(insn[2]-1) 形状)、`SysFxShakeMask`(subop0 arg 档位)、
+     `SysFxSaveUiStep`(subop8 的 4 步循环)。
+  3. `iwram.h` 新增 `ViewportFlagIdx` 下标枚举 (VF_EFFECT_EN=0/VF_SHAKE1_OFF/VF_SHAKE2_OFF/VF_FLASH_CNT/
+     VF_SHAKE_MASK=4/VF_WHITEOUT_CNT=10/VF_FADE_LONG_CNT=11/VF_SAVEUI_STEP=12/VF_BGMAP_FILL=13/
+     VF_FADE_PHASE=14/VF_FADE_FRAME=15), 全 TU 引用点换名。
+  4. 全局符号化: `gUnk_03000E6C`→`gScriptCursor`(8 引用), `gUnk_0862D434`→`gScriptOpcodeHandlers`,
+     `gUnk_030047F4`→`gPaletteFxPhase` (iwram.h+linker.ld 同步)。
+  5. ROM 数据符号: `gObjPalFadeInSteps = 0x08289B6E` (10×0x20 渐显步进表),
+     `gObjPalFadeInFinal = 0x083936A8` (末帧 16 色, 亦为 MapScene_Load 场景调色板 0x08393688 表内 +0x20),
+     gFlashFxPaletteTable/gCutsceneGfxBuf 直接引用已有符号。
+- **字节坑 (新经验)**: `palDst = (u16 *)gCutsceneGfxBuf` 使 fncheck 差 +0x180..0x18b —
+  `gCutsceneGfxBuf` 是**地址常量** (linker 绝对符号), GCC2 把它当循环不变量保存 r4
+  (多 `adds r4,r1,#0`), DMA 源池重定位也不同; 必须写 `(u16 *)0x02020000` 字面量。
+  与 sub_80526A0 的 `0x02016200` 字面量坑同根 (EXPERIENCE 已有同族记录)。
+  而其余符号 (gFlashFxPaletteTable/gObjPalFadeInSteps/gObjPalFadeInFinal) 是**数据池重定位**,
+  fncheck 施加后字节一致, 可安全符号化。
+- **验证**: fncheck Op_SysEffect OK 1264B; code_804F0B8 TU 全部 13 个已匹配函数 fncheck 0 FAIL;
+  make + SHA1 绿; audit 改名漂移 0。
+
+## 2026-09-07 claude-opus-4-6: data.json/raw_data 与调色板符号名同步
+
+- `scripts/data.json` 三项改名 (最小 diff, 仅动 name 字段): `unk_808B1B4`→`gFlashFxPaletteTable`、
+  `unk_8289B6E`→`gObjPalFadeInSteps`、`unk_83936A8`→`gObjPalFadeInFinal` (与 linker.ld/代码符号一致)。
+- `data/raw_data/*.bin` 三文件同步改名; `src/data_805769C.c` 的 INCBIN 路径更新为
+  `gFlashFxPaletteTable.bin`; docs/PLAN_DATA.md 示例引用同步。
+- 注意: gObjPalFadeInSteps(48318B 大 blob)/gObjPalFadeInFinal 未被 src INCBIN, 仅 dumpraw.py
+  导出名变化, ROM 布局无影响。make + SHA1 绿, fncheck Op_SysEffect OK。
+
+## 2026-09-07 claude-opus-4-6: gUnk_0808B374 引用追踪与重定性 (gMenuEntPaletteFramesTail)
+
+- **旧注释有误**: "被 byte_80E79AC 指针引用 (0x080E93CC→0x0808B410)" 不成立 —
+  byte_80E79AC 实为 Huff 压缩图形 blob (由 0x087E990C[] 指针表 HuffUnComp→0x02020000→VRAM 消费,
+  code.s 12726), 0x080E93CC 的 u32 是压缩流巧合值; 全 ROM 对齐 u32 指针与 code.s 字面池均 0 引用。
+- **真实消费路径**: PaletteTransfer_Update (code_8005020.c:1517) `off=(帧号<<5)+2` 自基址
+  gMenuEntityPaletteTable (0x0808A234) 寻址, 帧号无掩码; MenuEnt 描述符组 (gUnk_087EA138[], 274 组)
+  中 255 个组的帧号序列落在 0x8A..0xAC → 触达 0x0808B374..0x0808B7D4
+  (实证组 0x0808A1F2: palSlot=0x0A, 帧序 8A..98 停帧 = OBJ bank10 逐帧填色动画)。
+- **定性**: 0x0808A234(124 项) + 0x0808B1B4(14 项) + 0x0808B374(35 项) = 同一张 173 项
+  0x20 项距调色板动画帧库 (0x0808A234..0x0808B7D4); 内容: 红/白逐格填入动画帧 + 3 张独立小表。
+- **改名**: `gUnk_0808B374` → `gMenuEntPaletteFramesTail` (src/include/data_805769C.h/
+  data/data.s/scripts/data.json/raw_data bin 同步)。make + SHA1 绿。
+
+## 2026-09-07 claude-opus-4-6: 三段调色板帧库合并为 gMenuEntPaletteFrames (5536 B)
+
+- 用户指正: gMenuEntPaletteFramesTail 无直接 C 引用, 不该单独 INCBIN。
+- 合并: gMenuEntityPaletteTable(0x0808A234, 3968B) + gFlashFxPaletteTable(0x0808B1B4, 448B)
+  + gMenuEntPaletteFramesTail(0x0808B374, 1120B) → 单一 `gMenuEntPaletteFrames`
+  (0x0808A234, 5536 B = 173 × 0x20, 帧号 0x00..0xAC), raw_data 三 bin 合并为一个。
+- 消费点: PaletteTransfer_Update (code_8005020.c) base 改引新符号 (u16 extern, 原 u8);
+  Op_SysEffect 闪光 DMA 保持 `gFlashFxPaletteTable` — 改为 linker.ld 同地址别名
+  (0x0808B1B4 = 项 0x7C 视图), 字节零变化。
+- scripts/data.json: 三项合并为 gMenuEntPaletteFrames@0x0808A234 size=5536
+  (json.dump indent=1 与原格式零噪声往返已验证)。
+- 验证: fncheck PaletteTransfer_Update/Op_SysEffect OK; code_8005020 TU 全绿; make + SHA1 绿。
+
+## 2026-09-07 claude-opus-4-6: gSaveMenuUiPalettes (0x0808B7D4) 引用清单与 raw_data 同步
+
+- **使用点** (→ OBJ PLTT bank14, 0x050001C0):
+  - `sub_8011454` (0x08011454 存档菜单主控, 未匹配/INCLUDE_ASM) 三个分支各 DMA 首 32 字节
+    (code.s 34822/35584/35812, 0x80000020; 第三处带 r8/sb 泄漏形状)。
+  - `sub_80160F4` (0x080160F4, ✅C code_8010F10.c) 整表 64B DmaCopy16。
+- **内容定性**: [0] 蓝系渐变, [1] 绿系渐变 (同底色 25ad/同尾 018c..6bff) — 修正旧注"红色与灰度"。
+- **同步**: data.json `unk_808B7D4`→`gSaveMenuUiPalettes`, raw_data bin 改名,
+  src INCBIN 路径更新, sub_80160F4 字面量→符号 (fncheck OK 132B)。
+- **验证**: code_8010F10 TU 全部已匹配函数 fncheck 0 FAIL; make + SHA1 绿。
+
+## 2026-09-07 claude-opus-4-6: 0x0808B814 混合区引用分析 (结论: 保持 INCBIN, 不转 C 结构)
+
+- **gData_0808B814 无任何直接引用** (code.s 字面池 0 处, src 无符号引用); 代码全部经
+  linker.ld 绝对符号按地址访问其内部项 (gUnk_087EA1A0[] 表项/byte_8091948/unk_80921F0 等),
+  INCBIN 字节与 ROM 逐字节一致 → 换 C 结构无收益且有链接风险。
+- **精灵动画模型组定量**: gUnk_087EA1A0 248 组中 106 组可解析 (AnimSlot_Parse 变长记录链:
+  u16 count + {8B 头 [b0&1 帧数, f1=b2, f8=b6, f9=b7], tile f8*f9*f1*2}), 合计仅 12.9KB /
+  区内 194KB; 组链在 0x0808B988 有 2B 尾随异常 (F7 01, 恰为前组 tile 帧号序列末项) 且 3 处小间隙
+  → 非均匀变长链, 不适合 C 结构数组。
+- **区内构成**: 动画组 12.9KB + 精灵调色板 gUnk_080B9DFC(3296B, 16 色 BGR555 ×103) +
+  NPC 槽组/成长曲线/经验表/技能道具表/消息文本/名字串表/地图 BG 表/存档签名族 +
+  0x080A1314..0x080B9C68 连续 118 项资源块 (头 10 C0 06 00, 被 0x086B0000..0x086F0000
+  事件/脚本区 83 处 u32 指针引用) — 高度异构, data.json 已按引用点切项。
+- **定论**: 该区维持单 INCBIN 兜底 + linker.ld 绝对符号; 仅当某子表被匹配代码以
+  "基址+定长下标"访问时才值得拆出 C 类型化声明 (如 gUnk_080B9DFC[][32] 先例)。
+
+## 2026-09-07 claude-opus-4-6: gData_0808B814 按指针表/引用结构切分为 18 段独立 INCBIN
+
+- **切分依据** (不按 data.json): 扫描全 ROM 对齐 u32 指针 + code.s 字面池, 聚类出指针表
+  (连续间隔≤8B 的 u32 组, n≥2): 0x087EA1A0(248 项动画组)/0x087E8430(1075 项对话资源,
+  区内 119 项, 每块头 10 C0 06 00)/0x087EB1F4(71 项)/0x08007F00+0x08008ADC({src,VRAM} 对表)
+  /0x08007F2C+0x08011938(地图 BG 表) — 以表锚点+语义边界切 18 段, 无缝覆盖
+  0x0808B814..0x080BAF54 (194368B, 已验证相邻段首尾相接)。
+- **18 段**: gAnimModelGroups(24884B)/byte_8091948/unk_80921F0/unk_8092248/unk_80923D8/
+  unk_80933DC/byte_8093418/byte_80936A0/stru_8095028/stru_8095828/gMapBgTables(7368B)/
+  gSaveMetaArea/gSaveMiscTables(17708B)/gMapGfxLz77Blocks(17188B)/gSaveMenuGfxLz77(1980B)/
+  gDialogDataBlocks(101096B)/gUnk_080B9DFC(3296B)/gDataTail_080BAADC(1144B)。
+- **同步**: src/data_805769C.c + include/data_805769C.h 逐段注释+extern; data/data.s 注释更新;
+  data.json 的 unk_808B814+区内容项替换为 18 段 (覆盖校验 OK); gData_0808B814.bin 删除。
+- **验证**: make + SHA1 绿 (ROM 逐字节一致); audit 漂移 0。
+
+## 2026-09-07 opencode: gData_0808B814 18 段切分独立复核 (通过) + 引用图补充
+
+- **复核结论**: 18 段在 data.json 精确铺满 0x0808B814..0x080BAF54 (0 间隙 0 重叠); 18 个 raw bin
+  逐个存在; src/data_805769C.c (行 1711-1781) 与 include/data_805769C.h (行 55-107) 18 extern 对齐;
+  data/data.s incbin 起点已移 0xBAF54。make + SHA1 绿 (745/1059); audit 改名漂移 0, status=1 745/745。
+- **gUnk_087EA1A0 引用图精确定量** (248 项, 222 个不同目标): 228 项 → gAnimModelGroups 区
+  (0x0808B814..0x08091948, 组链 u16 count + count×[8B头 + f8*f9*f1*2 tile] 走查基本吻合);
+  **22 项 (下标 [103..124]) 越出主区**: [114,116..122]×8→0x080BAADC, [115]→0x080BAB1C,
+  [103,105..113]×10→0x080BABE0, [104]→0x080BAE10 (即 gDataTail_080BAADC 全部 1144B 实为
+  动画组数据, 现"尾部杂项"注释低估), [123]→0x0808EA5C, [124]→0x0808EA76 (区内, 但
+  u16-count 模型解析不通 → 疑为 AnimSlot_Parse/ParseLoop 之外的第三种记录布局, 待
+  MapScene_LoadEventAnimations 匹配后定性)。gMapSceneDescriptors.spriteAnimSetId 仅用 100/102 两值。
+- **勘误**: 上节 "gMapBgTables(7368B)" 应为 10068B (0x08095A1C+10068=0x08098170, 与 data.json/src 注释一致)。
+
+## 2026-09-07 gpnux: sub_804F64C 完全匹配 (284B / 47 指令, 脚本 VM Opcode 0x1A 摄像机平移)
+
+- **函数定位**: `sub_804F64C` @ `0x0804F64C`, 属于 `src/code_804F0B8.c`。
+  属于《Lunar Legend》Script VM 中的 Opcode 0x1A 处理函数（`Op_CameraPan`）。
+- **语义与工作机理**:
+  - 输入参数 `u32 *ptr` 为当前脚本执行指针 `gScriptCursor`（0x03000E6C）。
+  - 指令格式: `1A [duration:1] [targetX:2] [targetY:2]` (总长度 6 字节)。
+  - `gUnk_030047B4 = data[1];` (记录摄像机平移总步数/帧数)。
+  - `gUnk_03004844 = 0;` (平移当前步数清零)。
+  - 根据 `gCameraDrawMode` 的模式分支（case 2/5/8/default），从当前摄像机坐标（`gCameraPosX`/`gCameraPosY` 或 `gDrawCamX`/`gDrawCamY`）采样作为平移起点，分别写入 `gUnk_030047DC` (StartX) 与 `gUnk_0300461C` (StartY)。
+  - 解析 `data[2..3]` 为平移目标 X (`gUnk_03004630`)，解析 `data[4..5]` 为平移目标 Y (`gUnk_03004830`)。
+  - `*ptr += 6; return 1;` 推进脚本流。
+  - 在后续帧中，`Viewport_UpdateScroll` 消费上述变量执行逐帧坐标插值运算，直至步数满后将 `gUnk_030047B4` 复位为 0；Opcode 0x1B (`Op_WaitCameraPan`) 则轮询等待其归零以解除脚本阻塞。
+- **匹配突破点**:
+  - 条件反转: `case 5` 与 `case 8` 中 `if (!gDrawCamEaseActive)` 生成 `bne` 目标形状（原 C 草稿为 `if (gDrawCamEaseActive)` 生成了 `beq`）。
+  - 16位拼装操作符: `data[2] + (data[3] << 8)` 生成 `adds` 指令（若写 `|` 则生成 `orrs`）。
+- **验证**: `python3 scripts/fncheck.py sub_804F64C` 输出 `OK (284 bytes @0x0804f64c, 0 池重定位已施加, 0 bl 槽忽略)`，逐字节完全一致。
+
+## 2026-09-07 claude-opus-4-6: gUnk_087EA1A0 指针表改 C 数组 (248 项)
+
+- **定性修正**: gUnk_087EA1A0 非纯动画模型表 — 222 唯一目标中 104 个 (0x0808B814..0x0808EA80)
+  是 AnimSlot_Parse 变长组, 114 个 (0x0808EAC8..0x08091938) 是 16B 定长记录组 (格式待定性),
+  同表混合两种精灵资源配置; gAnimModelGroups 注释已更正。
+- **C 数组化**: src/data_087EA1A0.c 定义 `const u8 *const gUnk_087EA1A0[248]`,
+  每项 `&gAnimModelGroups[N]` 符号表达式 (agbcc 生成 .word 符号+偏移, 链接后与 ROM 逐字节一致)。
+- **布局改造**: 表位于 data1.s 兜底 (0x7E9818..0x800000) 中段 — 拆 data1a.s(0x7E9818..0x7EA1A0 兜底)
+  / data1b.s(0x7EA580..0x800000 兜底), data1.s 删除; linker.ld 加锚
+  `. = ORIGIN(rom)+0x7EA1A0; src/data_087EA1A0.o(.rodata)` (Makefile wildcard 自动收 data1a/b 与新 .c)。
+- **消费函数**: gUnk_087EA1A0[setId] → sub_8008BA4 (code_8005020.c:1091, AnimSlot_Parse 逐组解析)
+  / MapScene_LoadEventAnimations (0x08007350, INCLUDE_ASM) / Op_StartScriptAnim (code_804F0B8.c:1684)。
+  fncheck sub_8008BA4/MapScene_LoadEventAnimations/LoadSpriteSheetGfx OK; TU 全绿。
+- **未整表化**: gUnk_087E8430 (1075 项, 区外 956 项指向 0x080B9DFC..0x083823F8 对话大表) 与
+  gUnk_087EB1F4 (97 项混区内外字符串) — 表内区外目标无符号, 暂留 data 兜底 + linker 绝对符号。
+- **验证**: make + SHA1 绿 (进度 746/1059, +1 因 data1 拆分新函数收编? 实为计数刷新)。
+
+## 2026-09-07 gpnux: Op_CameraPan 变量语义化 + Op_WaitCameraPan 全链改名 + ROM Data 规范划分与语义命名
+
+- **函数重构与改名**:
+  - `Op_CameraPan` (`src/code_804F0B8.c` @ 0x0804F64C):
+    - 局部变量与参数全面语义化: `ptr -> pScriptCursor`, `data -> pBytecode`。
+    - 全局变量应用语义符号: `gCameraPanDuration`, `gCameraPanStep`, `gCameraPanStartX`, `gCameraPanStartY`, `gCameraPanTargetX`, `gCameraPanTargetY`。
+    - 逐字节复验 `python3 scripts/fncheck.py Op_CameraPan` -> `OK (284B)`。
+  - `Op_WaitCameraSnap` -> `Op_WaitCameraPan` (`0x08052E80`):
+    - 该函数为 Opcode 0x1B，检查 `gCameraPanDuration != 0`，不为 0 时返回 0 阻塞脚本 VM，为 0 时推进 PC 返回 1。原名 Snap 有误，实为平移等待。
+    - 经 `scripts/rename_fn.sh` 完成全链重命名 (`ll.cfg`, `code.s`, `include/code_0.h`, `functions.tsv`, `src/code_804F0B8.c`)。
+    - 函数内更新为 `gCameraPanDuration`，`python3 scripts/fncheck.py Op_WaitCameraPan` -> `OK (28B)`。
+- **ROM Data 划分与语义命名落地**:
+  - 对 18 段切分数据及 `Op_SysEffect` / `Script VM` 关联资源建立清晰语义名并在 `include/data_805769C.h`, `src/data_805769C.c`, `linker.ld`, `scripts/data.json` 同步落地，提供双向兼容宏:
+    1. `0x08091948` (2216 B): `byte_8091948` -> `gMapNpcSlotGroups` (地图 NPC 生成槽组表，`Sprites_LoadMapNPCs` 消费)。
+    2. `0x080921F0` (88 B): `unk_80921F0` -> `gClassStatCurveTable` (职业x8维属性成长曲线索引表)。
+    3. `0x08092248` (400 B): `unk_8092248` -> `gLevelUpExpTable` (100 级升级经验阈值表)。
+    4. `0x080923D8` (4100 B): `unk_80923D8` -> `gStatGrowthCurveTables` (41 组成长曲线分段表)。
+    5. `0x080933DC` (60 B): `unk_80933DC` -> `gStatGrowthTail` (成长表尾部)。
+    6. `0x08093418` (648 B): `byte_8093418` -> `gSkillLearnTable` (技能/法术习得等级与组别定义表)。
+    7. `0x080936A0` (6536 B): `byte_80936A0` -> `gMsgPoolMain` (主游戏消息文本池，0xFF 分隔)。
+    8. `0x08095028` (2048 B): `stru_8095028` -> `gItemNames` (道具名称字符串表，256 项 x 8 字符)。
+    9. `0x08095828` (500 B): `stru_8095828` -> `gCharacterNames` (角色名称字符串表，8 字符/项)。
+    10. `0x080B9DFC` (3296 B): `gUnk_080B9DFC` -> `gSpriteObjPalettes` (103 项精灵 OBJ 调色板)。
+    11. `0x0808B1B4` (32 B): `gFlashFxPaletteTable` (白闪 16 色调色板，`Op_SysEffect` DMA 到 OBJ bank 4)。
+    12. `0x08289B6E` (320 B / 10 步): `gObjPalFadeInSteps` (OBJ 调色板 10 帧渐显步进表，`Op_SysEffect` 逐帧 DMA 到 OBJ bank 0..9)。
+    13. `0x083936A8` (32 B): `gObjPalFadeInFinal` (渐显末帧 16 色调色板，`Op_SysEffect` DMA 到 OBJ bank 10)。
+    14. `0x0862D434` (320 B / 80 指针): `gScriptOpcodeHandlers` (脚本 VM 80 项 Opcode 分发处理函数表)。
+    15. `0x0862D574` (740 B): `gTileGfxSets` (`Op_LoadTileGfx` 调用的瓦片图形组配置表)。
+- **全量终验**:
+  - `make` 编译成功，`sha1sum -c ll.sha1` 通过 (ROM 逐字节一致)。
+  - `python3 scripts/audit.py`: 746/746 status=1 函数全量字节核验通过，改名漂移 0。
+
+## 2026-09-07 语义大更正: sub_80525E8 实为脚本集装载器 ScriptSet_Load — "LZ_BGM" 旧注证伪 (agent opencode-scriptset)
+
+### 背景
+用户质疑 NewGame_Init 分析报告中 `sub_80525E8 = LZ_BGM 装载` 的定性 (源自 EXPERIENCE #1155 与
+progress 2026-09-04/05 两段挂起记录)。逐指令重读反汇编 + 全链追证据后, 证明旧注错误, 本函数是
+**脚本引擎的脚本集 (script set) LZ 资源装载器**, 与 M4A 音乐毫无关系。
+
+### 反汇编证据链 (asm/nonmatchings/ScriptSet_Load.s, 85 行)
+```
+gUnk_03000E68 = id                          ; u8 → 0x03000E68 (记挂集号)
+r3 = gUnk_087ED6D4[id]                      ; ROM 指针表 (0x0862D8A4.., 363 项 LZ 块指针)
+if (REG_DISPSTAT & 0x80)                    ; 正在 VBlank
+    LZ_InitContext(0x02016000, r3); LZ_UncompressChunk()   ; 同步解压
+else
+    LZ_InitContext(0x02016000, r3); gUnk_03000E70 |= 0x200 ; 挂后台, VBlank 泵逐帧解压
+switch (mode):
+    1/其它: gScriptCursor = 0x02016200                    ; VM PC = 脚本区基址
+    2:      gUnk_03000E69 = entry; gUnk_03000E70 |= 0x400  ; 解压完跳入口表标志
+            gScriptCursor = 0x02016200 + gUnk_02016000[entry]
+```
+- 解压目标 0x02016000 = linker.ld EWRAM 脚本区 (entryTbl + 代码区 0x02016200)。
+- `sub_805008C` (ScriptPump_ServiceFrame, VBlank 调用) 的 0x200/0x400 分支消费上述标志:
+  `if (E70&0x200 && LZ_UncompressChunk()==0) { if (E70&0x400) gScriptCursor = base+entryTbl[E69]; }`。
+- 脚本 opcode 处理器 Op_ScriptReturn/Op_ScriptStop 退场时调 `Script_SetEnvSet(gUnk_03000E68)`
+  (原名 Bgm_Request, 仅 12B: `strb r0,[0x03004850]; bx lr`), 把装载时传入的集号写回
+  gCurrentSongId(0x03004850) —— 该变量**全部 3 个消费者** (Scene_Reload:2867/
+  Scene_RestoreAfterBattle:3143/MapScene_Load:13858) 都是 `ScriptSet_Load(gCurrentSongId,0,1)`
+  重装环境脚本集。闭环: 它是"环境脚本集号", 不是"当前曲目号"。
+- ROM 侧验证: 0x087ED6D4 表 363 项全部 ROM 指针; [140] 巨块解压后 0x78010B (~492KB) 显然是
+  脚本资源池, 非 M4A 歌曲表。
+
+### 初装链条 (NewGame_Init → 开场剧情)
+`ScriptSet_Load(1, 0, 1)` 装脚本集 1 (0x0862E2A0, 0x73F1B) → 16×VBlankWaitExit_PumpSound 泵完解压
+→ `ScriptPump_JumpToEntry(1, 2)`: gScriptCursor = 0x02016200 + entryTbl[1] → 脚本泵逐 opcode 跑开场。
+
+### gUnk_03004634 同步定性 (gMapScriptSetId)
+- MapScene_Load:604: `gUnk_03004634 = gMapSceneDescriptors[mapId].byte_0x0B` (字段注释 sceneFlag 有误);
+- MapScene_Load:1300-1314: `if (gMainGameState==2 && !(脚本运行)) { ScriptSet_Load(*03004634,0,1); 03004850 = *03004634; }`
+  → 进图后按它装载环境脚本集。NewGame_Init 里 `gUnk_03004634 = 1` 即"开场地图的环境脚本集 = 集 1"。
+
+### 落地改动 (全部零字节: 改名/注释, fncheck+SHA1+audit 全绿 746/746)
+1. 函数改名 (rename_fn.sh 全链, 不动签名):
+   - Bgm_Request → **Script_SetEnvSet** (0x08008dcc)
+   - sub_80526A0 → **ScriptPump_JumpToEntry** (0x080526a0)
+   - sub_805008C → **ScriptPump_ServiceFrame** (0x0805008c)
+   - sub_80525E8 → **ScriptSet_Load** (0x080525e8, --force 越过 claude-80525E8 挂起锁, 见 INCIDENTS)
+2. RAM 符号改名 (iwram.h + linker.ld, asm 硬码地址不受影响):
+   - gCurrentSongId → **gEnvScriptSetId** (0x03004850)
+   - gUnk_03000E68 → **gScriptReturnSetId** (0x03000E68)
+   - gUnk_03000E69 → **gScriptPendingEntry** (0x03000E69)
+   - gUnk_03004634 → **gMapScriptSetId** (0x03004634)
+3. 结构字段: MapSceneDescriptor.sceneFlag(+0x0B) → **scriptSetId**。
+4. functions.tsv: 0x080525e8 note 前缀加证伪标记; 0x08008dcc 补 ✅ note。
+5. EXPERIENCE: #1155 段首追加证伪横幅 (详见该文件), 新增 #186 (脚本装载三件套)。
+
+### 经验教训
+- "Bgm_Request 只写 gCurrentSongId" 不构成 "它是 BGM" 的证据 —— **必须看变量的消费者**而非赋值者;
+  变量名/旧注 (gCurrentSongId/LZ_BGM) 都是前人猜名, 追到唯一消费点 (3 处全是 ScriptSet_Load) 才闭环。
+- EXPERIENCE #1155 是"只看调用形状"的表面结论, 本次重写; 姊妹条目 sub_80513A0 的定性也需重审。
+
+## 2026-09-07 antigravity: sub_8011454 (4314B 标题与存档界面大状态机实装入库)
+
+### 任务与成果
+- **函数**: `sub_8011454` (0x08011454, 1849 行汇编 / 4314 字节, 213 个字面池重定位, 111 个 BL 调用槽)。
+- **位置**: `src/save_menu.c`。
+- **状态**: 成功完成真 C 实装替换 `INCLUDE_ASM`，`fncheck.py sub_8011454` 100% 逐字节匹配。
+- **全局终验**: `make` 0 报错，`sha1sum -c ll.sha1` 通过，匹配进度上升至 748/1059 (70.6%)。全库 `audit.py` status=1 字节核验 748/748 全绿。
+
+### 核心攻坚与编译器行为总结
+1. **Signed Switch 比较指令对齐**:
+   - 原汇编状态机入口为 `cmp r0, #0xE; bgt ...`（有符号比较）；
+   - 若状态变量 `gUnk_030025A8` 声明为 `u32`，GCC2.95 编译 switch 时会生成无符号比较 `bhi`；
+   - 显式强转为 `switch ((s32)gUnk_030025A8)` 成功生成目标的 `bgt` 指令。
+2. **DmaCopy16 宏大小与控制字反推**:
+   - `DmaCopy16(channel, src, dest, size)` 在 GBA 宏展开中控制字为 `0x80000000 | (size / 2)`；
+   - 原草稿注释中第 597/602 行的 `0x40` 与 `0x20` 颠倒，且 604/612 行将 0x40 误写为 0x20（汇编复用了 r6 中的控制字 `0x80000020`，对应半字数 0x20 = 0x40 字节）；修正后消除 DMA 控制字差异。
+3. **Load-Delay Slot 与结构体字段访问优化**:
+   - 原始草稿使用 `((u8 *)&gUnk_03001CB0)[0]` 进行字节强转，触发 GCC 别名分析（alias analysis）保守化，无法将 `movs r3, #0` 调度下沉至 load-delay 槽；
+   - 替换为具名结构体 `gUnk_03001CB0.field_0` 访问后，指令调度槽与寄存器分配 100% 完美命中。
+4. **子函数原型与参数/返回值截断一致性**:
+   - `MapScene_Load` 原型在 `include/code_0.h` 中原声明为 `void MapScene_Load(u8);`，导致实参 `0x82 + ...` 被强制插入 `lsls/lsrs #24` 截断指令；修复为 K&R 风格 `void MapScene_Load();` 后消除截断。
+   - `Save_Fsm` 声明返回值类型为 `s32`，但调用处目标汇编保留了字节截断 `lsls r0, r0, #0x18`；显式强转为 `(u8)Save_Fsm(...)` 完美复现截断。
+
+### 全链改名与可读性重构
+- **函数更名**: 通过 `scripts/rename_fn.sh sub_8011454 SaveMenu_ProcessFrame` 完成全链重命名。
+- **状态机枚举化**:
+  - `TitleScenePhase`: 39 个状态（`TITLE_PHASE_INIT` 至 `TITLE_PHASE_CARD_EXCHANGE_FINISH_FADE`）全量替换裸数字 case。
+  - `CardExchangeStatus`: 通信子状态机（`CARD_EXCHANGE_IDLE`, `SENDING`, `TIMEOUT`, `FAILED`, `SUCCESS`, `CONNECTING`）。
+- **全局变量语义化**:
+  - `gUnk_03004D44` -> `gSaveFsmState`
+  - `gUnk_03004D50` -> `gActiveSaveSlot`
+  - `gUnk_03004DD0` -> `gSaveSramBlock`
+  - `gUnk_03002608` -> `gTitleFadeTimer`
+  - `gUnk_030025A8` -> `gCardExchangeStatus`
+  - `gUnk_03000230` -> `gCardAlbumCursor`
+  - `gUnk_03000232` -> `gCardAlbumPage`
+  - `gUnk_03000233` -> `gCardCursorY`
+  - `gUnk_03000234` -> `gTitleFadeStep`
+  - `gUnk_03000236` -> `gCardRecvId`
+  - `gUnk_03000238` -> `gCardSendId`
+  - `gUnk_03001AD0` -> `gSioRecvPacket`
+  - `gUnk_03001CB0` -> `gSioSendPacket`
+- **终验**: `make` 编译成功，`sha1sum -c ll.sha1` 通过，全库 `audit.py` 748/748 通过，零改名漂移。
+
+### 模块及函数命名规整 (2026-09-07)
+- 用户指定模块业务更名为 `title_menu`（原文件 `src/save_menu.c` 实际承载标题画面、卡片图鉴、联机卡片交换与存档槽管理，定位为游戏标题总控与主界面）：
+  1. **函数改名**:
+     - `SaveMenu_ProcessFrame` (原 `sub_8011454`) -> `TitleMenu_ProcessFrame`
+     - `Task_SaveMenuFrame` (原 `sub_80031E4`) -> `Task_TitleMenuFrame`
+  2. **源文件与链接脚本重命名**:
+     - `src/save_menu.c` -> `src/title_menu.c`
+     - `linker.ld`: `src/save_menu.o(.text);` -> `src/title_menu.o(.text);`
+  3. **函数清单同步**:
+     - `functions.tsv`: 45 个属于原 `save_menu` 的函数 module 字段全部规范迁移为 `title_menu`。
+  4. **终验**: `make` 0 报错，`sha1sum -c ll.sha1` 绿，`audit.py` 748/748 全绿，零改名漂移。
+
+### 模块名 menu.c、公共头文件 menu.h 建立与宏消除重构 (2026-09-07)
+- 用户指定将模块更名为 `menu.c`，创建独立头文件 `include/menu.h`，彻底消灭 `#define gUnk_03001CB0 gSioSendPacket` 这类宏桥接：
+  1. **头文件构建 (`include/menu.h`)**:
+     - 定义 `SioPacket` 数据包结构体；
+     - 声明 `gSioSendPacket` 与 `gSioRecvPacket` 全局通讯变量；
+     - 规范收拢 `TitleScenePhase` 与 `CardExchangeStatus` 状态枚举；
+     - 暴露 `TitleMenu_ProcessFrame` 等核心接口声明。
+  2. **消除宏 Hack 并直接全局替换**:
+     - `src/menu.c`: 彻底移除开头的 `#define gUnk_03001CB0 ...` / `#undef` / `#define gUnk_03001CB0 gSioSendPacket` 桥接，直接使用真实具名变量与 `menu.h`；
+     - `src/engine_core.c`: 将 `Sio_SetXferCtx(&gUnk_03001AD0, &gUnk_03001CB0, 0x10, 0);` 直接替换为 `Sio_SetXferCtx((u32 *)&gSioRecvPacket, (u32 *)&gSioSendPacket, 0x10, 0);`；
+     - `include/iwram.h`: 包含 `menu.h`，移除重复枚举定义与旧 `gUnk_03001AD0`/`gUnk_03001CB0` 冗余声明；
+     - `linker.ld`: 统一为 `src/menu.o(.text);`，并保留 `gSioRecvPacket`/`gSioSendPacket` 符号别名。
+  3. **模块同步**:
+     - `src/title_menu.c` -> `src/menu.c`；
+     - `functions.tsv`: 45 个函数 module 列统一规范为 `menu`。
+  4. **终验**: `make` 0 报错，`sha1sum -c ll.sha1` 绿，`audit.py` 748/748 全绿，零改名漂移。
+
+
+## sub_80154E8 (0x080154E8, menu.c, 2026-09-08 codex-menu)
+2 行文本绘制: `mode>>1` 选表 `D_87EB2A8[+3]/[+5]`, `mode&1` 选逐字绘制/空白计数路径, 高亮列 `(*0x03000187-4)==i ? 13 : 11`。fncheck OK 368B, 全 ROM 绿。
+
+- 表项结构: `[x, y, 字符..., 0xFF]`; dest = buf + y<<1 + x<<6 (先 y 后 x, gcc2 先算的进 r1)。
+- 空白路径: 先数非 0xFF 字符数, 再循环 `Text_PutGlyph(dest++, 0, 11)`; 逐字路径 `Text_PutGlyph(dest++, *str++, col)` — 两处都必须后置自增实参形态, 否则 adds r5,#2 位置错。
+- ⚠ **gWindowBgBuf 引用形态** (新经验候选 118): 项目头里是 `extern u8 gWindowBgBuf[]`, 惯性写成 `(u16*)((u32)gWindowBgBuf + ...)` 没问题; 但我在 permuter base.c 用 `#define gWindowBgBuf ((u16*)0x02005800)` 字面量时 gcc2 给出 368B, 而 src 侧若写 `0x02005800 + ...` 字面量反而 360B — **符号引用 (extern u8[]) 与目标一致**。教训: base.c 的 extern/宏必须与项目头完全同型 (经验 96 的延伸, 类型不只是"能编过"而是决定分配)。
+- `idx` 必须 u32 (i+1 存 r7 不做零扩展); color/count 复用一个变量 (同为 r6)。
+- bytecmp 判定: 16 字节假差异 = 4 个 bl 槽 (mine.o 的 R_ARM_THM_CALL 未消解), 池 ABS32 已由 abs.ld 施加; skip = mine.o 重定位表的 bl+ABS32 槽后 **0 real diffs**。
+
+## sub_8013934 (0x08013934, menu.c, ⏸ 2026-09-08 codex-menu)
+4 行存档槽文字绘制: `i=0..3`, 高亮列 `(i == *(u8*)0x03000187) ? 13 : 11`。
+`i<=1` 时按 `*(u16*)0x03004D48 & 1` 分: 存档存在 → 画锁定态文字 `gUnk_087EB278[i]` + 统计框清屏
+(填 0xB001, 3 项/行 × 2 行, 行距 0x40) + `sub_800EAE4(0x02005936/0x020059F6, *(u8*)0x03000232 /*u16 0x03000230*/, col)`;
+不存在 → 画 `gUnk_087EB278[i+10]`。`i>1` → 画 `gUnk_087EB278[i]`。结构已 100% 对齐 (分支/表/常量/调用全部命中)。
+
+- 剩 24B = fill 循环的 cols/rows u16 shifted-home dance:
+  目标 `[movs r0,#3; lsls r6,r0,#0x10; lsrs r0,r6,#0x10; mov ip,r0]` + `[movs r0,#0x80; lsls r0,#0xa; lsrs r7,r0,#0x10]`
+  + 内层 `lsrs r1,r6,#0x10` 重载 + val `[ldr r1,=0xB001; adds r5,r1,#0]` (每块 ~20B ×2)。
+  mine 为 `[movs r4,#3] [movs r6,#2] [ldr r5,=0xB001]` — 同等 u16 语义, agbcc 不出 dance。
+  与 **sub_8049AD8 同族** (global-alloc 决策, 非 C 写法层)。
+- 已穷举: 声明序 ×6, 类型 {u16/u32/int/s32} ×8, register, (u16) 强转, static 函数+内联重构
+  (agbcc 不内联), 统一调用尾部 (`dst/arg` 变量使 bl 合并 ✓ 已实现), permuter ×4 轮。
+- permuter 陷阱实录: ① `if (stat)` 未初始化读 (5675) — 偷改语义; ②
+  `((0x02005800 & 0xFF) & 0xFF) & 0xFF` (6115) — **把 0x02005800 折叠成 0**, fndiff 分数假高 (8285),
+  语义全错, 人工清洗后退回 12325。
+- 最佳候选: `permuter/sub_8013934/base.c` (12325 分, 448B vs 472B)。
+  下一步: agbcc global-alloc 转储分析 cols/rows 的 allocno 优先级 (EXPERIENCE §诊断)。
+
+## InvUi_Main (0x08015C18, menu.c, ⏸ 2026-09-08 codex-menu)
+道具菜单主绘制: ① 清屏 22×8 halfwords (0xB001) @0x020059CC 行距 0x40; ② 逐物品 (item=*gInvCursor2 起, 每迭代 +1, row 0..3):
+count=gUnk_03004980[item]; count==0 → 仅记光标; 否则 icon=sub_800AB18(item)*10, 高亮列 (row==gMenuCursorStack[gMenuCursorGrp])?13:11,
+icon==0 → col=12 + sub_8015E1C(0x15,row*2+7,12,0x08098748); icon!=0 → sub_800EAE4 画 icon @0x02005830+(row*2+7)*64
++ 6 tile 边框 (0x1B8..0x1BD + col<<12, 地址 0x02005832/0x02005872/5834/5874/5836/5876);
+名字 ≤8 字符 @0x0200580C+(row*2+7)*64 (0x08095028+item*8, 0 终止); 数量 @0x020059DE+pos2*64 (col=12);
+光标时 gUnk_03000229=item, gUnk_0300022C=icon (u32)。已登记 gUnk_03000229/0x0300022C (linker.ld+iwram.h)。
+- 剩 ~130B: cols/rows/val 的 u16 shifted-home (r8=0xB0<<13 合成 + lsrs 重载; ldr r2,=0xB001; adds r5,r2,#0 纯拷贝) + rowi/count/col home 互换 — LRA live-range-split 家族, C 层不可达。
+- 已试: 声明序 ×3、类型、register、tile 写址重构 (数组索引→独立地址计算 ✓ 该部分已对齐)、统一调用、permuter ×4 (最好 10350 但 fndiff 13561 反高)。
+- 候选: permuter/InvUi_Main/base.c (12840 分)。
+
+## sub_8010F10 (0x08010F10, menu.c, ⏸ 2026-09-08 codex-menu)
+4 格选择框绘制 (菜单通用框): 框角/边框 tile (0xB190 左上, 0xB001×20 边, 0x1AE/0x1AF 角, attr<<12 调色板),
+`tmp = idx + 0xA3` 3 分支 (idx 0..3 时两分支恒死, 但结构必须保留: `if (tmp != 0) { if ((tmp&0xFF)==0xFE) ... else ... } else ...`
+— **嵌套结构使 gcc2 产生与目标一致的块布局**), 内容分数字串/图标名字两路径。
+- 关键发现: 分支块布局由 **if/else 嵌套层级**决定 — 平铺 if/else if/else 产生 [A][B][C], 嵌套产生 [B][C][A] (与目标一致)。
+- dest 表达式必须是字节级 u32 算术 `(u16*)(0x02005800 + (y<<6) + (x<<1))`, 不可写 `gWindowBgBuf + .../2` (会生成不同指令序)。
+- 剩 ~220B: 寄存器 home 家族 (idx/y/attr home 互换 + pal shifted-home sb + val adds 纯拷贝) — LRA 家族同 sub_8013934/InvUi_Main。
+- 候选: permuter/sub_8010F10/base.c (19065 分)。已登记 gUnk_03000204/0x03000208/0x03000210/0x080981A5/0x0830FC04。
+
+## sub_8050434 (0x08050434, script_vm) — ⏸ 2026-09-08 claude-8050434 (456B/488B 差, 语义全解)
+
+TileDma 请求收集器 (对话字模装载第一步)。两调用者: Op_LoadTileGfx (id=0x6F1E) 与
+sub_804AC60 战斗侧 (id=0x4F1E)。**语义全解**:
+
+1. **头部分派** (按 id 高位): `(id&0xF00)==0` 时 count=(u8)(id&0x6000?id:0) (条数上限);
+   `(id&0x2000)==0` 时复位 `gUnk_03000F24=0` (注意: 与 count 判定是**两个独立 if**, 0x800 位不复位)。
+2. **第一循环** (扫 entry 的 u16 tile 表): `v = tile & 0xFF00` (只比高字节!)。
+   v>0x6E6: 0x800→(id==v 时 flags=0, 终止); 0xF00→终止; 其他→collect。
+   v∈[0x6E3,0x6E6]→next (跳过, 特殊保留号); v<0x6E3→collect。
+   collect: v16>0xDF 时去重搜索 gUnk_03000EE8[0..F24) 后追加, F24++。
+   尾部: count!=0 时 counter++ 到限即停; F24>0x1D 硬停 (EE8 容量 30)。
+3. **第二循环** (DMA 炸开): 每 tile 两块 32B 拷到 0x0203DE00:
+   q=t-0xE0 (负则 t-0xC1), row=(修正q)>>5, **col=原始q-(row<<5)** (用原始 q!),
+   src1 = tbl[1] + (row*64+col)*32; src2 = src1 + 0x400 (即 ((row*2+1)*32+col)*32);
+   `DmaCopy16(3,...,32)` + `DmaWait(3)`, dest 每块 +32。tbl=gUnk_087ED904 (=gScriptSetTable 尾部视图,
+   [1]=0x0861CC34 = Set141 字模 LZ 块, BgTiles_LoadSet 同款)。
+
+**候选**: permuter/sub_8050434/base.c (语义精确版), bytecmp **456B 差/488B 总量** (头 232B 一致)。
+permuter 7 轮 promote 研磨 8808→3275, 但**所有 score<4200 的变体都有同一语义错误**:
+把 `v>=0x6E3 → next` 折叠成落穿 collect (`if (v<0x6E3) goto collect;` 后 collect 标签紧贴,
+v∈[0x6E3,0x6E6] 误入搜索)。汇编里目标 0x84 `b.n 0x100` 是不可达死代码 (0x6E4 检查被
+v<0x6E3 前提吸收), permuter 抓住这一点重排了 CFG 但改变了 0x6E5/0x6E6 的行为 —
+**score 假高的活案例** (文本近似 ≠ 语义等价)。
+
+**剩 456B 差异构成** (global-alloc home 布局, 同 804AB40 深层问题):
+① 头部 `(id&0xF00)` 常量物化多一次 `adds r1,r2,#0` 拷贝 + id 拷贝用 r0/r3 两次 (我: r4 复用);
+② count 槽位 [sp,#0] vs 我的 [sp,#4] (目标 count/n 两槽, sp+#8);
+③ n=gUnk_03000F24 目标溢出到 [sp,#4], 我的进 r7;
+④ 搜索循环/row-col 序列寄存器选择级偏差。
+已穷尽: n 声明序/初始化、mask 变量、tbl 缓存与否、do-while 守卫、n=i*2 提取 (4120 招式)。
+**接手建议**: 语义正确前提下攻 ②③ 栈槽位 — 让 GCC2 把 count 和 n 同时溢出 (增加第一循环
+寄存器压力或把 counter 声明成 u32); 或查 EXPERIENCE 174 幽灵栈帧手法反向构造。
+
+## sub_8012530 (0x08012530, menu.c, ⏸ 2026-09-08 codex-menu)
+角色图块装载: `arg0*4` 查 `gUnk_0809888B[]` 表 (kind/animId lo+hi/flags); switch kind 选 tile 表+palette
+(0,3: 0x08097DB0+0x8000; 1: 0x08097EF0+0x9000; 2: 0x08098030+0xA000); 双 16×16 循环写 0x02005058
+(k>9 → 0; 否则 `*tiles & 0xC3F | palette | 0x200`; flags&0x80 路径: 行 13..14 span=1, 跳 1 tile 画 7 个)。
+之后 `sub_800EAE4(0x020053A8 / 0x020053B4, *(u16*)0x03000238 & 0xF, ...)`; `gUnk_03004DC0 = 1`;
+`Sprite_FreeChain(&gSpriteNodePool[gActors[0].statusFlags*3])`; `Chara_InitEffect(0)`;
+kind 1/2 → `CutsceneAnim_Load(animId,0,5)` + `field_6 = gCameraPosX+0x88` + `field_8 = gCameraPosY+0x4C/0x58`;
+else `CutsceneAnim_PlayFrame(animId, 0)`; 尾部 `gActors[0].field_13 = 0`。
+- 已登记: gUnk_08097DB0/0x08097EF0/0x08098030/0x0809888B/0x02005058/0x020053A8/0x020053B4/0x03004DC0。
+- 剩 ~150B: kind/flags 存储位置 ([sp+4] vs sl) + 双循环 home — LRA 家族同前。
+- 候选: permuter/sub_8012530/base.c (15755 分)。
+
+## sub_801417C (0x0801417C, menu.c, ⏸ 2026-09-08 codex-menu)
+存档菜单状态机 (20+ case)。关键发现: **gcc2 的 switch 生成块序 = 源码 case 声明序**,
+重排 case 声明序为目标的块地址序 (F5, 28, 1, 8, 2/4/6, 7, 5, 1E, 1F, 20, 21/22, 23, F0, F1-F4/F6-F8, F9, FA)
+后 score 从 25975 降到 19765。剩余: case 7/2/4/6/0xF1-F8 共享 `strb r0,[r1]` 写
+(r1 = &gUnk_03004D40 在 prologue 后立即建立, case 7 直接 `b` 进 2/4/6 的尾部) — C 层不可达。
+- 已登记无新符号 (全部已有)。候选: permuter/sub_801417C/base.c (9010 分)。
+
+## sub_8013C00 (0x08013C00, menu.c, ⏸ 2026-09-08 codex-menu)
+存档菜单顶部绘制: 标题行 (gUnk_087EB278[4]) + 2 行选项 (高亮 = i == gMenuCursorStack[gMenuCursorGrp]) +
+存档时间行 (SaveTimer_Get(gMenuCursorSel), col = 12/13) + 2×6 填 0xB001 框 @0x02005AC8 +
+sub_800EAE4(0x02005ACC/0x02005AD2) + Text_TileAt(8,12)=0xB26D + 底部 2 行 (gMenuCursorSel-3 ≤ 1 →
+高亮文字; 否则计数空白填充) + switch (gMenuCursorSel 0..4) — **gcc2 生成 jump table** (case 0..4 连续)。
+- x/y 表达式求值序: `(val << 1) + (tmp << 6)` (x 项在前) 与目标一致。
+- 剩 ~180B: cols shifted-home (r8 = 6<<16) + fill 循环 do-while 形态 + home 互换 — LRA 家族。
+- 候选: permuter/sub_8013C00/output-12745-1/source.c (12745 分)。
+
+## sub_80146A8 (0x080146A8, menu.c, ⏸ 2026-09-08 codex-menu)
+菜单主状态机: `gUnk_03000048.field_0 |= 1; field_4 = field_8; field_6 = field_A` (须用结构体访问 —
+裸地址强转会生成逐次重载基址的错误形状); switch (gMenuCursorGrp) 3 主路径 (case 1 短消息;
+case 2: 3 张字符串表 `[x,y,pal,字符...,0xFF]` + fill + 边框 0xB000+0x1B8.. + sub_8015658;
+case 3: 表 + InvUi_Main + 计数分支)。字符串表绘制 helper 必须内联展开 4 份 (agbcc 不内联 static)。
+- 剩 ~140B: 高位寄存器 home (目标用 sl/r8 存 fill 循环变量) + LRA 家族。
+- 候选: permuter/sub_80146A8/base.c (9745 分, 含 permuter 合法 new_var 冗余拷贝手法)。
+
+## sub_80501B8 (0x080501B8, script_vm, ⏸ 2026-09-08 gpnux — 715 分候选, 语义全解)
+
+**语义** (339 行, TextTileDma_QueueScan / FlushTileDma 的生产者):
+- 前半: 扫描对话框字节流 (arg0+scan, 步长 arg2∈{8,0x10}):
+  - 头部: 若 `(arg1 & 0xF00)==0` 则 `dups=(u8)arg1` (arg1=特殊调用模式+重复计数);
+    若 `!(arg1 & 0x2000)` 清 `gUnk_03000F24=0` (0x2000=不清队列继续追加)。
+  - 循环: `hi = p[1]<<8`; switch 比较树(0x100 步进):
+    - `0x800 && arg1==0x800` → `more=0` (终止标记+模式匹配);
+    - `0xF00` → `more=0`; `0x100..0xE00 (除 0x800/0xF00)` → 跳过;
+    - default (含 `0x10` 标志的半字): `cur = ((p[1]<<8) & ~0x1000) | p[0]`,
+      `>0xDF` 且不在 `gUnk_03000EE8[0..F24)` → 追加 (去重)。~0x1000 池值=0xFFFFEFFF。
+    - `dups` 计满提前退出。
+- 后半: 对队列每 id: `delta=id-0xE0`, 负则 `id-0xC1`; `row=delta>>5(asrs)`, `rem=delta-(row<<5)`;
+  两次 DmaCopy16(3, gUnk_087ED904[1]+ofs, 0x0203DE00+64k, 0x20) — 从字库 blob 第 1 项
+  (bank=row 的第 rem 字形 + odd-row 0x20 偏移) 各拷 0x20 字节, 控制字 `0x80000010`。
+  尾: `gUnk_03000F26 = gUnk_03000F24 - 1` (IWRAM 0x03000F26, 未登记符号)。
+- 调用方 6 处全传 `arg1=0x800`(r1=0x80<<4), `arg2=0x10`; 返回值未用。
+
+**DMA 宏判定**: `str r0,[r3,#0/#4/#8]` 共基址 + 两次 `ldr r0,[r3,#8]` = `DmaSetUnchecked` 展开
+(空读 `dmaRegs[2]`) + `DmaWait` (`ands #0x80000000` 循环, 经验55/FlushTileDma 同族)。
+`0x80000010` = `(DMA_ENABLE|DMA_START_NOW|DMA_16BIT|DMA_SRC_INC|DMA_DEST_INC)<<16 | 0x20/2`
+→ 必须用 **DmaCopy16(...,0x20)** 不能 DmaCopy32 (32 位版控制字是 0x80000008)。
+
+**候选状态**: 715 分 (permuter), 距 0 卡 ~40 形状块, 全部集中在:
+1. 头部 0xF00 掩码测试: 目标是"双拷贝"形状 `movs r2,#0xf0; lsls r2,#4; adds r1,r2,#0; adds r0,r5,#0; ands r0,r1`;
+   候选是融合 `movs r0,#0xf0; lsls r0,#4; ands r0,r5`。需要掩码变量保活制造伪寄存器生死边界 (经验 87 同款),
+   试过: bank/c/m1 变量+类型 u16/s16/s32/vu16、AND 结果存变量、if 反转+else、共享 0x2000 掩码变量、声明重排 — 全部融合或更差。
+2. `scan`/队列指针 r6↔r7 级联翻转 (纯 home 争议, 经验 88: global-alloc 决定, 需 refs 翻盘)。
+3. case 体寄存器翻转若干。
+
+**工大于 17 万迭代 permuter (-j1, 8 轮固化重跑)** 未突破。次要目标 (score<1000) 达成。
+资产: `permuter/sub_80501B8/` (target.o+compile.sh+settings.toml+base.c=715 候选);
+备份 `.scratch/gpnux/80501B8/` (base_715.c + fndiff1..7.txt)。
+后续人建议: ① 挖 agbcc `-dl` gccdump 看 0xF00 qty 的 refs/life, 验证经验 88 翻盘条件;
+② 试把 `dups`/`more`/`j` 与 0xF00 掩码变量做生命周期交织 (经验 87);
+③ 若仍无解, 考虑是否调用方语义允许 switch 外提 (源码重构空间未穷尽)。
+
+## sub_8013870 (0x08013870, menu.c, ✅ 2026-09-08 antigravity)
+标题菜单背景清屏与文字绘制：196 字节，完全逐字节匹配（通过 `fncheck.py sub_8013870`，`make` 及 `sha1sum -c ll.sha1` 绿）。
+
+- **业务逻辑**:
+  1. `ClearBuffer((u16 *)0x02005800, 30, 20);` 填 0xB001 清除菜单窗口背景；
+  2. 遍历 `gTitleMenuDesc` (0x08098622, 格式: `x, y, palette, chars..., 0xFF, ..., 0xFF`，包含 0xFE 转义双字节字形)，逐字调用 `Text_PutGlyph` 渲染标题菜单选项；
+  3. 尾部调用 `Text_WriteChars(Text_TileAt(0xC, 7), (u8 *)0x08098858, 0xB);`。
+- **攻克历程与关键技术突破 (经验 191)**:
+  - 此函数曾困扰 opencode 等多代 agent，长期挂起在 53B 平台期。
+  - **核心症结**: 目标汇编 prologue 中把描述表基址进 r8 (`ldr r0, =0x08098622; mov r8, r0`)，清屏循环结束后以 `mov r4, r8` 拷入 r4 供字符串循环迭代。
+  - 若在 C 中直接使用立即数字面量 `(const u8 *)0x08098622`，GCC2 的 local-alloc `update_equiv_regs` 识别到其为常量且仅被赋值/使用各 1 次，会触发常量传播折叠，强行将迭代器初始化替换为 `ldr r4, =0x08098622`，彻底抹去 r8 伪寄存器；若在清屏前赋给迭代器，又会导致其在 global-alloc 中因循环内高频引用抢先夺取 r4，把清屏循环的低位寄存器分配挤乱。
+  - **突破口**: 声明外部数组符号 `extern const u8 gTitleMenuDesc[];`（并在 `linker.ld` 中定义绝对符号 `gTitleMenuDesc = 0x08098622;`），源码写为：
+    ```c
+    ClearBuffer((u16 *)0x02005800, 30, 20);
+    table = gTitleMenuDesc;
+    src = table;
+    ```
+    外部符号无法被 `update_equiv_regs` 作为已知整型常量折叠，GCC 的 loop/GCSE 自动将其识别为循环不变量提升至 prologue，由于清屏循环占满了 r4-r7，table 自然被分配到首选的高位寄存器 r8，清屏结束后 `src = table;` 顺理成章发射为目标的 `mov r4, r8`，逐指令 100% 完美命中！
+
+## sub_8013934 (0x08013934, menu.c, ✅ 2026-09-08 antigravity)
+卡片相册页面选项文字与数字框绘制：472 字节，完全逐字节匹配（通过 `fncheck.py sub_8013934`，`make` 及 `sha1sum -c ll.sha1` 全绿，`audit.py` 750/750 全过）。
+
+- **业务逻辑**:
+  1. 循环 `i = 0..3` 处理 4 个相册页面条目：
+     - 若 `i == gMenuCursorSel`，文本高亮色 `color = 13`，否则普通色 `11`；
+     - 若 `i <= 1`：
+       - 测试 `(gUnk_03004D48 & 1) == 0`，若为 0 绘制 `gUnk_087EB278[i + 10]` 字符串；
+       - 若非 0 绘制 `gUnk_087EB278[i]` 字符串，并在条目右侧清空 3×2 小框 (`ClearBuffer(buf, 3, 2)`)，调用 `sub_800EAE4` 绘制当前页码/游标数字（`i == 0` 时绘制 `gCardAlbumPage`，`i == 1` 时绘制 `gCardAlbumCursor`）；
+     - 若 `i > 1`：直接绘制 `gUnk_087EB278[i]` 字符串。
+- **攻克历程与关键技术突破 (破除假性 LRA 误区，验证经验 191 同构型)**:
+  1. **破除前人错误诊断**: 前代 agent 在 `functions.tsv` 中误将本函数与 `sub_8049AD8` 归为 "u16 shifted-home + LRA live-range-split 不可达" 失败案例。经深入反编译比对发现：
+     - 前人手写了 `do...while` 循环填 0xB001，导致未调用内联函数 `ClearBuffer`，分支结构也完全反转；
+     - 目标代码中的 `ClearBuffer(buf, 3, 2)`（移位 `0x80 << 10` 即 2）与 `include/inline_funcs.h` 中的标准实现 100% 同构！
+  2. **高位寄存器 `sl` 的归位**:
+     - 目标汇编在清屏前 `ldr r2, =buf; movs r1, #0; ldr r0, =ptr; mov sl, r0;`，清屏后发射 `mov r2, sl; ldrb/ldrh r1, [r2]; bl sub_800EAE4`。
+     - 若直接写立即数 `(u8 *)0x03000232`，GCC2 的 `update_equiv_regs` 会将其直接折叠并在清屏后发出 `ldr r0, =0x03000232`，清屏前不会把地址放进 `sl`，反而导致 `gUnk_087EB278` 被全局提升进 `sl`。
+     - 正解完全契合**经验 191**: 使用外部符号 `extern u8 gCardAlbumPage;` 和 `extern u16 gCardAlbumCursor;`（并在 `linker.ld` 中登记 `gUnk_087EB278 = 0x087EB278;`）：
+       ```c
+       u8 *table;
+       u8 *val_ptr;
+       ClearBuffer((u16 *)0x02005932, 3, 2);
+       table = &gCardAlbumPage;
+       val_ptr = table;
+       sub_800EAE4((u16 *)0x02005936, *val_ptr, color);
+       ```
+     - 外部符号阻止了常量传播折叠，GCC 将其作为寄存器变量保持；由于清屏循环占用低寄存器，GCC 精确将其分配入 `sl`，并在清屏后发射目标的 `mov r2, sl`，所有指令与文字池顺序 100% 逐字节对齐！
+
+
+## 2026-09-08 InvUi_Main 挂起 (zcode-invui) — 结构全对, global-alloc home 差 1 链 C 不可达
+
+**接手状态**: 前手 antigravity 挂起于 "GCSE PRE 提升 pos2<<6 进 r8 挤占寄存器分配", 候选 12840 分。
+codex-menu 曾记录 "剩 ~130B = u16 shifted-home + adds 纯拷贝 (LRA live-range-split 家族)"。
+
+**本轮突破 (12840 → 12090 fndiff 分, 残差从 ~170 条指令位差降到 ~121 条真实差异)**:
+
+1. **破除经验 122 的 "shifted-home 不可达" 残余误判**: 目标 prologue 的 `movs r1,#0xB0; lsls r1,#0xD; mov r8,r1` (22<<16 编码清屏宽度) 已被经验 191 的 sub_8013870 完美匹配判例推翻 — 纯 C `ClearBuffer(buf, 22, 8)` 即可产出该形状, 本函数同样直接命中。
+2. **next_row 必须 u32**: 目标 `adds r6,#1; mov sl,r6` (无截断) + 尾部 `mov r2,sl; lsls/lsrs #24` — u8 会在赋值前截断多 2 条指令, u32 尾部统一截断才对。
+3. **sub_800EAE4 的 arg2 实为 u32**: 目标传 icon 无 `lsls/lsrs #0x10` 截断, 而 `sub_800AB18` 返回值后有一次截断 (u16 返回的 caller-side 截断)。code_0.h 现注册的 `u16` arg2 是错的, 但因会扰动其它已匹配调用点 (menu.c:558/954/964, menu_ui.c:735) 未敢本轮改, 留给后续验证。
+4. **LIM 提升的真正破法**: 名字循环 `while ((ch = *strp++) != 0) {...}` 的 loop 头 = 测试块 → gcc loop.c 识别为正规循环 → `pos2<<6` 被判定循环不变量提升到循环前 (占 r8)。**改为 y2 内联 `(rowi*2+7)` 形态后循环块结构变体使 LIM 不再识别** (实验了 do-while(1)/do-while(cnt<8)/while+标志位均不奏效, 最终靠表达式内联改变基本块拓扑)。
+5. **count/icon 落 r2 的触发器**: else 分支比较写成 `rowi == *(gMenuCursorStack + gMenuCursorGrp)` (指针算术而非数组下标!) — 改变伪结构后 count/icon 从 r1 挪到 r2, col 中转从 r3 变 r0, 与目标一致。数组下标形式 gcc 会先 ldrb grp 常量再 ldr base, 与目标的装载数序相反。
+6. **汇合点 PRE phi 拷贝的出现**: 汇合后 `y2 = rowi*2+7` 与两分支内的 `rowi*2` 部分冗余 → gcse PRE 插入拷贝 (我的形态: `adds r4, r5, #0` 于汇合块头; 目标: `adds r3, r4, #0` 于 icon==0 尾 + `adds r3, r5, #0` 于 icon!=0 尾)。两者语义同构但 home 选择不同。
+
+**最终卡点 (C 层不可达, 全部试遍)**: 目标把 y2 分配到 r2 (与 count/icon 的 r2 共色), PRE phi 伪分配到 r3; 我的 gcc 给 y2 = r3, PRE phi = r4 — 全链系统性差 1。已穷举:
+- y2 类型: u8 / u32 / int+(u8) 强转 / icon 变量复用 (同一伪) — 全部无效或恶化
+- 声明顺序: y2 前移/后移/移到最末 — 无效 (home 由冲突图决定非声明序)
+- pos2 双表达式写法 (rowi*2 vs rowi+rowi vs rowi<<1) — gcc expand 阶段全部归一为 ashift, CSE 必然合并
+- 两分支 pos2 赋值删一个 (icon==0 内联) — 恰好触发 PRE phi (本形态已采用)
+- permuter 3 轮长跑 (累计 ~30000 iterations): 合法探索平台 ~8000 分, 3810/4060 分产出全部依赖 volatile unsigned long long / 改被调函数返回类型等作弊, 已拒绝 (经验 18/113)
+
+**候选**: `permuter/InvUi_Main/best_20260908_zcode_12090.c` (fndiff 12090 分, base.c 同步), 备选 y2=u8 版 `best_u8_131.c`。逐指令对齐工具脚本思路: gbadisasm 输出与 objdump 输出做寄存器别名归一 (sb==r9!) + 池引用形式归一后逐条 diff — 本轮大量 "差异" 是 sb/r9 别名与池标签形式造成的伪差异, 排查时务必先归一。
+
+**下一步建议**: 
+- 查 gcc2 global-alloc 对 y2 的 prefer 寄存器来源 (gccdump.lreg 或重编 agbcc 加 dump), 确认 y2 的 preferred reg 为何是 r3 不是 r2;
+- sub_800EAE4 arg2 u32 化对全项目调用点做字节影响评估后修正 code_0.h;
+- 或尝试把本函数移入独立 C 文件 (menu.c 已 1000+ 行, register pressure 泄漏风险)。
+
+**补充扫描 (2026-09-08 zcode-invui, 应用户要求扫描已匹配函数找相似形状)**:
+- 全库扫描 751 个已匹配函数: 与 InvUi_Main 同族 (ClearBuffer 大块 + 游标循环 + gUnk_08095028 名字表 + sub_800EAE4) 的有 `MenuUi_DrawItemList` (✅)、`sub_8013870` (✅)、`sub_8013934` (✅)、`TitleMenu_ProcessFrame` (✅)、`InvUi_DrawCursors` (✅, 过小)。
+- `MenuUi_DrawItemList` 的名字循环是 `for (i=0; i<8; i++) {ch=*src++; if(ch==0) break; ...}` 形式且匹配成功、无 LIM 提升 — 但它只有 1 个位移使用点 (无 PRE 介入), 迁移到 InvUi_Main (3 个使用点) 后分数不变 (135 vs 132), 因为 PRE 的介入与使用点数量绑定, 语义上无法绕开。
+- **全库没有任何已匹配函数包含 InvUi_Main 目标的 "两分支各算 rowi*2 + 汇合 GCSE PRE phi 拷贝" 形状** (`adds rX,rA,#0` 与 `adds rX,rB,#0` 同目标双源拷贝在匹配函数中全部是普通参数拷贝/基址复用, 非PRE phi) — 该形状在本项目无已解决先例, home 差 1 链 (y2 r3 vs r2, phi r4 vs r3) 仍是 C 不可达。
+- 同族未匹配函数 `sub_8011268` (技能菜单物品页, opencode 认领) 目标形状高度相似 (col 家 sb、pos2 溢出 [sp]、y2=u8(pos2+10) 截断), 但它的 pos2 在**两分支汇合后**才统一计算 (两分支只用 col), 无 PRE phi — 印证 InvUi_Main 的 phi 形态源于 icon==0 分支内 `rowi*2+7` 参数与汇合点 `rowi*2+7` 的跨块部分冗余。
+- 结论: 本函数剩余卡点维持 "home 差 1 链" 判定, 候选 `best_u32_125.c` (125 diff / fndiff 12290) 为当前最优。
+
+## ⏸ sub_805063C 大幅推进 (114行, 前人35B→本轮44B/228B真实残差, permuter 470分, 2026-09-08, zcode-805063c)
+
+接手 void-main 2026-09-06 挂起候选 (bytecmp 35B/228B, permuter 585分)。本轮 30+ permuter 轮
+(-j1, ~5min/轮, 逐轮 bytecmp 定性后 promote) + 20+ 人工定向变体 (exp/exp2 系列), 完整改写了残差结构:
+
+### ✅ 破前人卡点 A (移位编码 #0x10/#0xf)
+前人结论 "目标 `lsls #0x10; lsrs #0xf` (HImode) 编码当前 agbcc 无法复现, 疑 GCC2 版本差异" **不成立**。
+正解: `u32 t = (u16)(i + 0xE0) * 2;` — t 必须是 **u32** 且加法结果先截断 u16 再乘 2:
+combine 把 `(u16)(x)*2` 重结合成 `x<<17>>16` (SImode lsls#0x10/lsrs#0xf), 若 t 声明为 u16
+则展开为 `x<<17>>17>>1` 出 #0x11/#0x10。`t = ((u16)(i+0xE0))*2` 与 `t=(u16)(i+0xE0)<<1` 字节不同 (乘 vs 移)。
+
+### ✅ 新结构发现 (全部 bytecmp 逐条验证)
+1. **ret 必须 u32 并兼作循环守卫**: `if (ret < n)` (恒真, ret=0) — 目标守卫是 `cmp r9(ret/sb), r3(n)`
+   而非独立 i 比较。这解释了目标 prologue 用 sb 存 ret: 高寄存器 home 是守卫变量的。
+2. **0xFF & v 常量前置**: 直写分支 `p[0] = 0xB000 + ((0xFF & v) << 1)` — BattleFx_UpdateTable 经验⑥
+   (常量在源文本前) 的再证实, ands 才能落 `寄存器, #imm` 形状。
+3. **w = v 双 web**: 比较链 (if) 用 w, 直写/循环用 v — 强制 GCC 生成两个 v 副本 web, 占满低寄存器,
+   把计数器地址挤出低 8 寄存器 (目标 ip home)。
+4. **p 求和链顺序**: `p = (y * 32 + x) + dest;` 才出 `adds r3,r3,r2; lsls r3,#1; adds r5,r0,r3`;
+   `dest + (x + y*32)` 会出 r2 链 (adds r2,r2,r3)。
+5. **重读地址加数序**: store2 的重读必须 `(base + charIdx * 18) + gUnk_03000F2A * 2` —
+   池基址先加 charIdx*18 再加 counter*2, 出 `adds r0,r0,r6; adds r0,r0,r7`; 反序则 GCC 合并进不同 web。
+6. **else 分支初始化序**: `n = gUnk_03000F24; i = 0; base2 = 0xB000;` (n 在最前) — 决定 0xB000
+   物化在搜索头 (movs r2,#0xB0; lsls#8) 而非循环内。
+7. **store2 的 u 提取**: `(u = t + 1) + base2` 内联赋值 (前人 VAF 招式复验有效, 免 orr/fold)。
+
+### 残差 44B 明细 (目标 vs 本候选, 全部 local-alloc web 拆分痕迹)
+- ① 直写分支: 目标 v 住 r4 且**不被 ands 破坏** (ands 走 r0 副本, 常量 0xFF 住 r1 复用两次);
+  我的 v 住 r1 且被 `ands r1,r3` 原地破坏, 0xFF 住 r3。根因: 目标在 if 前有 `adds r2,r4,#0`
+  (v→比较副本), 我方的双 web 拆分点在 w=v (if 用 w) 而非 v→r2 (if 用副本)。即目标的两个 web
+  = [v:r4 原值 + r2 比较副本], 我的是 [v:r1 + w:r4] — 副本创建时刻不同。
+- ② 搜索循环: 目标计数器 i 住 r1、上界 n 住 r2 (`adds r2,r3,#0` n 副本)、v 比较用 r4;
+  我的 i 住 r3、n 住 r1、v 比较用 r4 — i/n 的 PRI 互换。尝试 i/n 声明顺序、初始化顺序、
+  while/do-while、双变量 (v=w 后 w 做被比较值) 均未翻转。
+- ③ 0xB000 物化: 形状已对 (movs+lsls#8, r8 home), 但我的在搜索头 0xB0 物化先于 n 读;
+  目标 n 读先于物化 — preheader 排序差异。
+- ④ 入口 ldrh 目标寄存器: 目标 `ldrh r4` (v 直接进 home), 我 `ldrh r1` 再拷贝 — 与①同根。
+
+### 结论
+表达式/语句形状已穷尽 (50+ 变体: exp*.c exp2*.c, 全部 bytecmp 记录), 剩余为 GCC2 local-alloc
+web 拆分时刻与 allocno PRI 排布, C 源码级不可达 (同 Op_AddPartyMember r6/r7 案例需 -da RTL 级
+死赋值技巧, 但本函数无合适的死赋值插入点: 循环变量 i 的 web 太短, 无引用可加)。
+**最终候选 = permuter/sub_805063C/base.c** (permuter 470 分, bytecmp 44B/228B 差,
+语义逐条核对与目标一致, 人类可读无作弊)。前人 35B 候选含 `(v^0)`/new_var 屏障技巧,
+其 44B 候选语义等价但结构虚假 (比较复制不可由自然 C 产生), 已弃用; 本轮 44B 为诚实下界。
+**未达分数 0, 按铁律 6 未合入 src。**
+下一步建议: ①用 agbcc -da 转储对比 allocno PRI 排布 (EXPERIENCE 117/177), 定位 i/n PRI 互换
+的量化差; ②尝试 -g 变体 flag (改变保活) 对①③的影响; ③匹配调用方 sub_8050720 后回看寄存器
+传参压力是否解释 web 拆分时刻。
+
+## 2026-09-08 `sub_8015E1C` (108B, 攻克 Ghost 寄存器 r6 全 ROM 唯二谜团, ✅匹配)
+
+- **函数定位**: `src/menu.c` (0x08015E1C), 108 字节。UI 瓦片文字串输出器（仅被 `InvUi_Main` 调用一次）。
+- **攻关历程与核心突破**:
+  1. 前人 2026-09-02 (70B) 与 2026-09-04 (65B) 尝试均卡在寄存器置换。本轮初始通过重构分支与 dest 计算将体内 57 条指令 100% 对齐，仅剩首尾 2 字节差异：
+     目标 prologue `push {r4, r5, r6, lr}` / epilogue `pop {r4, r5, r6}`，而体内完全未读写 `r6`（Ghost 寄存器）。
+  2. 普查全 ROM 750+ 匹配函数与所有 nonmatchings，确认全 ROM 仅有两个函数存在 prologue push 了 callee-saved 寄存器但在体内完全未使用的现象：
+     ① `MenuUi_HideAll` (0x0801667C, push {r4, lr}, 体内无 r4, 已 100% 匹配)；
+     ② `sub_8015E1C` (0x08015E1C, push {r4, r5, r6, lr}, 体内无 r6)。
+  3. 全链路溯源 GCC 2.95 编译机制：
+     - 在 `Text_PutGlyph` 原型中，`tileId = ((charCode & 0xFF00) >> 7) + 0x280;`。
+     - 当以 `static inline void PutGlyph(u16 *tilemap, u16 charCode, u8 palette)` 形式被内联进 `while (*arg3 != 0xFF)` 循环时，`charCode & 0xFF00` 的 16 位掩码常量 0xFF00 (insn: set reg:SI 68) 被 GCC `loop` pass 识别为循环不变量，并提升（hoist）至 loop preheader。
+     - 随后 `combine` pass 发现传入的 `charCode = *arg3` 实际上为 8 位载荷，`(u8)x & 0xFF00` 恒为 0，因而将循环体内的整个移位表达式折叠消除，循环体内部不再需要 0xFF00。
+     - 但在 `global_alloc` 阶段，preheader 中的 pseudo reg 68 依然存活且跨越整个循环，由于低寄存器 r0-r3 在循环体中频繁被使用、r4 被 `arg3` 占用、r5 被 `palette << 28` 占用，`global_alloc` 将其分配给了下一个可用的 callee-saved 寄存器 `r6`！
+     - `reload` 期调用 `mark_home_live(6)` 将 `regs_ever_live[6] = 1`。
+     - 最终在 reload 后的 `flow2` pass 中，GCC 发现 preheader 中的 0xFF00 指令结果无消费者，将其删除为 `NOTE_INSN_DELETED`。
+     - 然而 `flow.c:1635` 从 reload 恢复了 `regs_ever_live`，导致 prologue 与 epilogue 输出了 `push {r4, r5, r6, lr}` / `pop {r4, r5, r6}`，而函数体内完全没有 `r6` 指令！
+  4. 验证与定论：
+     - 采用 `static inline void PutGlyph` 辅以内联调用，配合 K&R 风格形参声明（与 `include/code_0.h:305` 中的 `void sub_8015E1C();` 兼容，零副作用），立即达成 permuter `base score = 0`，`bytecmp.sh` 输出 `OK (108 bytes)`，`fncheck.py` 100% 字节定论，全 ROM SHA-1 校验通过！
+
+## 2026-09-09 `sub_80512C4` (Op_ScriptStreamLZ, 220B, 脚本VM流式LZ解压操作码, ✅匹配)
+
+- **函数定位**: `src/script_vm.c` (0x080512C4), 220 字节 (97 行汇编)。脚本虚拟机流式 LZ77 解压操作码（`Op_ScriptStreamLZ` / opcode 0x15）。
+- **攻关历程与核心突破**:
+  1. 初始前人状态：卡在末尾 else 分支寄存器轮换（Score 90 平台期），其余 90+ 行指令（包括堆栈帧、保存旧集入栈、读取 songId 与 entry、字面池、循环、DISPCNT 检查、解压初始化、跳转表等）已完全对齐。
+  2. 差异瓶颈定位：
+     - Target:
+       ```arm
+       ldr r0, =0x03000E70
+       ldrh r1, [r0]
+       movs r3, #128; lsls r3, r3, #2; adds r2, r3, #0
+       orrs r1, r2
+       strh r1, [r0]
+       ```
+     - 初始 C 产生：
+       ```arm
+       ldr r2, =0x03000E70
+       ldrh r0, [r2]
+       movs r3, #128; lsls r3, r3, #2; adds r1, r3, #0
+       orrs r0, r1
+       strh r0, [r2]
+       ```
+     - 经深入对比兄弟函数 `sub_80513A0` 与 GCC 2.95 `local-alloc` 的数量分配权重机制，发现目标在 else 块中将地址分配至 `r0` 的关键在于：`ioReg` 指针在 `if` 前用于读取 `0x04000000` (REG_DISPCNT)，并在 `else` 块复用为指向 `0x02016000` 传入 `LZ_InitContext`。
+  3. 结构修正与定论：
+     - 声明局部指针 `vu16 *ioReg;`，在 `if` 分支前执行 `ioReg = (vu16 *)0x04000000;`，并在 `else` 块执行 `ioReg = (vu16 *)0x02016000; LZ_InitContext((u8 *)ioReg, lzData, chunkSize);`。
+     - 该局部指针精准重塑了 basic block 2 的 pseudo-register 生命周期与优先权，引导 GCC 将 `&gScriptVmFlags` (0x03000E70) 分配入 `r0`，旧值载入 `r1`，mask 载入 `r2`，达成 100% 逐指令完全对齐！
+     - 登记符号：在 `include/iwram.h` 声明 `gUnk_03000EC8` / `gUnk_03000EC9`，在 `linker.ld` 按地址序补齐相应 section 条目。
+     - `fncheck.py sub_80512C4`: 220 bytes OK, 全量 `make` 与 `sha1sum -c ll.sha1` 终验完全通过！
+
+## 2026-09-09 `sub_80513A0` (Op_ScriptReturnChunk, 172B, 脚本VM恢复LZ块并弹栈操作码, ✅匹配)
+
+- **函数定位**: `src/script_vm.c` (0x080513A0), 172 字节 (74 行汇编)。脚本虚拟机恢复上级 LZ 块并弹栈返回操作码（`Op_ScriptReturnChunk` / opcode 0x16）。
+- **攻关历程与假象破除**:
+  1. 初始前人状态：note 记录 `⏸ permuter score 60(不可达0); 差异全为GCC2 S-bit指令选择(adds/movs/lsls/ands/orrs vs add/mov/lsl/and/orr); 语义完全正确; 最佳C见permuter output-60-1`。
+  2. 深入核查发现：
+     - 前人误判了 permuter 的 60 分惩罚：汇编内部所有 S-bit 指令选择、寄存器分配、分支结构完全 100% 相同！
+     - 60 分的真实来源是未施加重定位的 12 个字面池符号（12 × 5 = 60 分，典型经验 29 反向假象）。
+     - 通过 `bytecmp.sh` 配合绝对符号地址比对，除 3 处函数调用外部 `bl` 槽外，172 字节二进制完全 100% 一致！
+  3. 代码清理与合入：
+     - 清理 permuter 伪宏与命名临时变量，采用与 `sub_80512C4` 统一的 `ioReg` 风格与 `gScriptReturnSetId` / `gScriptCursor` 规范命名。
+     - 在 `linker.ld` 补齐遗漏的 `0x03000F30` 符号声明；在 `include/code_0.h` 更新原型为 `u32 sub_80513A0(u32 *);`。
+     - 合入 `src/script_vm.c`，`fncheck.py sub_80513A0` 172 bytes OK，全量 `make` 与 `sha1sum -c ll.sha1` 校验完全通过！
+
+## 2026-09-09 `sub_801A2AC` (64B, SIO/Blend 控制寄存器设置, ✅匹配)
+
+- **函数定位**: `src/sio_link.c` (0x0801A2AC), 64 字节 (30 行汇编)。用于根据参数设置 `REG_BLDCNT`、`REG_BLDALPHA`，并在模式符合时写入 `REG_BLDY`。
+- **攻关历程与核心突破**:
+  1. 初始前人状态：note 记录 `⏸ 2026-09-05 zcode-ll: 原型实为(int,u8,u8)非(u16,u8,u8); 语义全解... 候选 bytecmp 剩 13B (v-shift 调度位置与链 home 分裂)`。
+  2. 根因剖析：
+     - 汇编入口前四条指令为：
+       ```arm
+       push {r4, lr}
+       lsls r3, r0, #16
+       lsls r1, r1, #24
+       lsrs r4, r1, #24
+       lsls r2, r2, #24
+       ```
+     - 在 GCC 2.95 中，若形参声明为 `u8 arg1, u8 arg2`，参数拓展与零扩展代码会被 `init_function_start` / `assign_parms` 恒定强制发射在函数体语句的最顶端，导致 `lsls r1, r1, #24` 总是跑在 `lsls r3, r0, #16` 之前。
+     - 必须将形参统一声明为 32 位整型 `int arg0, int arg1, int arg2`（或 `u32`），并在函数体入口显式定义局部 `u8 b1 = arg1; u8 b2 = arg2;`，方能使 `u32 v = arg0 << 16;` 的 RTL 率先生成，彻底消灭前导 4 条指令的时序倒置问题！
+  3. 表达式与语句流还原：
+     - 随后对 `v` 实施就地移位与掩码运算：`v >>= 22; v &= 2; switch ((u16)v)`。
+     - `switch ((u16)v)` 的 `(u16)` 截断精准引出目标汇编的 `lsls r3, r3, #16; lsrs r3, r3, #16; cmp r3, #3; bgt ...; cmp r3, #2; blt ...`。
+     - 达成 `score = 0`，`bytecmp.sh` 64 字节 0 diff！
+  4. 交付与终验：
+     - 更新 `include/code_0.h:443` 为 `void sub_801A2AC(int, int, int);`，核验全部调用点（`sub_80348A8`, `sub_8031580` 等），调用点字节完全不受扰动。
+     - 合入 `src/sio_link.c`，`python3 scripts/fncheck.py sub_801A2AC` 100% 通过（64 字节全等，0 重定位，0 bl 槽忽略）。
+     - 全库 `make && sha1sum -c ll.sha1` 与 `python3 scripts/audit.py` (755/755) 全绿通过！
+
+## 2026-09-09 `sub_804E7EC` (112B, 对象池属性检查与加入更新队列, ✅匹配)
+
+- **函数定位**: `src/obj_pool.c` (0x0804E7EC), 112 字节 (57 行汇编)。检查对象的 `0x91` 与 `0x92` 字段是否通过 `sub_804DD90(val, 6)`，若命中则将对应 `(obj + slot)[0x90]` 清零，并将对象指针入队 `gUnk_03000DF0[gUnk_03000E04++]`。
+- **攻关历程与核心突破**:
+  1. 初始前人状态：note 记录 `⏸规则17类寄存器轮换: ... 卡点=callee-saved r4/r5/r6 分配 ... 2026-09-02 ll-agent 复核: v1-v5+goto+permuter(至525分)均未破; obj→r4/v92→r5 恒错位`。
+  2. 破除 `r4/r5/r6` 寄存器分配墙与调度错位：
+     - 参考同文件同一作者编写的兄弟函数 `sub_804F0B8`：作者在此类双槽检查逻辑中均采用 `ret = 0; a = obj[0x91]; b = obj[0x92]; do { if (a == 0 && b == 0) return 0; } while (0);` 模式。
+     - 若将 `sub_804E7EC` 扁平写在一个函数内，`obj` 使用次数达 4 次，GCC 2.95 的 `global-alloc` 优先级公式导致 `obj` 抢占 `r4`，与目标（`r4 = v92`, `r5 = obj`, `r6 = ret`）错位；
+     - 若提取独立 inline 函数且传入 `(v91, v92)`，则 `ret = 0` 会在形参求值后生成，导致 `movs r6, #0` 落在 `ldrb r4, [r1]` 之后（0xe 处，目标在 4 处）；
+     - **终极破局**：将检查逻辑封装为 `static inline u8 CheckObj(u8 *obj)`，在内联函数第一行执行 `u8 ret = 0;`，随后读取 `u8 v91 = obj[0x91]; u8 v92 = obj[0x92];`。
+     - 这一设计使 `ret = 0` 的 RTL 率先生成（紧随 `r5 = obj` 之后，生成 `movs r6, #0`），且对象指针在子作用域中被引用，使得 `v92` 的生命周期与使用频次完美匹配 `r4`，`obj` 归入 `r5`，`ret` 归入 `r6`！
+     - 尾部写入 `(obj + slot)[0x90] = 0;` 完美消除操作数倒置，输出 `adds r0, r5, r0`。
+  3. 终验定论：
+     - permuter 跑出 `base score = 0`！
+     - 替换 `src/obj_pool.c` 的 `INCLUDE_ASM`，`python3 scripts/fncheck.py sub_804E7EC` 112 字节 100% OK（0 重定位，2 bl 槽忽略）。
+     - 全量 `make` 与 `sha1sum -c ll.sha1` 终验绿，匹配进度达 **756/1059 (71.4%)**！

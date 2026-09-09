@@ -1061,14 +1061,24 @@ void sub_801A270(void)
 }
 
 // @ 0x0801A2AC
-INCLUDE_ASM("asm/nonmatchings", sub_801A2AC);
-// void sub_801A2AC(u16 arg0, u8 arg1, u8 arg2)   // ⏸ 逻辑正确(v3), 卡在寄存器分配: 见 progress.md
-// {
-//     REG_BLDCNT = arg0;
-//     REG_BLDALPHA = arg1 | (arg2 << 8);
-//     if (((arg0 >> 6) & 2) == 2)   // 目标其实是 switch(&2){case2,case3} 的 range-check 形状
-//         REG_BLDY = arg1;
-// }
+void sub_801A2AC(int arg0, int arg1, int arg2)
+{
+    u32 v = arg0 << 16;
+    u8 b1 = arg1;
+    u8 b2 = arg2;
+
+    REG_BLDCNT = arg0;
+    REG_BLDALPHA = b1 | (b2 << 8);
+    v >>= 22;
+    v &= 2;
+    switch ((u16)v)
+    {
+    case 2:
+    case 3:
+        REG_BLDY = b1;
+        break;
+    }
+}
 extern u8 *gUnk_087EBDF0[];
 
 // @ 0x0801A2EC

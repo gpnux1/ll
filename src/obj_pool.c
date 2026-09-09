@@ -206,8 +206,38 @@ s8 sub_804E76C(u8 *obj, u8 arg1, u8 arg2)
     }
     return result;
 }
+static inline u8 CheckObj(u8 *obj)
+{
+    u8 ret = 0;
+    u8 v91 = obj[0x91];
+    u8 v92 = obj[0x92];
+
+    do
+    {
+        if (v91 == 0 && v92 == 0)
+            return 0;
+    } while (0);
+
+    if (sub_804DD90(v91, 6))
+        ret = 1;
+    else if (sub_804DD90(v92, 6))
+        ret = 2;
+
+    return ret;
+}
+
 // @ 0x0804E7EC
-INCLUDE_ASM("asm/nonmatchings", sub_804E7EC);
+void sub_804E7EC(u8 *obj)
+{
+    u8 slot = CheckObj(obj);
+
+    if (slot != 0)
+    {
+        (obj + slot)[0x90] = 0;
+        gUnk_03000DF0[gUnk_03000E04] = (u32)obj;
+        gUnk_03000E04++;
+    }
+}
 // @ 0x0804E85C
 INCLUDE_ASM("asm/nonmatchings", sub_804E85C);
 // @ 0x0804E9DC

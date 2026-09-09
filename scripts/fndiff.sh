@@ -85,4 +85,4 @@ if ! arm-none-eabi-nm "$out/mine.o" 2>/dev/null | grep -qE "[Tt] $fn$"; then
   fi
 fi
 echo "== $fn : $src =="
-.venv/bin/python tools/asm-differ/diff.py -o -f "$out/mine.o" -F "$dir/target.o" "$sym" --width 120 || true
+PYTHONPATH="${DECOMP_VENV_SITE:-$PWD/.venv/lib/python3.14/site-packages}" /usr/bin/python3 tools/asm-differ/diff.py -o -f "$out/mine.o" -F "$dir/target.o" "$sym" --width 120 || true

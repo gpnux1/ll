@@ -620,7 +620,7 @@
       先例: `permuter/sub_8050014/base.c`、`sub_8016F30/base.c`。
     - 宏名/地址必须从 io.h 抄 (寄存器号陷阱见 AGENTS.md §3: `0x04000054`=REG_BLDY 不是定时器);
       u16 寄存器的字节访问用 `*(vu8 *)&REG_x` (目标 ldrb/strb 时)。
-    - 扫描违例: `grep -rnE '\(\s*(vu?16|u16)\s*\*\s*\)\s*0x04' src/*.c permuter/*/base.c` 应只命中 io.h 宏展开形态。
+    - 扫描违例: `grep -rnE '\(\s*(vu?16|u16)\s*\*\s*\)\s*0x04' src/*.c permuter/*/base.c` 应只命中 io.h 宏展开形态。详见专用规范文档 `docs/RULES_HARDWARE_IO.md`。
 102. **⭐⭐ 数据符号的“拼写形式”会改变寄存器 home：强转宏 (`const_int`) ≠ extern 数组 (`symbol_ref`)**
     （案例 `Inv_FindHeldItemOnPage` / 原 sub_80169EC）。
     为了绕过未登记的 ROM 符号, 常见写法是 `#define gTable ((const u8 *)0x0839CFAA)`。
@@ -1125,6 +1125,22 @@ permuter 最优 output-10 差 2 真实字节但靠 `diff=a; b-diff` 偷改数据
 候选存 `permuter/sub_8049AD8/candidates/`。下一步同 sub_80531A8: 补 global-alloc 转储看 diff 的候选/优先级,
 或找能触发"短命值进 r0 + 长命拷贝进 r2 且不被 CSE 合并"的引用形式。
 
+### sub_804621C —— 4 个跨调用值进高位寄存器 (目标 r7-r10 vs 我方 r6-r9), qtydump 已定性 0 qty (2026-09-06)
+
+对象池找槽/过滤助手: `u8 sub_804621C(u8 *arg0, u8 *arg1, u8 arg2)`。结构全解, 语义/长度/栈帧
+全对齐 (buf[0xC]=sp-12, filtered 先算, case/loop 形态正确), 剩 ~2000 分纯分配:
+- **qtydump.sh 定性: local-alloc 表块块 0 qty** —— arg1/arg2/filtered/pool 四个跨 `bl sub_8045F10`
+  调用的长寿命值全归 global-alloc 决策层, **C 写法改不动** (同 ⭐ global-alloc 族)。
+- 症状: 目标 `mov sb,r1 / mov sl,r2 / mov r8,filtered / pool→r7` (push {r5,r6,r7} 三高),
+  我方 `arg1→r8 / arg2→r9 / filtered→r7 / pool→r6` (push {r6,r7} 两高) —— 全体寄存器整体上移一位。
+- 已知无效 (~30 变体, 别再重复): buf[7]/[0xC]/[12]; filtered 先/后算; pool 作 u8*/u32; 参数别名
+  (o0/out/mask); 循环用 goto/while/do-while/comma-init/`i!=0xC`; 声明顺序全排列; permuter 2 轮
+  (最优 ~2500 靠 `new_var3=filtered` 刷 n_refs, 仍差)。
+- 附带死结: 循环 C `cmp r4,#0xc; bcc` 目标不折叠, 但 agbcc 对 `u8 i<12` 一律折叠成 `cmp #0xb; bls`
+  (30+ 循环写法全折) —— 即使分配解决这 1 字节也需另找出路。
+- 候选存 `permuter/sub_804621C/base.c`。下一步: 补 global-alloc 转储 (global.c 打补丁) 看四个值的
+  候选/优先级, 或交叉比对同族 sub_8048458 (同 GetObjPool+sub_8045F10+0xAC 过滤结构) 的原始分配。
+
 ### sub_804DCD8 / sub_804D798 —— obj[0xC2]/obj[0xBD] 存的 addr/val 寄存器 split, 同 global-alloc 族 (2026-09-04)
 
 姊妹族 sub_804D1B4/D260/D708/D798/DCD8 (概率判定+掉落道具)。目标把 `obj[0xC2]=0`/`obj[0xBD]=0` 这类
@@ -1137,6 +1153,12 @@ matched 的 sub_804D260 也是 addr=r1/val=r0。但 straight-line 写法 (sub_80
 定论必须看 `ll.map` 函数实际尺寸/下一函数地址 或 make+SHA1, 别信 fncheck 的 "OK N bytes"。
 
 ### sub_80525E8 —— 脚本装载器的"早载存址 &E6C 落 r1"二难, 同 global-alloc 族 (2026-09-04)
+
+> **⚠ 2026-09-07 语义更正 (证伪)**: 本条与 #113 相关段落所称 "LZ_BGM 装载" 是**错误定性** —— 该函数实为
+> **脚本集装载器 (新名 `ScriptSet_Load`)**, 与 M4A 音乐无关。证据链 (解压目标=EWRAM 脚本区 0x02016000、
+> 消费者全是 gScriptCursor/入口表、gCurrentSongId 实为 gEnvScriptSetId) 见 progress.md 2026-09-07 段与
+> 本文件 #186。**寄存器分配/二难部分的分析仍然有效** (字节结论未变), 但所有 "songId/BGM" 字样应读作
+> "setId/脚本集"。
 
 `sub_80525E8(songId,entry,mode)` (LZ_BGM 装载, 姊妹 sub_80513A0): LZ 解压 + switch 设 `gUnk_03000E6C`。
 目标 case2 (mode==2) 骨架: `ldr r1,&E6C; lsls; ldr r2,tbl; adds; ldrh; ldr r3,base; adds; str r0,[r1]` ——
@@ -1957,3 +1979,263 @@ grep '^Register ' gccdump.lreg; grep '^;; Register .* in' gccdump.lreg; rm -f gc
      general_operand 校验 → base 保住 callee-saved 寄存器。
      诊断工具: `agbcc -dL` (loop dump 直接打印每个 movable 的 savings/life/desirable!) +
      `-ds` (cse 后 RTL 查 -1 链形态)。关联: 经验 176 (本文的失败存档), 经验 29, 规则 76。
+
+182. **⭐⭐ 分支内部寄存器已知值 (如 `r2==0`) 跨 switch 分派树复用: 避免不同类型 (QI vs SI) 伪寄存器共存导致的全局寄存器提升 (r4 冲突)** (2026-09-07, 案例 sub_804FB24 完全匹配 1264B)。
+     - 现象: `if (data[2] != 0) ... else { switch(data[1]) { case 3: ...; case 0xCA: gViewportFlags[10] = 0; } }`
+       在 `else` 分支入口 `r2` 已知为 0 (来自 `cmp r2, #0`)。但在尾部 `case 0xCA` 处预期 `strh r2, [r0, #20]` 却变成了 `strh r4, [r0, #20]`，并在函数入口多出 `adds r4, r2, #0`（整体差异暴增至千字节）。
+     - 根因分析:
+       在 `else` 分支内，`case 3:` 写入 `gDrawCamEaseActive = data[2];`，由于 `gDrawCamEaseActive` 是 `u8` (QI mode)，GCC 直接复用了入口加载的 `reg:QI 26`（分配在 `r2`）；而 `case 0xCA:` 写入 `gViewportFlags[10] = 0;` 是 `u16` (HI mode)，GCC 的 CSE 将常数 0 等价映射到入口符号扩展后的 `reg:SI 27`。
+       由于 `case 3` 与 `case 0xCA` 位于同一个 switch 分派树下，`reg:QI 26` 与 `reg:SI 27` 在整个分派树上**同时存活**，在 `global_alloc` 冲突图中 `26 conflicts 27`！GCC 无法将二者分在同一个物理寄存器，只能将 `reg:SI 27` 提升至 callee-saved 寄存器 `r4`，并在入口生成 `adds r4, r2, #0`。
+     - 解法:
+       使两处写入在语义上统一使用常数 0：将 `case 3:` 同样写为 `gDrawCamEaseActive = 0;`（与 `if` 分支的 `gDrawCamEaseActive = 1;` 语义高度对称）。此时两处均复用相同的 0 寄存器，消除了 `QI` 与 `SI` 伪寄存器的并发冲突，GCC 自然在整个分派路径上保持 `r2` 为 0，并在尾部精确生成 `strh r2, [r0, #20]`，入口 `adds r4, r2, #0` 完全消失！
+     - 伴随坑点: 跨模块调用未截断实参时（如 `data[2] + 0x81` 传给 `MapBg_LoadFull`），若头文件声明了原型 `(u8)`，GCC 2.95 会强行插入截断 `lsls #24, lsrs #24` 并破坏调用函数入口的寄存器生命周期。
+       完全使用纯标准 ANSI C 时的最优解：全局头文件与定义均保持标准的 `void MapBg_LoadFull(u8)` 与 `(u8 arg0)`（绝不引入过时的 K&R 语法），在调用点使用 `((void (*)(u32))MapBg_LoadFull)(data[2] + 0x81)` 告知编译器无需截断实参。GCC 将直接优化为 `bl MapBg_LoadFull`，达成纯 ANSI C 下双函数 100% 逐字节匹配。
+
+
+183. **字面量 vs 链接器绝对符号: 地址常量会触发 GCC2 循环不变量提升, 数据池重定位则安全互换** (2026-09-07, 案例 Op_SysEffect 重命名复验)。
+     - 现象: 把 `palDst = (u16 *)0x02020000;` 换成 `(u16 *)gCutsceneGfxBuf` (linker.ld 绝对符号) 后
+       fncheck 差 +0x180..0x18b: GCC2 把符号地址视作地址常量, 识别出 `palDst` 跨清零循环不变,
+       生成 `adds r4,r1,#0` 保存 + DMA 源直接 `str r4`(不再重读池), 而原版字面量重读两次池。
+     - 规律: **指针赋值/DMA 源若要与"整型字面量"等价, 必须继续写字面量** (同 sub_80526A0 的
+       `0x02016200` 坑, 经验 165 家族); 而 **只进字面池、不做指针运算的常量** (如 DMA 源表基址
+       gFlashFxPaletteTable/gObjPalFadeInSteps/gObjPalFadeInFinal) 换成链接器符号后池值相同,
+       fncheck 重定位施加后字节一致, 可放心符号化提升可读性。
+     - 验证手段: 改名/符号化后必须 fncheck 逐字节复验 (本例 12B 差异即由其捕获)。
+184. **已匹配函数的可读性重构安全清单** (2026-09-07, 案例 Op_SysEffect): 以下改动字节零影响, 可直接做并 fncheck 复验:
+     ① 函数/参数/局部变量改名; ② case 标签换枚举常量 (含 `case 枚举 - 1` 复合常量表达式);
+     ③ `arr[N]` 下标换枚举; ④ 全局符号改名 (iwram.h+linker.ld 同步, asm 硬码地址不受影响);
+     ⑤ 纯数据池常量换链接器符号 (见 183 的边界)。⚠ 任何涉及"指针运算/地址常量"的符号化都要先过 fncheck。
+
+185. `-g` 与 `-O2` 可叠加且不碰 ROM, 但 Makefile 不跟踪 flag 变化 (2026-09-07, script_vm.o 全链实测)
+  现象: Makefile CC1FLAGS 加 `-g -O0` 后链接报 `linker.ld:682 cannot move location counter backwards (087f8cbc→087e83f0)`; 改回 `-O2 -g` 不 clean 复用旧 .o 报同样错误, 极具误导性。
+  根因: ①`-O0` 让 .text 暴涨 (script_vm.o 16752→22828B, +36%), 把 `.rodata` 后续的硬地址锚点 `. = ORIGIN(rom)+0x7E83F0` (linker.ld .rodata 区) 顶过线, 计数器回退即链接报错 — 该错误的第一嫌疑永远是某 TU 体积变化; ②`-g` 只是往 .s 注入 `.LM*`/`.LFB*`/`.LI*` 标签与 `.debug_*` 节, 代码指令逐条相同 (规范化标签后 diff=0), `.debug_*` 不参与 ROM 布局; ③GNU make 对命令行变量变化不敏感, 改 CC1FLAGS 必须先 `make clean`, 否则旧 .o 混编 (两次地址一字不差即为旧物复用铁证)。
+  规律: 实测 CC1FLAGS 加 `-g` 为 `-O2 -g` 时代码 0 字节漂移, 全量 make+sha1 绿 (746/1059) — 需要调 agbcc 内部转储时安全; 但每函数字节匹配后仍须 fncheck 复验。调 `-O0`/`-O1` 只能 per-function 覆盖 (照 m4a.o/agb_sram.o 的 per-target CC1FLAGS 模式), 全局改必炸布局。
+
+186. **⭐⭐⭐ 脚本装载三件套: ScriptSet_Load/ScriptPump_JumpToEntry/ScriptPump_ServiceFrame 与"环境脚本集"状态机** (2026-09-07, agent opencode-scriptset, 更正 #1155 的 "LZ_BGM" 旧注)
+  - `ScriptSet_Load(setId, entry, mode)` (0x080525E8): 从 ROM 指针表 gUnk_087ED6D4[setId] (363 项,
+    0x0862D8A4..0x0861C784, 最大块 0x78010B) 取 LZ 块解压到 **EWRAM 脚本区 0x02016000** (入口表
+    u16[256] + 代码区 0x02016200)。REG_DISPSTAT bit7 (VBlank 中) → 同步解压; 否则挂
+    gUnk_03000E70 bit9(0x200) 交 VBlank 泵逐帧解压。mode1: gScriptCursor=0x02016200;
+    mode2: 记挂 gScriptPendingEntry+E70 bit10(0x400), PC 预跳 base+entryTbl[entry]。
+  - `ScriptPump_ServiceFrame` (0x0805008C, VBlank 调用): bit9 分支调 LZ_UncompressChunk 续解压,
+    完成后若 bit10 置位则 gScriptCursor = 0x02016200 + entryTbl[gScriptPendingEntry] 并清标志。
+  - `Script_SetEnvSet` (0x08008DCC, 12B `strb r0,[0x03004850]; bx lr`): 把 gScriptReturnSetId
+    (0x03000E68, ScriptSet_Load 记挂的集号) 写入 gEnvScriptSetId (0x03004850, 原名 gCurrentSongId)。
+    Op_ScriptReturn/Op_ScriptStop 脚本退场时调用 → 环境脚本集还原。
+  - **状态机闭环**: gEnvScriptSetId 的全部 3 个消费者 (Scene_Reload 0x08001A54 / Scene_RestoreAfterBattle
+    0x08001CEC / MapScene_Load 0x080071D4) 都是 `ScriptSet_Load(gEnvScriptSetId, 0, 1)` 重装环境脚本集;
+    gMapScriptSetId (0x03004634, 原 gUnk_03004634) 来自 MapSceneDescriptor.scriptSetId (+0x0B, 原
+    sceneFlag 注释有误), 是"进图时装哪个脚本集"。**确认变量语义必须追全部消费者, 而不是看赋值者**:
+    本案 "Bgm_Request 只写 gCurrentSongId" + "NewGame_Init 里 =1" 曾导致两代 agent 都定性成 BGM。
+  - 真正的 BGM 在 gPlayingSongId / Bgm_Play→m4aSongNumStart (sound.c:116), 与脚本集 id 是两套编号
+    空间 (碰巧 NewGame_Init 两边初值都是 1, 加重了误判)。
+
+187. DEBUG 构建 (-O0/-O1 + gdb 符号) 与字节匹配 ROM 布局共存方案 (2026-09-07, make DEBUG=1 全链实测)
+  需求: 调试要 -O0 (断点/单步/变量), 但 -O0 让 .text 膨胀 (script_vm.o 16752→22828B, +36%), 全局 -O0 装不进 8MB。
+  死路清单: ①改 CC1FLAGS 不 `make clean` → 旧 .o 复用, 报错一模一样极具误导 (经验 185); ②删 linker.ld 的
+  .rodata ROM 锚点 (`. = ORIGIN(rom)+0x7E83F0`) → 数据 blob 整体后移, 但 asm 字面池硬编码 0x08xxxxxx 共
+  1386 处 (代码区 1115 处) + 数据 blob 内函数指针 379 处 + 锚区 blob 内指针全部悬空, ROM 必崩; ③把膨胀代码
+  塞"数据区尾部间隙" → 间隙实测仅 256B (8MB 完全塞满); ④`*(.text.__stub)` 想收 ld 自动 veneer →
+  链接器后处理 stub 区 (.text.__stub) 不响应段内通配, 必须靠布局余量让 stub 自然落位。
+  可行方案 (三件套, 全部 Makefile DEBUG=1 分支自动化):
+    1. linker_debug.ld = scripts/gen_debug_ld.py 从 linker.ld 生成: rom region 8M→16M; .text 段剔除
+       GAP 名单文件 (默认 event_hub event_actor, DBG_GAP 可改) 并**删掉段内补洞锚**; .rodata 显式
+       `ORIGIN(rom)+0x5769C` 定位 (保数据起点, ld 的 stub 落在 GAP 挪走留的洞内); .text_gap 段
+       ORIGIN(rom)+0x900000 收 GAP 文件。IWRAM/EWRAM 锚点不动。
+    2. CC1FLAGS: DEBUG=-O1 (全局 -O0 实测 .text+rodata 溢出 8MB 6.9KB; -O1 仅 +720B 且 rodata 孤儿
+       少)。per-target old_agbcc 覆盖 (m4a*.o/agb_sram.o) 自带独立 CC1FLAGS, 不受影响; 命令行传
+       CC1FLAGS= 会覆盖 per-target `:=`, 别用。
+    3. scripts/fix_debug_rom.py 链接后修补: GAP 搬家致 .text0 内其后的文件也前移, 所以用
+       nm(ll.elf)×nm(ll_debug.elf) 同名符号地址 diff 全集做 旧→新 映射 (thumb 形态 |1), 4B 对齐扫
+       ROM 替换裸立即数 (INCBIN blob 内的函数指针无重定位)。⚠ 扫描必须 4B 对齐步进: 逐字节会撞上
+       图像/调色板数据里非对齐巧合值 (实测误改 460 处, 如 01000100→01003d00)。C 数组指针
+       (m4a_tables 等) 链接器自动重定位无需处理。终验: 数据区"未解释残留"=0。
+  铁律: 修补只影响 ll_debug.gba, 正式 ll.gba 布局/SHA1 不受任何影响 (make 仍绿)。16MB "ROM" 仅模拟器
+  可跑 (真实卡带上限 32MB 但寻址镜像只到 8M/16M/32M 视总线), 调试用足够。
+  产物: build_debug/ + ll_debug.{gba,elf,map} — ll_debug.elf 带 -g DWARF, gdb/mgba 可直接加载断点。
+
+188. **超大状态机 switch 有符号比较 (bgt vs bhi) 与 DmaCopy16 控制字反推** (2026-09-07, sub_8011454 4314B 标题/存档大状态机实战)
+  - **Signed Switch 调度**: 汇编如果出现 `cmp r0, #0xE; bgt default_or_exit`，说明是带符号上限比较。如果状态变量是 `u32`，GCC2.95 默认发射无符号 `bhi`；写为 `switch ((s32)state)` 即可严格对齐 `bgt`。
+  - **DmaCopy16 字节尺寸换算**: GBA `DmaCopy16(ch, src, dst, size)` 的控制字为 `0x80000000 | (size / 2)`。反汇编中若见寄存器复用常量 `0x80000020`，其半字计数值为 0x20，对应的真实传输字节数为 `0x20 * 2 = 0x40` (64 字节)；草稿反推时若误填为 0x20 会导致控制字变成 `0x80000010`。
+  - **具名结构体访问消减别名屏障 (Load-Delay Slot)**: `((u8 *)&var)[0]` 强转会导致 GCC2.95 的别名分析退化，阻碍常量/寄存器赋值向 load-delay slot 的调度填充；声明为真正的具名结构体 `var.field_0` 可解除别名假设，让指令调度槽 100% 契合目标代码。
+189. **⭐⭐⭐ permuter score 假高第三类: CFG 折叠把不可达分支"激活"语义** (2026-09-08, 案例 sub_8050434, 3275 分候选全错)。
+     目标汇编里 `if (v<0x6E3) collect` 的互补分支 `b.n next` (0x84) 是**不可达死代码** (到达它时
+     v<0x6E3 前提已吸收了 0x6E4/0x6E5 检查)。permuter 重排出 `if (v<0x6E3) goto collect;`+
+     collect 标签紧贴的 CFG (score 3275 vs 语义正确版 4120), 汇编文本差异小但把
+     v∈[0x6E3,0x6E6] 从"跳过"变成"进入 collect" — **文本近似分 rewarding 语义漂移**。
+     教训: promote 前必须对 if/else if 落穿链逐分支核对真值表 (尤其"互补条件+标签紧贴"的形状);
+     score 更低 ≠ 更接近, 每轮 promote 后用 bytecmp + 手读 CFG 复核语义不变式。
+     关联: 经验 18/113 (permuter 偷改数据流), AGENTS.md 铁律 6⑤。
+190. **venv python 被桌面 AppImage 挟持的识别与绕过** (2026-09-08, 环境)。
+     症状: `.venv/bin/python` 的 `sys.executable` = ZCode AppImage, venv site-packages 不进
+     sys.path (`import toml` 失败), 但 `python3 -m pip install` 报 "No module named pip"。
+     识别: `.venv/bin/python3 -c "import sys; print(sys._base_executable)"` 指向 AppImage 即中。
+     绕过: `PYTHONPATH=$PWD/.venv/lib/python3.14/site-packages /usr/bin/python3 <tool>` (系统
+     python3.14 正常, venv 的包用 PYTHONPATH 注入)。另: Python 3.14 起 multiprocessing 默认
+     start method = forkserver (context.py gh-84559), permuter worker cwd 不再继承主进程,
+     compile.sh 必须自带 `cd "$(dirname "$0")/../.."` (fndiff 生成的模板有, 手拷的没有 —
+     症状: permuter 报 `tools/preproc/preproc: 没有那个文件或目录` 而 compile.sh 手跑正常)。
+
+### 2026-09-08 codex-menu 会话增量 (menu.c 批次)
+
+118. **gWindowBgBuf 引用形态决定 8B 差**: `extern u8 gWindowBgBuf[]` 符号引用与 `((u16*)0x02005800)`
+     字面量在 gcc2 里寄存器分配不同 (360B vs 368B)。permuter base.c 的 typedef/宏必须与项目头**完全同型**
+     (经验 96 延伸: 类型不只是"能编过"而是直接决定分配)。案例 sub_80154E8。
+
+119. **gcc2 的 switch 生成块序 = 源码 case 声明序** (非二分平衡树)。想让树的分支点与目标一致,
+     先数目标 asm 的**块地址序** (case 体地址从小到大), 再按此序声明 case。案例 sub_801417C
+     (F5,28,1,8,2/4/6,7,5,1E,1F,20,21/22,23,F0,F1-F8,F9,FA → score 25975→19765)。
+
+120. **if/else 嵌套层级决定块布局**: 平铺 `if(A) else if(B) else(C)` 生成块序 [A][B][C];
+     嵌套 `if(!A){ if(B) C else D } else {A体}` 生成 [B][C][A体]。目标 asm 的跳转方向
+     (beq 目标在后方 = 该分支体在后) 反推嵌套层级。案例 sub_8010F10。
+
+121. **字符串表绘制 helper 必须内联展开**: agbcc 不内联 static 函数 (即使 -O2, 单调用点也不内联),
+     目标里 N 份重复循环体 = 源码 N 份展开 (或用宏)。先试 helper → fndiff 直接多出 bl+独立栈帧。
+
+122. **u16 shifted-home 家族确认不可达** (补强 sub_8049AD8 判例): 当目标把 u16 变量的
+     `V<<16` 形态存入高位寄存器 (r8/sb/sl/ip) 并在使用点 `lsrs #0x10` 重载时, 等价 C 的 gcc2
+     只生成真值 movs — 触发条件是目标把该变量放高位寄存器, 而 mine 无法控制分配落位。
+     案例 sub_8013934 (cols/rows/6<<16), InvUi_Main (0xB0<<13), sub_80146A8 (fill 循环)。
+     已穷举: 声明序、类型宽度、register、(u16) 强转、变量别名、permuter ×4 — 均无效。
+     遇到此形状 (movs rX,#V; lsls rX,#N 合成到高位 + lsrs #0x10 重载) 直接判挂起, 别再死磕。
+
+123. **permuter 偷改数据流新模式**: `((0x02005800 & 0xFF) & 0xFF) & 0xFF` — 把基地址折叠成 0
+     (fndiff 分数反而更低, 8285 vs 12325!), 语义全错。清洗准则: 任何 `& 0xFF` 链作用于
+     常量基址的一律回写原式。另: `if (未初始化变量)` 分支 (5675 版) 直接拒绝。
+
+189. **DmaCopy16 0x20 字节 = 控制字 0x80000010, 别与 DmaCopy32 混淆** (2026-09-08, sub_80501B8)
+  - FlushTileDma 家族 (sub_80501B8 生产者 → sub_80527AC 消费者) 的字库字形拷贝是 **16 位 DMA 传输 0x20 字节**:
+    `(DMA_ENABLE|DMA_START_NOW|DMA_16BIT|DMA_SRC_INC|DMA_DEST_INC)<<16 | 0x20/2` = `0x80000010`。
+    草稿反推时若见 `0x80000010` 写成 DmaCopy32(...,0x20) 会得 0x80000008 (32位计数 0x20/4=8), 差 2。
+    判定口诀: 控制字低 16 位计数值 = 字节数/2 → DmaCopy16; = 字节数/4 → DmaCopy32。
+  - 同族两个 `DmaCopy16` + 各自 `DmaWait` 的源码形状会生成: 两次 `str [base,#0/#4/#8]` 共基址 +
+    每次拷贝后一次 `ands r0,#0x80000000` 忙等 — `DmaSetUnchecked` 的尾部空读 `dmaRegs[2]` 与
+    `DmaWait` 的循环读是两条独立语句, 别合并。
+
+190. **0x100 步进 switch 比较树的源码顺序敏感性** (2026-09-08, sub_80501B8)
+  - `switch (hi)` 值域 0x100..0xF00 时 GCC2 发射二分比较树; **case 顺序决定树的分裂点**:
+    实测 `case 0x800`(带附加条件体) 放在最前与 `case 0xF00` 相邻 vs 隔位, 差 ~5 处分支目标偏移。
+    目标形状: 0x800 与 0xF00 体都在比较树尾部 (cmp+beq 内联), 其余 12 个 case 纯 `beq` 直跳共享 break。
+    源码按数值序排列 case (0x100<0x200<...<0x800<0x900<...<0xF00) 且 0x800 体在最前, 才能命中。
+  - `default` 块的位测试掩码若被 permuter 提成 `new_var` 变量, 属合法调度 (非经验 18 违例),
+    但人工化时要还原为直接常量 (查它是否只读一次)。
+
+191. **⭐⭐⭐ 破解'基址进 r8 + 循环后 mov r4, r8 迭代'的终极方案: extern 数组符号阻止 update_equiv_regs 常量传播折叠** (2026-09-08, 案例 sub_8013870 完全匹配 196B, 攻克历经三代 agent 的 53B 卡点)。
+  - 现象: 目标形状 prologue `ldr r2,=0x02005800; movs r1,#0; ldr r0,=0x08098622; mov r8,r0; ...` (ClearBuffer 占满 r4-r6, 0x08098622 提升进 r8), 清屏后紧跟 `mov r4, r8; b loop_head` (r4 作为字符串迭代器循环推进)。
+  - 根因分析:
+    若写纯字面量 `(const u8 *)0x08098622`:
+    ① 若在清屏前赋值 `src = 0x08098622`, 因 src 循环内有 14 次引用, global-alloc 中 pri≈12353 率先抢占 r4, 将 ClearBuffer 的变量挤乱 (v16 级联 675 分);
+    ② 若拆成基址+迭代器 `table = 0x08098622; ClearBuffer(); src = table;`, 因 table 仅赋值 1 次、读取 1 次 (REG_N_REFS==2), GCC2 的 local-alloc `update_equiv_regs` 检测到其值为已知常量, 判定 `rtx_equal_p` 成立, 直接将 `src = table` 替换为 `src = 0x08098622`, 彻底删除 table 伪寄存器并在清屏后发出 `ldr r4, =0x08098622` (v13 级联 53B);
+    ③ 前人曾尝试 `int new_var = 0xFE` 顶赋 (cand_490_best.c) 强行占领 r8, 虽使清屏块命中, 但残留 3 处无法消除的伪指令差。
+  - 正解:
+    声明为外部符号 `extern const u8 gTitleMenuDesc[];` (在 linker.ld 赋予 `0x08098622`):
+    在源码中写:
+    `ClearBuffer((u16 *)0x02005800, 0x1E, 0x14);`
+    `table = gTitleMenuDesc;`
+    `src = table;`
+    此时:
+    1. `gTitleMenuDesc` 是符号引用而非立即数, `update_equiv_regs` 无法将其作为已知整型常量进行常量传播折叠;
+    2. GCC 的 loop/GCSE 将其识别为全函数不变的地址, 自动将其提升至 prologue (排在 ClearBuffer 初始化的 r2, r1 之后, 完全吻合目标指令顺序!);
+    3. 由于 ClearBuffer 内部占满了低寄存器 r4-r7, table 自动被分配到首选的高位寄存器 r8;
+    4. 清屏结束后, 语句 `src = table;` 在进入迭代循环前精确发射为 `mov r4, r8`, 逐字节 100% 完美匹配!
+  - **再次同构印证 (sub_8013934, 472B, menu.c)**:
+    在 `sub_8013934` 中，清屏小框 `ClearBuffer((u16 *)buf, 3, 2)` 后紧随 `sub_800EAE4` 绘制数字，目标在清屏前 `ldr r0, =ptr; mov sl, r0;`，清屏后 `mov r2, sl; ldrb/ldrh r1, [r2]; bl sub_800EAE4`。
+    前人曾误报为 "LRA live-range-split 不可达" 假案。使用同款 `table = &gCardAlbumPage; val_ptr = table;`，外部符号完全阻止了 `update_equiv_regs` 的折叠，高位寄存器从 `r8` 自然变为 `sl`，一举消除所有差异完美匹配！
+
+192. **GCSE PRE 的 phi 拷贝与 LIM 循环不变量提升的对抗** (2026-09-08, InvUi_Main, 未匹配挂起)
+  - **LIM 触发条件再认识**: `while ((ch = *p++) != 0) {body}` 的 loop 头 = 测试块时 gcc loop.c 识别为循环,
+    循环内不变表达式 (`pos2<<6`) 会被提升到循环前并抢占高位寄存器 (经验 122/antigravity 卡点)。
+    do-while 改写 (`do {...} while(1)` / `do {...} while(cnt<8)`) **不奏效** — gcc 会把 break 链还原成
+    相同的测试前置结构。真正破法: 让循环前的表达式依赖被循环体"消费"的中间变量内联展开
+    (`y2 = rowi*2+7` 内联进循环体后, 循环块拓扑改变, LIM 不再识别)。
+  - **GCSE PRE 的 phi 拷贝形态**: 同一表达式 (`rowi*2`) 在两分支各算一次、汇合点又用一次时,
+    gcse PRE 会插入归一拷贝 (`adds rX, rY, #0`)。若 C 在两分支各写一个局部变量、汇合点用
+    **原始表达式重算** (而非变量), PRE 才会出现; 若汇合点直接用变量, CSE 把两分支定义合并成
+    单伪单 home, 拷贝消失。注意 `rowi*2` / `rowi<<1` / `rowi+rowi` 在 expand 阶段全部归一为
+    ashift — 想靠"换写法"阻止 CSE 是徒劳的。
+  - **数组下标 vs 指针算术改变伪结构**: `a[i]` 与 `*(a+i)` 在 gcc 前端同 RTL, 但**数组形式会让
+    gcc 先 ldrb 下标表达式再 ldr 基址** (顺序相反), 影响附近伪寄存器的分配编号。
+    实测 InvUi_Main else 分支 `rowi == *(gMenuCursorStack + gMenuCursorGrp)` 使 count/icon
+    从 r1 挪到 r2 (正确位置), 数组形式则错位。遇到"逐指令形状全对但寄存器号系统性差 1"时先试这个。
+  - **global-alloc home 差 1 链 = C 不可达**: 一旦出现 y2:r3 vs 目标 r2、PRE phi:r4 vs r3 这类
+    全链错位, 穷举类型宽度/声明顺序/变量复用/表达式写法均无效 (home 由冲突图着色决定)。
+    遇此形态直接转挂起, 在 note 记录 "home 差 1 链", 别再烧 iterations。
+  - **对照工具陷阱**: gbadisasm 输出用 `sb/sl/fp` 别名而 objdump 用 `r9/r10/r11` (sb==r9!),
+    池加载一个用标签一个用 `[pc,#n]`, 条件后缀 blo/bcc、bhs/bcs 互为别名 — 逐指令 diff 前必须
+    先做这三类归一, 否则 ~15% 的"差异"是伪差异, 会把排查方向完全带偏。
+
+193. **⭐⭐⭐ `(u16)(x+K)*2` 的移位编码由目标变量类型决定: u32 中转出 `lsls#0x10/lsrs#0xf`, u16 直接收窄出 `#0x11/#0x10`** (2026-09-08, 案例 sub_805063C, 破"GCC2 版本差异"误判)。
+  - 目标 `adds r0,i,#0xE0; lsls#0x10; lsrs#0xf` (= (u16)(i+0xE0)*2, 17位中间值) 曾被三任 agent
+    判为 "HImode 移位, 当前 agbcc 无法复现"。真相: **t 声明为 u32** 且写 `t = (u16)(i + 0xE0) * 2;`
+    即可 — combine 把 u16 截断+乘2 重结合成 `x<<17>>16`; t 为 u16 时是 `x<<17>>17>>1` (#0x11/#0x10)。
+  - 推广: 遇到 "窄类型截断+缩放" 的移位编码差异, 先查**接收变量**的类型宽度, 再查表达式写法
+    (`*2` vs `<<1` 也不同字节: 乘法走 muls/移位走 lsls)。判"编译器版本差异"前必须穷尽类型矩阵。
+
+194. **⭐⭐ 恒假/恒真条件复用返回值寄存器做循环守卫: `if (ret < n)` (ret=0)** (2026-09-08, 案例 sub_805063C 搜索循环)。
+  - 目标循环守卫是 `cmp r9, r3` (r9=sb=ret 的高寄存器 home!) 而非独立的计数器比较 — 说明原 C 的
+    循环守卫直接复用了**返回值变量**。C: `ret = 0; ... if (ret < n) { do {...} while (i < n); }`。
+    这是 sb/r9 高寄存器 home 的来源: ret 的唯一长寿命引用就是这个守卫。
+  - 识别特征: prologue `movs r0,#0; mov r9,r0` 且 r9 在循环头出现一次 cmp — 别把 ret 当纯返回值,
+    它可能是循环边界复用的变量 (原作者风格: 零寄存器浪费)。
+
+195. **⭐⭐ 直写分支掩码 `0xFF & v` 常量前置的又一实证 + 双 web 拆分时刻决定 ands 是否破坏 home** (2026-09-08, 案例 sub_805063C)。
+  - `p[0] = 0xB000 + ((0xFF & v) << 1)` (常量在源文本前) 出 `movs r1,#0xFF; adds r0,r1,#0; ands r0,r4`
+    (常量拷贝进 dest, v 保持); `v & 0xFF` 则出 `ands r_v, r_c` 原地破坏 — 经验⑥ (BattleFx) 的第三次复现。
+  - **双 web 拆分时刻**: 目标的两个 v web = [r4 原值(直写/循环用) + r2 比较副本(if 用)] — 副本在
+    ldrh 后立即创建; 若 C 里写 `w = v` 且 if 用 w, 副本 web 变成 [r1 + r4], ands 落在 r1 (if web 的
+    home) — 位置对但**哪边被 ands** 反了。破法: 让 if 的条件表达式直接引用一个"经过副本的"变量,
+    而 ands 消费原变量 (源码上同一变量, 靠 GCC web 拆分)。尚未穷尽: 3 变量互拷矩阵 (v=w, w=v, n=v 组合)。
+
+196. **⭐⭐⭐ GCC 2.95 "Ghost 寄存器" (prologue/epilogue push/pop 了某 callee-saved 寄存器但在体内完全未读写) 的生成机制与解法** (2026-09-08, 案例 sub_8015E1C / MenuUi_HideAll, 攻克全 ROM 仅有的两个 Ghost 寄存器谜团)。
+  - **现象**: 函数体逐指令 100% 匹配, 唯独 prologue `push {..., rX, lr}` / epilogue `pop {..., rX}` 多包含一个 callee-saved 寄存器 (r4 或 r6), 而在整个函数体内根本找不到一条读写 rX 的指令。
+  - **全 ROM 普查定论**: baserom.gba 全量 1200+ 函数中, 出现 Ghost 寄存器的函数**全 ROM 恰好只有两个**:
+    ① `MenuUi_HideAll` (`0x0801667C`, 40B, 出现 ghost r4);
+    ② `sub_8015E1C` (`0x08015E1C`, 108B, 出现 ghost r6)。
+  - **GCC 2.95 编译机制全链路溯源**:
+    1. **RTL 生成阶段**: 循环体内的某种复合操作 (如 `MenuUi_HideAll` 的 `p->statusFlags |= 0x40` 经 `store_fixed_bit_field` 产生 0 掩码; 或 `sub_8015E1C` 内联 `PutGlyph` 时的 `tileId = ((charCode & 0xFF00) >> 7) + 0x280` 产生 16 位常量 `0xFF00` 的 subreg:SI 伪寄存器) 产生了中间伪寄存器 P。
+    2. **`loop` pass (早于 `combine`)**: `loop` pass 检测到 P 的赋值是循环不变量, 将其提升 (hoist) 到循环前置块 (loop preheader)。
+    3. **`combine` pass**: 随后 `combine` 发现循环体内使用 P 的地方因数据宽度或常量特性 (如 `(u8)x & 0xFF00` 恒为 0) 可完全折叠消除, 从而删除了循环体内所有对 P 的引用。
+    4. **`global_alloc` pass**: preheader 中的 P 依然存活且其生命期跨越整个循环。因所有 caller-saved (r0-r3) 以及已被占用的 callee-saved 寄存器 (如 sub_8015E1C 的 r4:arg3, r5:palAttr) 与其冲突, `global_alloc` 将下一个空闲的 callee-saved 寄存器分配给 P (MenuUi_HideAll 分到 r4, sub_8015E1C 分到 r6)。
+    5. **`reload` pass**: 寄存器重载阶段调用 `mark_home_live(regno)` 标记 `regs_ever_live[regno] = 1`。
+    6. **`flow2` pass (reload 后的死代码消除)**: 发现 preheader 中对 P 的定义无任何后继活跃消费者, 将其作为死代码标记为 `NOTE_INSN_DELETED` (不生成汇编指令)。
+    7. **`final` pass (代码生成)**: 根据 GCC 内部机制 (`flow.c:1635`), reload 期间记录的 `regs_ever_live` 在 flow2 结束后被原样恢复, prologue / epilogue 输出保存/恢复列表时读取该数组, 导致被删除的寄存器依然被 push/pop, 但体内无任何指令！
+   - **解法**:
+     不要尝试手写死代码 (手写死代码在 `cse` 阶段即被折叠, 活不到 `loop` 和 `global_alloc`)。寻找真实语义中被在循环内调用的内联函数或宏 (`Text_PutGlyph`)。将其形式声明为 `static inline`, 内部保留自然的字形编码扩展逻辑 (`((charCode & 0xFF00) >> 7) + 0x280`), 编译器自发在 preheader 产生 0xFF00 并在 flow2 静默消除, 完美零误差生成 Ghost 寄存器。
+
+197. **⭐⭐ 常量`+0xFFFFB001` 会被 GCC2 折叠成池 0x0000B001, 写成 `x - 0x4FFF` (≡ +0xFFFFB001 mod 2^16) 保住 0xFFFFB001 池条目** (2026-09-08, 案例 sub_8024618, permuter 640→520)。
+  - 现象: 目标 else 分支第二存 `ldr r3,=0xFFFFB001`, 我方写 `(u16)(x + 0xFFFFB001)` 时 GCC2 把
+    u16 截断吸收进加法 → 池只剩 0x0000B001 (复用 constVal 条目), 差 1 池字 + 对齐 2 行。
+  - 机理: `(u16)(x + K)` 的截断让 GCC2 只保留 K 的低 16 位参与常量池查找; 0xFFFFB001 与 0xB001
+    低 16 位相同 → 命中已有条目。写成 `(u16)(x - 0x4FFF)` 后 0x4FFF=20479 是独立正常量,
+    GCC2 仍以 32 位语义物化 0xFFFFB001 (池条目保留), 且因 u16 截断二者结果逐位相等。
+  - 判定: `- 0x4FFF` 比 permuter 的 `- -0xFFFFB001` 可读; 语义合法 (u16 截断吸收), 必须加注释说明。
+  - 关联: 经验 18/113 (permuter 偷改数据流 — 本条是"合法常量改写"), 经验 164 (套件池字)。
+
+198. **⭐⭐ 让"扫描指针的基址/索引"两个 allocno 跨循环存活, 可把另一个指针从 r7 顶进 r8** (2026-09-08, 案例 sub_8024618, dest→r8)。
+  - 目标第二循环同时存活 r4(i), r5(ptr), r6(constVal), r7(常量 scratch), r8(dest) 五个 callee-saved。
+  - 若写 `ptr[i]` (ptr=data+idx), data/idx 在建 ptr 后即死, dest 只顶到 r7 (约 500 分差);
+  - 改写 `data[idx+i]` 让 data 和 idx 都跨循环存活 → 压力 +1 → dest 进 r8。
+    代价: 循环底条件 `ptr[i]` 一条 `adds rX,ptr,i` 变成 `adds rX,idx,i; adds rX,rX,data` 两条 (约 100 分),
+    净赚约 400 分。同时 constVal 被顶到 r7 (目标 r6), 是剩余 home 差异主因。
+  - 判定: 同类"目标要用高位寄存器 (r8) 存指针"卡点时, 优先试"把两三个扫描/索引变量保持存活",
+    而不是加 `new_var` 这类只在单分支赋值的指针 (会制造 UB, 见 经验 18)。
+
+199. **⭐⭐ 分支前读外设的局部指针在 else 块复用为参数指针，可引导 local-alloc 将后续 RMW 位标志地址分配到 r0** (2026-09-09, 案例 sub_80512C4 / sub_80513A0)。
+  - 现象：在 `if ((*ioReg & 0x80) == 0x80) { ... } else { ...; gFlags |= 0x200; }` 中，目标生成 `ldr r0, =gFlags; ldrh r1, [r0]; ...; orrs r1, r2; strh r1, [r0]`（地址在 r0，值在 r1）。
+  - 瓶颈：直接写裸宏 `if (REG_DISPCNT & 0x80)` 时，`0x02016000` 作为字面量实参传给 `LZ_InitContext`，产生独立临时 pseudo-reg，导致 else 块内 `gFlags` 的 RMW 操作被分配为 `ldr r2, =gFlags; ldrh r0, [r2]`（地址在 r2，值在 r0），卡在 Score 90 平台期。
+  - 机理：声明局部指针 `vu16 *ioReg;`，分支前 `ioReg = (vu16 *)0x04000000;` 测条件，在 else 块内复用 `ioReg = (vu16 *)0x02016000; LZ_InitContext((u8 *)ioReg, ...);`。`ioReg` 的生命周期消除单独实参量，重塑 basic block 的 local quantity 排序，使 `&gFlags` 优先获得 `r0`。
+  - 关联：经验 78（结构体成员与目的寄存器选择）、经验 87（局部变量兼职无关值买寄存器分配）、经验 98（局部变量反向影响寄存器分配）。
+200. **⭐⭐ 将双槽条件检查提取为传对象指针的 static inline 函数 + 首句 ret=0，可同时破除 r4/r5/r6 寄存器分配轮换与入口初始化调度错位** (2026-09-09, 案例 sub_804E7EC, 破除 2026-09-02 挂起至今的 525 分卡点)。
+  - 现象：函数入口执行 `movs r6, #0`（初始化返回值），随后将对象读至 `r5`，将第二个字段 `obj[0x92]` 读至 `r4`（目标 `r4 = v92`, `r5 = obj`, `r6 = ret`）。
+  - 瓶颈：
+    ① 若写单函数：`obj` 引用达 4 次，GCC 2.95 `global-alloc` 优先级公式 $\text{pri} \propto \lfloor\log_2(\text{refs})\rfloor \times \text{refs}$ 导致 `pri(obj) > pri(v92)`，`obj` 恒抢占 `r4`，与 `v92` 错位；
+    ② 若提取 inline 函数且形参传 `(v91, v92)`：实参求值优先发生，导致 `ret = 0` 的发射延迟到 `ldrb r4, [r1]` 之后（0xe 处，目标在 0x4 处）；
+  - 破局：声明 `static inline u8 CheckObj(u8 *obj)`，在内联函数首句声明 `u8 ret = 0;`，随后读取 `u8 v91 = obj[0x91]; u8 v92 = obj[0x92];`，内部辅以 `do { if (v91 == 0 && v92 == 0) return 0; } while (0);`。
+  - 机理：内联函数的首行初始化在 AST 中先于局部字段读取展开，使 `movs r6, #0` 稳居第 4 字节；同时对象指针在子内联块内部求值，使跨调用的 `v92` 生命周期与频次恰好满足 `r4` 的分配阈值，三寄存器完美归位！
+  - 关联：经验 117（global-alloc 优先级公式）、经验 177（内联函数隔离变量优先级）、`sub_804F0B8`（同模块兄弟函数写法）。
+201. **⭐⭐ 复合赋值 `v = CONST; v &= var; if (v == 0)` 迫使常量居第一操作数，精准生成 `movs r0, #CONST; ands r0, r1` (打破 GCC 将常量规范化到右操作数的默认行为)** (2026-09-09, 案例 `sub_804B8E8` / `sub_804B7B0` / `sub_804BD54` / `sub_804BE90` 家族)。
+  - 现象：在 ARM Thumb-1 中，`ands` 只有双操作数形式 `and %0, %0, %2`。目标汇编需要 `movs r0, #0x20; ands r0, r1; cmp r0, #0`（常量装入 r0 并作为目的寄存器）。
+  - 瓶颈：若写常规写法 `if ((flags & 0x20) == 0)` 或 `if (0x20 & flags)`，GCC 前端在 AST 阶段会将常量规范化到右侧 `(and flags 32)`。在 reload 阶段由于 `flags`（在 r1）是第一操作数，reload 默认将目的寄存器绑定为 r1，生成 `ands r1, r0; cmp r1, #0`，永久相差 4 字节且破坏后续寄存器值。
+  - 机理：显式声明临时变量 `u32 v = 0x20;`（先物化到 r0），然后执行复合赋值 `v &= flags;`。这在 RTL 中强行将 `v`（r0）指定为赋值目的操作数和第一操作数 `(set (reg:SI 0) (and:SI (reg:SI 0) (reg:SI 1)))`，迫使 GCC 输出 `ands r0, r1`！配合循环外 `int empty = -1;` 与 `*(s8 *)&entry[0] == empty`，成功将表基址提升进 `sl`，掩码提升进 `r8`，完全破解 2026-09-06 挂起至今的 battle_anim 核心四同构家族。
+  - 关联：经验 54（RTL 交换性与操作数顺序）、经验 76（掩码折叠）、经验 87（临时变量兼职）、`FAMILIES.md`（sub_804B7B0 4x 家族）。

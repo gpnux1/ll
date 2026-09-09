@@ -158,8 +158,39 @@ INCLUDE_ASM("asm/nonmatchings", sub_804B654);
 INCLUDE_ASM("asm/nonmatchings", sub_804B7B0);
 // @ 0x0804B834
 INCLUDE_ASM("asm/nonmatchings", sub_804B834);
-// @ 0x0804B8E8
-INCLUDE_ASM("asm/nonmatchings", sub_804B8E8);
+void sub_804B8E8(u8 arg0, u8 arg1)
+{
+    u8 i;
+    int empty = -1;
+    u8 *entry;
+
+    for (i = 0; i < arg1; i++)
+    {
+        u8 *base = gUnk_03000AE8;
+        u8 mask = 0xFF;
+        entry = base + (arg0 + i) * 16;
+        {
+            u8 temp;
+            u8 flags = entry[0];
+            u32 v = *(s8 *)&entry[0];
+            if (v == empty)
+                continue;
+            v = 0x20;
+            v &= flags;
+            if (v == 0)
+                sub_804C3A4(entry[1], 1);
+            sub_804C420(arg0 + i);
+            temp = entry[0];
+            temp |= mask;
+            entry[0] = temp;
+            temp = entry[1];
+            temp |= mask;
+            entry[1] = temp;
+            entry[2] = 0;
+            entry[3] = 0;
+        }
+    }
+}
 // @ 0x0804B96C
 INCLUDE_ASM("asm/nonmatchings", sub_804B96C);
 // @ 0x0804BB64

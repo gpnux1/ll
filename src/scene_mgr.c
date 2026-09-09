@@ -62,7 +62,7 @@ void SceneTransition_Load(void)
 
     if ((Script_GetFlags() & 1) == 0)
     {
-        sub_80526A0(0xFF, 2);
+        ScriptPump_JumpToEntry(0xFF, 2);
         ScriptPump_Run();
     }
 
@@ -81,7 +81,7 @@ void SceneTransition_Load(void)
     }
 
     gInputLockFrames = 2;
-    gMainGameState = 1;
+    gGameState = GAME_STATE_MAP_EXPLORE;
     gScenePhase = 0;
     Display_RestartAfterLoad();
 
@@ -168,11 +168,11 @@ void NewGame_Init(void)
     REG_WININ = 0;
     REG_WINOUT = 0;
 
-    if (gCutsceneActive == 0)
+    if (gTitleIntroState == TITLE_INTRO_DISABLED)
     {
-        gUnk_03004634 = 1;
-        gCurrentSongId = 1;
-        sub_80525E8(1, 0, 1);
+        gMapScriptSetId = 1;
+        gEnvScriptSetId = 1;
+        ScriptSet_Load(1, 0, 1);
 
         for (i1 = 0; i1 < 16; i1++)
         {
@@ -181,14 +181,14 @@ void NewGame_Init(void)
     }
     else
     {
-        sub_80525E8(0, 0, 1);
+        ScriptSet_Load(0, 0, 1);
         for (i1 = 0; i1 < 4; i1++)
         {
             VBlankWaitExit_PumpSound();
         }
     }
-    sub_80526A0(1, 2);
-    gMainGameState = 1;
+    ScriptPump_JumpToEntry(1, 2);
+    gGameState = GAME_STATE_MAP_EXPLORE;
     gScenePhase = 0;
 }
 
@@ -197,7 +197,7 @@ void Scene_EnterMap(void)
 {
     u16 i;
 
-    if (gSceneSubState == 0 && gScenePhase == 1)
+    if (gScreenTransitionState == 0 && gScenePhase == 1)
     {
         gCameraTargetX = gSpawnTileX << 3;
         gCameraTargetY = gSpawnTileY << 3;
@@ -225,7 +225,7 @@ void Scene_EnterMap(void)
 
         ScreenFx_SetMode(3);
         gInputLockFrames = 2;
-        gMainGameState = 1;
+        gGameState = GAME_STATE_MAP_EXPLORE;
         gScenePhase = 0;
     }
     else
@@ -244,11 +244,11 @@ void Scene_EnterMap(void)
 }
 
 // @ 0x08001828
-void Scene_ExitToMenu(void)
+void BattleTransition_Enter(void)
 {
     u16 i;
     u8 val;
-    val = gSceneSubState;
+    val = gScreenTransitionState;
 
     if (val == 0 && gScenePhase == 1)
     {
@@ -266,7 +266,7 @@ void Scene_ExitToMenu(void)
             sub_8017FA4(gEncounterEnabled);
         }
 
-        gMainTaskSlot = 1;
+        gMainLoopMode = MAIN_LOOP_BATTLE;
         gVBlankPipelineMode = 2;
     }
     else
@@ -314,7 +314,7 @@ void Scene_Reload(void)
             REG_WININ = 0;
             REG_WINOUT = 0;
             gVBlankPipelineMode = 1;
-            gMainGameState = 1;
+            gGameState = GAME_STATE_MAP_EXPLORE;
             gScenePhase = 0;
             REG_IME = 1;
             Display_RestartAfterLoad();
@@ -328,14 +328,14 @@ void Scene_Reload(void)
 
     if (!(1 & Script_GetFlags()))
     {
-        sub_80525E8(gCurrentSongId, 0, 1);
+        ScriptSet_Load(gEnvScriptSetId, 0, 1);
     }
 
     ReloadAllSpriteSheets();
     BgScroll_LoadFromTable(gMoveCmdSetId);
     StaticObjGfx_LoadPair(gMapObjGfxSetId);
 
-    gMainGameState = 1;
+    gGameState = GAME_STATE_MAP_EXPLORE;
     gScenePhase = 0;
     REG_WIN0H = 0xF0;
     REG_WIN0V = 0xA0;
@@ -367,7 +367,7 @@ void Scene_EnterDoor(void)
 {
     s32 var_r4;
 
-    if (gSceneSubState == 0 && gScenePhase == 1)
+    if (gScreenTransitionState == 0 && gScenePhase == 1)
     {
         Display_ShutdownSequence();
         MenuEnt_ClearStates();
@@ -383,7 +383,7 @@ void Scene_EnterDoor(void)
         Palette_Backup();
         ScreenFx_SetMode(3);
         gScenePhase = 0;
-        gMainGameState = 9;
+        gGameState = GAME_STATE_BATTLE_MENU;
         Party_SetFollowMode();
         ChoiceMenu_BuildList();
 
@@ -449,13 +449,13 @@ void Scene_RestoreAfterBattle(void)
     Party_FollowStep();
     Followers_ResetHistory();
     MapScene_Load(gMapNpcSetId);
-    sub_80525E8(gCurrentSongId, 0, 1);
+    ScriptSet_Load(gEnvScriptSetId, 0, 1);
     ReloadAllSpriteSheets();
     BgScroll_LoadFromTable(gMoveCmdSetId);
     StaticObjGfx_LoadPair(gMapObjGfxSetId);
     StaticObjs_Spawn(gMapObjGfxSetId);
 
-    gMainGameState = 1;
+    gGameState = GAME_STATE_MAP_EXPLORE;
     gScenePhase = 0;
 
     Palette_Backup();
@@ -489,9 +489,9 @@ void Task_MapExplore(void)
     if ((Script_GetFlags() & 1) == 0)
     {
         gDialogueActive = 0;
-        if (gCutsceneActive && (gScreenFadeFlags & 0x80) == 0 && !gSceneSubState)
+        if (gTitleIntroState != TITLE_INTRO_DISABLED && (gScreenFadeFlags & 0x80) == 0 && !gScreenTransitionState)
         {
-            gMainGameState = 0xB;
+            gGameState = GAME_STATE_TITLE_MENU;
             gScenePhase = 5;
             return;
         }
@@ -499,10 +499,10 @@ void Task_MapExplore(void)
     else
     {
         gDialogueActive = 1;
-        if (gCutsceneActive && (gScreenFadeFlags & 0x80) == 0 && !gSceneSubState && (gNewKeysRaw & 0x30F) != 0)
+        if (gTitleIntroState != TITLE_INTRO_DISABLED && (gScreenFadeFlags & 0x80) == 0 && !gScreenTransitionState && (gNewKeysRaw & 0x30F) != 0)
         {
             Script_Abort(1);
-            gMainGameState = 0xB;
+            gGameState = GAME_STATE_TITLE_MENU;
             gScenePhase = 5;
             return;
         }
@@ -518,7 +518,7 @@ void Task_MapExplore(void)
 
     if (gUnk_03004D4C == 0 && gWarpAnimState == 0)
     {
-        if (!gDialogueActive && (gScreenFadeFlags & 0x80) == 0 && !gSceneSubState)
+        if (!gDialogueActive && (gScreenFadeFlags & 0x80) == 0 && !gScreenTransitionState)
         {
             if (gInputLockFrames != 0)
             {
@@ -529,7 +529,7 @@ void Task_MapExplore(void)
 
             if (gPendingCharaSwitch != 0xFF)
             {
-                sub_80526A0(gPendingCharaSwitch, 2);
+                ScriptPump_JumpToEntry(gPendingCharaSwitch, 2);
                 gPendingCharaSwitch = 0xFF;
             }
             else
@@ -539,7 +539,7 @@ void Task_MapExplore(void)
                     eventId = CheckFacingEvent();
                     if (eventId != 0)
                     {
-                        sub_80526A0(eventId - 1, 2);
+                        ScriptPump_JumpToEntry(eventId - 1, 2);
                     }
                 }
                 else if (gNewKeysRaw & B_BUTTON)
@@ -562,8 +562,8 @@ void Task_MapExplore(void)
                 {
                     if (CheckEncounter() != 0)
                     {
-                        // gMainGameState = 5 立即进入战斗界面
-                        gMainGameState = 5;
+                        // 遇敌后先进入淡出/战斗初始化状态, 再切换顶层 battle loop。
+                        gGameState = GAME_STATE_BATTLE_ENTER;
                         return;
                     }
 
@@ -640,7 +640,7 @@ void Task_MapExplore(void)
             case 5:
                 if (Chara_AnimWaitDone(0x12) != 0)
                 {
-                    gMainGameState = 3;
+                    gGameState = GAME_STATE_SCENE_REQUEST_MAP;
                     Chara_FreeSprite(0x12);
                     gWarpAnimState = 9;
                 }
@@ -671,14 +671,14 @@ void Task_MapExplore(void)
                 }
                 break;
             case 9:
-                if ((0x80 & gScreenFadeFlags) || (gSceneSubState != 0))
+                if ((0x80 & gScreenFadeFlags) || (gScreenTransitionState != 0))
                 {
                     gWarpAnimState = 10;
                 }
                 break;
 
             case 10:
-                if (!(0x80 & gScreenFadeFlags) && (gSceneSubState == 0))
+                if (!(0x80 & gScreenFadeFlags) && (gScreenTransitionState == 0))
                 {
                     gWarpAnimState = 6;
                 }
@@ -694,4 +694,3 @@ void Task_MapExplore(void)
     LogoBlendEffect_Update();
     Sprites_UpdateFrame();
 }
-

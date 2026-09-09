@@ -165,7 +165,7 @@ void PaletteFx_Apply(u8 arg0)
  * 若 gPaletteFxPending 置位 → 按 gPaletteFxTimer & 3 选中 4 个调色板暂存区之一,
  *   DMA3 拷贝 0x80 半字到调色板 RAM 对应 0x100 字节段 (0x05000000 + idx*0x100)。
  * 之后清标志、计数器 +1。mode==2/7 (白闪) 且计数器超过阈值 (0x40/0x20) 时
- *   重新断言 WIN0 窗口, 并复位 gPaletteFxMode/gSceneSubState。
+ *   重新断言 WIN0 窗口, 并复位 gPaletteFxMode/gScreenTransitionState。
  * 计数器到 4 时把窗口完全打开 (WIN0V=0x100, WININ/WINOUT=0x3F)。
  * 注: 两个分支内的 u8 局部读取 gPaletteFxMode 是**故意**的 —— 让 GCC2 不跨分支
  *   CSE 该读, 使计数器 c 落 r1、state 落 r0 并重读, 与目标逐字节一致。 */
@@ -218,7 +218,7 @@ void PaletteFx_Step(void)
                 REG_WINOUT = 0;
             }
             gPaletteFxMode = 0;
-            gSceneSubState = 0;
+            gScreenTransitionState = 0;
         }
     }
     else if ((u8)c > 0x40)
@@ -233,7 +233,7 @@ void PaletteFx_Step(void)
             REG_WINOUT = 0;
         }
         gPaletteFxMode = 0;
-        gSceneSubState = 0;
+        gScreenTransitionState = 0;
     }
 
     if (gPaletteFxTimer == 4)
