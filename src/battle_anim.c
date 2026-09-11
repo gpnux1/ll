@@ -21,20 +21,20 @@ extern u8 gUnk_08619430[];
 // @ 0x0804AD60
 void sub_804AD60(void)
 {
-    u8 *obj = gUnk_03000918;
+    ObjHead *obj = (ObjHead *)gUnk_03000918;
     u8 zero;
     u16 flags;
 
-    sub_801B81C(obj, 0xF0, 0x50, 0xDA * 2, 0xE, gUnk_08619A60, gUnk_08619430, 0xA8 * 8, 1, 0x402);
-    sub_801A3C4(obj);
-    flags = 0xF7FF & *(u16 *)(obj + 0x18);
+    sub_801B81C((u8 *)obj, 0xF0, 0x50, 0xDA * 2, 0xE, gUnk_08619A60, gUnk_08619430, 0xA8 * 8, 1, 0x402);
+    ObjGfxLoad_Step(obj);
+    flags = 0xF7FF & obj->kindFlags;
     zero = 0;
-    *(u16 *)(obj + 0x18) = flags;
+    obj->kindFlags = flags;
     sub_801A684(obj);
     gUnk_03000911 = zero;
     gUnk_03000910 = zero;
     gUnk_03000948 = zero;
-    obj[0x2A] = zero;
+    obj->f_2A = zero;
     Bgm_Stop();
 }
 // @ 0x0804ADE0
@@ -124,8 +124,69 @@ void sub_804B224(u16 *flags)
         *flags &= 0xFF7F;
     }
 }
-// @ 0x0804B288
-INCLUDE_ASM("asm/nonmatchings", sub_804B288);
+/* 0x03000AE8/0x03000BE8 表的 16 字节项视图 (sub_804B288 专用; iwram.h 保持 u8[] 不动)。
+ * 必须用结构体成员形式 (见下方 sub_804C4D8 的同名注释 / 规则 11 / 67)。 */
+typedef struct
+{
+    u8 f0;
+    u8 f1;
+    u8 f2;
+    u8 f3;
+    u8 f4;
+    u8 pad5;
+    u16 f6;
+    u8 f8;
+    u8 pad9[7];
+} Unk_804B288Entry;
+
+// @ 0x080
+// 战斗动画子系统复位: 清 0x03000AE0/03000AE2/03000CE8 (u16) 与 03000AE4/03000AE5 (u8) 状态字,
+// 4 次 DMA fill (共享 sp 上的 u16 fill=0, 控制字 0x81000100=使能+源固定+256 半字) 清
+// OBJ/BG 调色板与 0x02036AC0/0x02036CC0, 每次后 DmaWait; 最后把两张 16×16B 表的
+// field_0/1 |= 0xFF、field_2-4/8 清零、field_6 (u16) 清零。
+// new_var 死赋值 = 锚定 gUnk_03000AE8 池常量的装载位置 (缺了它 GCC2 会把该 ldr 提升到首个 DmaWait 之前)。
+void sub_804B288(void)
+{
+    u8 i;
+    vu16 fill;
+    u8 *new_var;
+
+    gUnk_03000AE0 = 0;
+    gUnk_03000AE2 = 0;
+    gUnk_03000CE8 = 0;
+    gUnk_03000AE4 = 0;
+    gUnk_03000AE5 = 0;
+    fill = 0;
+    DmaSet(3, &fill, (void *)0x05000200, 0x81000100);
+    DmaWait(3);
+    fill = 0;
+    DmaSet(3, &fill, (void *)0x05000000, 0x81000100);
+    DmaWait(3);
+    fill = 0;
+    DmaSet(3, &fill, (void *)0x02036AC0, 0x81000100);
+    DmaWait(3);
+    fill = 0;
+    DmaSet(3, &fill, (void *)0x02036CC0, 0x81000100);
+    DmaWait(3);
+    for (i = 0; i <= 15; i++)
+    {
+        new_var = gUnk_03000AE8;
+        ((Unk_804B288Entry *)(new_var + (i * 16)))->f0 |= 0xFF;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f1 |= 0xFF;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f2 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f3 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f4 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f6 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f8 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f0 |= 0xFF;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f1 |= 0xFF;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f2 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f3 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f4 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f6 = 0;
+        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f8 = 0;
+    }
+}
 // @ 0x0804B3C0
 INCLUDE_ASM("asm/nonmatchings", sub_804B3C0);
 // @ 0x0804B458
@@ -233,11 +294,75 @@ void sub_804BB64(u8 start, u8 count)
 // @ 0x0804BBDC
 INCLUDE_ASM("asm/nonmatchings", sub_804BBDC);
 // @ 0x0804BD54
-INCLUDE_ASM("asm/nonmatchings", sub_804BD54);
+void sub_804BD54(u8 arg0, u8 arg1)
+{
+    u8 i;
+    int empty = -1;
+    u8 *entry;
+
+    for (i = 0; i < arg1; i++)
+    {
+        u8 *base = gUnk_03000BE8;
+        u8 mask = 0xFF;
+        entry = base + (arg0 + i) * 16;
+        {
+            u8 temp;
+            u8 flags = entry[0];
+            u32 v = *(s8 *)&entry[0];
+            if (v == empty)
+                continue;
+            v = 0x20;
+            v &= flags;
+            if (v == 0)
+                sub_804C5F8(entry[1], 1);
+            sub_804C674(arg0 + i);
+            temp = entry[0];
+            temp |= mask;
+            entry[0] = temp;
+            temp = entry[1];
+            temp |= mask;
+            entry[1] = temp;
+            entry[2] = 0;
+            entry[3] = 0;
+        }
+    }
+}
 // @ 0x0804BDD8
 INCLUDE_ASM("asm/nonmatchings", sub_804BDD8);
 // @ 0x0804BE90
-INCLUDE_ASM("asm/nonmatchings", sub_804BE90);
+void sub_804BE90(u8 arg0, u8 arg1)
+{
+    u8 i;
+    int empty = -1;
+    u8 *entry;
+
+    for (i = 0; i < arg1; i++)
+    {
+        u8 *base = gUnk_03000BE8;
+        u8 mask = 0xFF;
+        entry = base + (arg0 + i) * 16;
+        {
+            u8 temp;
+            u8 flags = entry[0];
+            u32 v = *(s8 *)&entry[0];
+            if (v == empty)
+                continue;
+            v = 0x20;
+            v &= flags;
+            if (v == 0)
+                sub_804C5F8(entry[1], 1);
+            sub_804C674(arg0 + i);
+            temp = entry[0];
+            temp |= mask;
+            entry[0] = temp;
+            temp = entry[1];
+            temp |= mask;
+            entry[1] = temp;
+            entry[2] = 0;
+            entry[3] = 0;
+        }
+    }
+}
 // @ 0x0804BF14
 INCLUDE_ASM("asm/nonmatchings", sub_804BF14);
 // @ 0x0804C10C

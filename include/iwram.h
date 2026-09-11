@@ -100,7 +100,19 @@ extern u8 gInvViewState[];
 extern u8 gUnk_030001AE;
 extern u8 gUnk_030001AF;
 extern u8 gUnk_030001B0;
+extern u8 gUnk_030001B1; /* 0x030001B1: 道具目标向下搜索开关 (非 0 才搜"上一个") */
 extern u8 gItemUseCtx[];
+extern u8 gUnk_030001B9; /* 0x030001B9: 上一个可用目标 (0xFF=无) */
+extern u8 gUnk_030001BA; /* 0x030001BA: 下一个可用目标 (0xFF=无) */
+/* 0x030001BC: 7 个装备属性差值指示字形 id (0xB=平/0xC=升/0xD=降);
+ * 索引序 atk(0),def(1),agl(2),men(3),res(4),luc(5),noa(6)。
+ * 由 sub_800FF10 填写, sub_800B374 读取后交给 Text 渲染。 */
+extern u8 gStatArrowIds[];
+/* 0x030001C3: 当前菜单选中的道具/技能 id (sub_800F128 写入, sub_8010300/sub_8010770 读取; 0x3E=无角色, 0x26=传送) */
+extern u8 gUnk_030001C3;
+extern u8 gUnk_030001C4; /* 0x030001C4: sub_8010300 写入的 MP 消耗量, sub_8010770 扣减 */
+extern u8 gUnk_030001C5; /* 0x030001C5: 道具表 [1]&0xF (使用类型) */
+extern u8 gUnk_030001C6; /* 0x030001C6: 道具表 [3] (回复量) */
 extern u16 gUnk_030001C8;
 
 extern u8 *gMsgTable[];
@@ -137,14 +149,18 @@ extern u16 gCardRecvId;
 extern u16 gCardSendId;
 #define gUnk_03000238 gCardSendId
 extern u8 gUnk_03000240;
+extern u8 *gObjPoolPtr;
 extern u32 gUnk_03000248;
 extern u16 gUnk_03000310;
 extern u16 gGstate312;
 extern u16 gGstate314;
 extern u8 gUnk_03000316;
+extern u8 gUnk_03000317;
 extern UnkNode gUnk_03000318; // 战斗待机行动链表头 (ListNode_Init)
 extern u16 gGstate324;
+extern u8 gUnk_03000344; // VBlank 战斗流水线结果暂存: sub_8018070 入口置 0x7F, 出口写本帧返回值
 extern u32 gBattleRngSeed;
+extern u16 gUnk_0300032C;
 extern u8 gGstate32E;
 extern u16 gGstate330[];
 extern u32 gGstate340;
@@ -288,6 +304,7 @@ extern u8 gUnk_03000865;
 extern u8 gUnk_03000867;
 extern u8 gUnk_03000868;
 extern u8 gUnk_0300086A;
+extern u8 gUnk_0300086B;
 extern u16 gUnk_03000882;
 extern u8 gUnk_03000884;
 extern u16 gUnk_03000886;
@@ -299,8 +316,19 @@ extern u8 gUnk_0300094A;
 extern u8 gUnk_0300094B;
 extern u8 gUnk_0300094C;
 extern u8 gUnk_0300094D;
+extern u8 gUnk_03000949; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
+extern u32 gUnk_03000950;
+extern u8 gUnk_03000954; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
+extern u16 gUnk_03000956;
+extern u8 gUnk_03000958;
+extern u16 gUnk_0300095A; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
+extern u8 gUnk_03000960[];
+extern u8 gUnk_03000968;
+extern u8 gUnk_03000969;
+extern s8 gUnk_030009BE;
 extern s8 gUnk_030009BF;
 extern u32 gUnk_030009C0;
+extern u8 gUnk_030009C4;
 extern s8 gUnk_030009C5;
 extern u32 *gUnk_030009C8;
 extern u8 gChoiceSubIdx;
@@ -309,11 +337,15 @@ extern u8 gUnk_030008F1;
 extern u8 gUnk_030008F2;
 extern u8 gUnk_030008F3;
 extern u16 gUnk_03000906;
+extern u16 gUnk_03000908;
 extern u8 gUnk_03000910;
 extern u8 gUnk_03000911;
 extern u8 gUnk_03000918[];
 extern u8 gUnk_03000948;
 extern u16 *gUnk_0300096C;
+extern u8 gUnk_03000974[]; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
+extern u8 gUnk_03000979; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
+extern u8 gUnk_0300097A; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
 extern u8 gUnk_0300097B;
 extern u8 gUnk_0300097C;
 extern u8 gUnk_0300097D;
@@ -330,7 +362,10 @@ extern u8 gUnk_03000ADD;
 extern u16 gUnk_03000ADE;
 extern u16 gUnk_03000AE0;
 extern u16 gUnk_03000AE2;
+extern u8 gUnk_03000AE4; // 2026-09-11 zcode-engine 登记 (sub_804B288)
+extern u8 gUnk_03000AE5; // 2026-09-11 zcode-engine 登记 (sub_804B288)
 extern u8 gUnk_03000AE8[];
+extern u16 gUnk_03000CE8; // 2026-09-11 zcode-engine 登记 (sub_804B288)
 extern u8 gUnk_03000BE8[];
 extern u8 gUnk_03000D38[];
 typedef struct
@@ -346,6 +381,10 @@ extern Unk_03000DEntry gUnk_03000DC8[];
 extern u8 gUnk_03000DDC;
 extern u8 gUnk_03000DDD;
 extern u8 gUnk_03000DDE;
+/* 0x03000DE6/0x03000DE8: 物件状态机 (sub_804E0E4) 在切场景前保存的
+ * obj+0x2A (u16) 与 obj+0x35 (u8), 供 sub_801CBA4 恢复用。 */
+extern u16 gUnk_03000DE6;
+extern u8 gUnk_03000DE8;
 extern u32 gUnk_03000DF0[];
 extern u8 gUnk_03000E04;
 extern u8 gUnk_03000E05;
@@ -735,6 +774,10 @@ extern u16 gUnk_0300461C;
  * bit 13 (地图 0x78) 由事件标志 0xFD 解锁 (ScreenIdleIcons_BuildList) */
 extern u8 gScreenIdleEventFlags[];
 
+/* 场景混合特效模式 (MapScene_Load 从 gMapSceneDescriptors[].bgLoadMode 装入);
+ * PaletteEffects_Update 按 8/11/17 三值驱动 gBlendCoefficients 动画 */
+extern u8 gSceneBlendMode;
+
 /* ScreenIdleIcons_BuildList 产物: 已看地点 ID 列表 (16 项, 0 结尾) + 游标 */
 extern u8 gScreenIdleIconIds[];
 extern u8 gScreenIdleIconCursor;
@@ -874,8 +917,8 @@ typedef struct
     u8 mapEntryIndex; /* index into gChestFlags */
     u8 spriteNodeIdx; /* head of the chest's sprite chain */
     u8 interactionId; /* item/script interaction identifier */
-    u16 x;
-    u16 y;
+    s16 x; /* 像素坐标 (CheckFacingEvent 目标形状 = ldrsh 寄存器偏移读, 需 s16; Thumb 无 ldrsh 立即数形式) */
+    s16 y;
 } ChestObject;
 
 extern ChestObject gChestObjects[16]; /* 0x03004890, 16 个场景宝箱记录 */

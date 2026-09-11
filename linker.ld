@@ -23,6 +23,7 @@ gLevelUpExpTable = 0x08092248;
 gMsgPoolMain = 0x080936A0;
 gUnk_08095028 = 0x08095028;
 gItemNames = 0x08095028;
+gFacingEventOffsets = 0x08059794;    /* 朝向矩形偏移表 u16[32] (CheckFacingEvent) */
 gUnk_08095828 = 0x08095828;
 gCharacterNames = 0x08095828;
 gUnk_080987C4 = 0x080987C4;
@@ -31,7 +32,9 @@ gMapViewportBoundsTable = 0x08089BC4;
 gUnk_0808EA0C = 0x0808EA0C;
 gUnk_080BABA0 = 0x080BABA0;
 gUnk_082893EC = 0x082893EC;
+gUnk_087E94F8 = 0x087E94F8;    /* = &gUnk_087E94FC[-1]: 特殊事件表基址 (CheckFacingEvent) */
 gUnk_087E96B4 = 0x087E96B4;
+gChoiceNpcCmdPtrs = 0x087E96C8;    /* 84 项指针表 → Chara_SetCmdPtr 命令流 (至 0x087E9818) (zcode-engine) */
 gUnk_087E9AA0 = 0x087E9AA0;
 gUnk_087EA020 = 0x087EA020;
 gUnk_087EA0FC = 0x087EA0FC;
@@ -134,6 +137,9 @@ gUnk_080981EE = 0x080981EE;    /* u8[] 6B/项 出生/传送参数表 {npcSetId, 
 gUnk_02005058 = 0x02005058;    /* 菜单 tile 写入缓冲 */
 gUnk_020053A8 = 0x020053A8;    /* 数字绘制 dest (副菜单) */
 gUnk_020053B4 = 0x020053B4;    /* 数字绘制 dest (主菜单) */
+gUnk_02005C82 = 0x02005C82;    /* 选项菜单文字源基址 (Msg_DrawPoolSegment dest, zcode-engine) */
+gUnk_02005C84 = 0x02005C84;    /* 选项菜单 u16[16] 瓦片缓冲 A (zcode-engine) */
+gUnk_02005CC4 = 0x02005CC4;    /* 选项菜单 u16[16] 瓦片缓冲 B (zcode-engine) */
 gUnk_03004DC0 = 0x03004DC0;    /* == gBgTileReloadFlag (别名视图) */
 gUnk_08097DB0 = 0x08097DB0;    /* 动画 tile 表 u16[] (palette 0x800) */
 gUnk_08097EF0 = 0x08097EF0;    /* 动画 tile 表 u16[] (palette 0x900) */
@@ -224,9 +230,14 @@ SECTIONS {
         . = 0x000001AE; gUnk_030001AE = .;
         . = 0x000001AF; gUnk_030001AF = .;
         . = 0x000001B0; gUnk_030001B0 = .;
+        . = 0x000001B1; gUnk_030001B1 = .;
 
         . = 0x000001B4; gItemUseCtx = .;
+        . = 0x000001B9; gUnk_030001B9 = .;
+        . = 0x000001BA; gUnk_030001BA = .;
+        . = 0x000001BC; gStatArrowIds = .;
 
+        . = 0x000001C3; gUnk_030001C3 = .;
         . = 0x000001C4; gUnk_030001C4 = .;
         . = 0x000001C5; gUnk_030001C5 = .;
         . = 0x000001C6; gUnk_030001C6 = .;
@@ -267,18 +278,22 @@ SECTIONS {
         . = 0x00000238; gUnk_03000238 = .;
         . = 0x00000238; gCardSendId = .;
         . = 0x00000240; gUnk_03000240 = .;
+        . = 0x00000244; gObjPoolPtr = .;
         . = 0x00000248; gUnk_03000248 = .;
         . = 0x00000310; gUnk_03000310 = .;
         . = 0x00000312; gGstate312 = .;
 
         . = 0x00000314; gGstate314 = .;
         . = 0x00000316; gUnk_03000316 = .;
+        . = 0x00000317; gUnk_03000317 = .;
         . = 0x00000318; gUnk_03000318 = .;
         . = 0x00000324; gGstate324 = .;
         . = 0x00000328; gBattleRngSeed = .;     
+        . = 0x0000032C; gUnk_0300032C = .;
         . = 0x0000032E; gGstate32E = .;
         . = 0x00000330; gGstate330 = .;
         . = 0x00000340; gGstate340 = .;
+        . = 0x00000344; gUnk_03000344 = .;  /* VBlank 战斗流水线结果暂存 (sub_8018070 写) */
         . = 0x00000348; gDialogCtx = .;
         . = 0x00000384; gFlashFlags = .;   
         . = 0x00000386; gUnk_03000386 = .;
@@ -373,6 +388,7 @@ SECTIONS {
         . = 0x00000867; gUnk_03000867 = .;
         . = 0x00000868; gUnk_03000868 = .;
         . = 0x0000086A; gUnk_0300086A = .;
+        . = 0x0000086B; gUnk_0300086B = .;
         . = 0x00000882; gUnk_03000882 = .;
         . = 0x00000884; gUnk_03000884 = .;
         . = 0x00000886; gUnk_03000886 = .;
@@ -384,6 +400,7 @@ SECTIONS {
         . = 0x000008F2; gUnk_030008F2 = .;
         . = 0x000008F3; gUnk_030008F3 = .;
         . = 0x00000906; gUnk_03000906 = .;
+        . = 0x00000908; gUnk_03000908 = .;
         . = 0x00000910; gUnk_03000910 = .;
         . = 0x00000911; gUnk_03000911 = .;
         . = 0x00000918; gUnk_03000918 = .;
@@ -393,14 +410,27 @@ SECTIONS {
         . = 0x0000094B; gUnk_0300094B = .;
         . = 0x0000094C; gUnk_0300094C = .;
         . = 0x0000094D; gUnk_0300094D = .;
+        . = 0x00000950; gUnk_03000950 = .;
+        . = 0x00000954; gUnk_03000954 = .;
+        . = 0x00000956; gUnk_03000956 = .;
+        . = 0x00000958; gUnk_03000958 = .;
+        . = 0x0000095A; gUnk_0300095A = .;
+        . = 0x00000960; gUnk_03000960 = .;
+        . = 0x00000968; gUnk_03000968 = .;
+        . = 0x00000969; gUnk_03000969 = .;
         . = 0x0000096C; gUnk_0300096C = .;
         . = 0x00000970; gUnk_03000970 = .;
+        . = 0x00000974; gUnk_03000974 = .;
+        . = 0x00000979; gUnk_03000979 = .;
+        . = 0x0000097A; gUnk_0300097A = .;
         . = 0x0000097B; gUnk_0300097B = .;
         . = 0x0000097C; gUnk_0300097C = .;
         . = 0x0000097D; gUnk_0300097D = .;
         . = 0x0000097E; gUnk_0300097E = .;
+        . = 0x000009BE; gUnk_030009BE = .;
         . = 0x000009BF; gUnk_030009BF = .;
         . = 0x000009C0; gUnk_030009C0 = .;
+        . = 0x000009C4; gUnk_030009C4 = .;
         . = 0x000009C5; gUnk_030009C5 = .;
         . = 0x000009C8; gUnk_030009C8 = .;
         . = 0x000009D0; gUnk_030009D0 = .;
@@ -415,8 +445,11 @@ SECTIONS {
         . = 0x00000AE0; gUnk_03000AE0 = .;
 
         . = 0x00000AE2; gUnk_03000AE2 = .;
+        . = 0x00000AE4; gUnk_03000AE4 = .;
+        . = 0x00000AE5; gUnk_03000AE5 = .;
         . = 0x00000AE8; gUnk_03000AE8 = .;
         . = 0x00000BE8; gUnk_03000BE8 = .;
+        . = 0x00000CE8; gUnk_03000CE8 = .;
         
         . = 0x00000D38; gUnk_03000D38 = .;
         . = 0x00000D48; gUnk_03000D48 = .;
@@ -425,6 +458,8 @@ SECTIONS {
         . = 0x00000DDC; gUnk_03000DDC = .;
         . = 0x00000DDD; gUnk_03000DDD = .;
         . = 0x00000DDE; gUnk_03000DDE = .;
+        . = 0x00000DE6; gUnk_03000DE6 = .;
+        . = 0x00000DE8; gUnk_03000DE8 = .;
         . = 0x00000DF0; gUnk_03000DF0 = .;
         . = 0x00000E04; gUnk_03000E04 = .;
         . = 0x00000E05; gUnk_03000E05 = .;
@@ -572,6 +607,7 @@ SECTIONS {
         . = 0x00004618; gUnk_03004618 = .;
         . = 0x0000461C; gUnk_0300461C = .;
         . = 0x00004624; gScreenIdleEventFlags = .;
+        . = 0x00004628; gSceneBlendMode = .;
         . = 0x0000462C; gChoiceListPtr = .;
         . = 0x00004630; gUnk_03004630 = .;
         . = 0x00004634; gMapScriptSetId = .;
@@ -711,8 +747,8 @@ SECTIONS {
         src/menu.o(.text);
         src/text_engine.o(.text);
         src/sio_link.o(.text);
-        src/scene_obj_dispatch.o(.text);
-        src/scene_obj_core.o(.text);
+        src/battle_gfx_load.o(.text);
+        src/battle_obj_core.o(.text);
         src/scene_obj_fx.o(.text);
         src/event_actor.o(.text);
         src/scene_interact.o(.text);

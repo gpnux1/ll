@@ -1665,7 +1665,93 @@ void Chara_ProcessCmdStream(u16 arg0)
 // @ 0x08003C54
 INCLUDE_ASM("asm/nonmatchings", Chara_StepMove);
 // @ 0x08003F40
-INCLUDE_ASM("asm/nonmatchings", CheckFacingEvent);
+// 检查玩家面前一格的事件: 命中治疗神像 → 全队回复; 否则依次查 Actor[2..18] (转向)
+// 与 16 个宝箱, 返回交互 ID+1 (0 = 无事件)。
+u8 CheckFacingEvent(void)
+{
+    u16 x1;
+    u16 y1;
+    u16 x2;
+    u16 y2;
+    s32 eventX;
+    s32 eventY;
+    u32 rectIdx;
+    u16 i;
+    const u8 *src;
+    Actor *chara;
+    ChestObject *chest;
+    const u16 *offs;
+
+    chara = &gActors[2];
+    offs = gFacingEventOffsets;
+    rectIdx = gPlayerMoveDir * 4;
+    x1 = offs[rectIdx] + gCameraTargetX;
+    y1 = (gFacingEventOffsets[rectIdx + 1] + gCameraTargetY) + 8;
+    x2 = x1 + gFacingEventOffsets[rectIdx + 2];
+    y2 = y1 + gFacingEventOffsets[rectIdx + 3];
+
+    if (gUnk_03004618 != 0)
+    {
+        src = &gUnk_087E94F8[gUnk_03004618 * 4];
+        eventX = src[2] * 8;
+        if (((eventX + 15) > x1) && (eventX < x2))
+        {
+            eventY = src[3] * 8;
+            if (((eventY + 7) > y1) && (eventY < y2))
+            {
+                ScreenFx_SetMode(7);
+                FullHealParty();
+                Sfx_Play(0x17, 1, 0);
+                gPendingCharaSwitch = src[1];
+                gPartyFollowFlags |= 0x80;
+                return 0;
+            }
+        }
+    }
+
+    for (i = 2; i <= 0x12; chara++, i++)
+    {
+        if (((((chara->sprNodeIdx != 0) && ((((u16) chara->x) + 15) > x1)) && (((u16) chara->x) < x2)) && ((((u16) chara->y) + 7) > y1)) && (((u16) chara->y) < y2))
+        {
+            if ((chara->renderFlags & 0x20) == 0)
+            {
+                if ((chara->stateFlags & 0x10) == 0)
+                {
+                    chara->targetFacing = chara->facingDir;
+                }
+                chara->facingDir = (gPlayerMoveDir + 4) & 7;
+            }
+            return chara->field_13 + 1;
+        }
+    }
+
+    chest = gChestObjects;
+    for (i = 0; i < 16; chest++, i++)
+    {
+        if ((((((chest->spriteNodeIdx != 0) && ((chest->flags & 1) == 0)) && ((chest->x + 9) > x1)) && ((chest->x + 7) < x2)) && ((chest->y + 4) > y1)) && ((chest->y - 4) < y2))
+        {
+            if ((chest->flags & 0x80) == 0)
+            {
+                ChestObject_Open(i);
+                return chest->interactionId + 1;
+            }
+            else
+            {
+                if (EventFlags_Test(0x40) != 0)
+                {
+                    ChestObject_Open(i);
+                    return chest->interactionId + 1;
+                }
+                else
+                {
+                    return chest->interactionId + 1;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
 // @ 0x080040E4
 INCLUDE_ASM("asm/nonmatchings", Party_FollowAnim);
 // INCLUDE_ASM("asm/matchings", Followers_ResetHistory);

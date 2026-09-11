@@ -136,7 +136,7 @@ u8 *AnimSlot_Parse(u16, u8 *);
 u8 *AnimSlot_ParseLoop(u16, u8 *);
 void AnimSlot_Step(s16); // UpdateSpriteAnim: 推进精灵动画槽帧计数, 并把当前帧图块拷进 0x02006000 图块缓存
 #define UpdateSpriteAnim AnimSlot_Step
-s32 sub_8007ADC(s16, s16); // 算 (x,y) 16x16 足迹覆盖的至多 4 个瓦片坐标, 在 gMapZoneHeader 的 cells 表查区域; 命中写
+s32 sub_8007ADC(u16, u16); // 算 (x,y) 16x16 足迹覆盖的至多 4 个瓦片坐标, 在 gMapZoneHeader 的 cells 表查区域; 命中写
                            // gMapZoneType/gMapZoneEntryIdx 返回 1
 #define MapZone_FindAt sub_8007ADC
 s32 sub_8007BD0(
@@ -211,7 +211,7 @@ u8 Chara_GetFormGfx(u8);
 void sub_800A1B4(u8);
 void sub_800A3C8(u8, u8);
 void sub_800A534(u8);
-void sub_800A664(u8);
+void Stats_RebuildEquipBonuses(u8);
 void Stats_RecalcEquip(u8);
 u8 ExpToLevel(s32);
 u32 LevelToExp(u8);
@@ -268,11 +268,11 @@ void sub_800FDEC();
 void sub_800FF10(u8, u8, u8);
 s32 sub_8010170(u8, u8);
 u8 ItemGetUsePower(u8, u8);
-void sub_8010300();
+u8 sub_8010300(u8);
 u8 WarpTable_Check(void);
 void sub_80104F8();
 void sub_8010624();
-void sub_8010770();
+void sub_8010770(u8);
 void ScreenIdleIcons_BuildList();
 
 void sub_8010F10(u8, u8, u8, u8);
@@ -402,10 +402,10 @@ void sub_801887C();
 void sub_801889C();
 void sub_80188BC();
 void sub_8018928();
-void sub_8018A58();
+void sub_8018A58(u8);
 void sub_8018BF8();
 void sub_8018D9C();
-u8 sub_8018E34();
+u32 sub_8018E34();
 void sub_8018EA8();
 void sub_8018FC0();
 void Bg0_InitClear();
@@ -449,41 +449,77 @@ void sub_801A348();
 void sub_801A35C();
 void BgScrolls_WriteAll();
 void sub_801A3A8(u8, u16, u16);
-void sub_801A3C4();
-typedef struct
+void ObjGfxLoad_Step();
+/* 战斗对象/精灵命令流控制块 — 0xC8 池对象 (0x02037028) 与独立 IWRAM 实例
+ * (0x03000254 处 +0x14, 0x03000918) 的公共头部, 0x30 字节。
+ * 仅在战斗主循环 (BattleTask_Run, gMainLoopCallbacks[1]) 内驱动;
+ * ObjGfxLoad_Step 按 kind 分步把 gUnk_087EBE00 的 LZ77 块解压到 VRAM/WRAM。
+ * 断点现场 (r0=0x03000254): +0x10=0x0856B440 脚本头, +0x18=0x0C03 (kind=3)。
+ * 字段命名规则: 已验证语义的字段给语义名, 其余保留偏移名 (见 MOD-04)。 */
+typedef struct ObjHead
 {
-    u32 f_00;
-    u32 f_04;
-    u32 f_08;
-    u32 f_0C;
-    u32 f_10;
-    u32 f_14;
-    u16 f_18;
-    u16 f_1A;
-    u16 f_1C;
-    u16 f_1E;
-    u16 f_20;
-    u16 f_22;
-    u16 f_24;
-    u16 f_26;
-    u8 f_28;
-    u8 f_29;
-    u8 f_2A;
-    u8 f_2B;
-    u8 f_2C;
-    u8 f_2D;
-    u8 f_2E;
-    u8 f_2F;
-} Unk_801A5EC;
+    u16 *cmdBase0;    /* +0x00 命令流0 (u16 命令流; 跳转表辅助; sub_801B570 逆序遍历消费) */
+    u16 *cmdBase1;    /* +0x04 命令流1: [0]=跳转表项数 N, +4 起 N 项 u16 偏移表, 条目=u16 对(值,帧号) */
+    u16 *jumpTable0;  /* +0x08 流0 的 u16 偏移表 (= cmdBase0 + 2) */
+    u16 *jumpTable1;  /* +0x0C 流1 的 u16 偏移表 (= cmdBase1 + 2) */
+    const u16 *scriptPtr; /* +0x10 脚本头 (ROM): [0]=cmdBase0 字节偏移(实测恒 4), [1]=cmdBase1 字节偏移(可变 0x14..0x224) */
+    const u8 *palBitsPtr; /* +0x14 调色板数据 (DMA 源, sub_804C2FC) */
+    u16 kindFlags;    /* +0x18 bits0-3=kind(0x800=DMA禁用/0x200=跳过帧构建/0x8000=激活后清除) */
+    u16 f_1A;         /* +0x1A 未验证 */
+    u16 frameIdx;     /* +0x1C 当前帧/跳转查找游标 (Obj_FindJumpEntry 入参) */
+    u16 f_1E;         /* +0x1E 重置时拷自 +0x24 (未验证) */
+    u16 gfxTotal;     /* +0x20 分步装载总数 (ObjGfxLoad_Step 计数上限) */
+    u16 gfxPos;       /* +0x22 当前装载片号 (作为 gUnk_087EBE00 索引基 + f_26) */
+    u16 vramBank;     /* +0x24 case1 的 OBJ VRAM 槽 (<<?12) / 调色板槽号源 */
+    u16 gfxBaseIdx;   /* +0x26 LZ77 块索引基址 (gUnk_087EBE00[gfxBaseIdx+gfxPos]) */
+    u8 f_28;          /* +0x28 未验证 (重置清零, ObjGfxLoad_Copy 拷贝) */
+    u8 palSlot;       /* +0x29 调色板槽 (sub_804C2FC 实参) */
+    u8 f_2A;          /* +0x2A 未验证 */
+    u8 f_2B;          /* +0x2B 精灵 X (sub_801B81C arg1 → obj[0x37]; 滑动起点, 上限 0xB4) */
+    u8 f_2C;          /* +0x2C 精灵 Y (sub_801B81C arg2 → obj[0x38]; 滑动起点) */
+    u8 f_2D;          /* +0x2D 未验证 */
+    u8 f_2E;          /* +0x2E 未验证 */
+    u8 f_2F;          /* +0x2F 装载完成后回填 +0x29 的值 */
+} ObjHead;
 
-void sub_801A5EC(Unk_801A5EC *, Unk_801A5EC *);
-void sub_801A684(u8 *);
+/* 战斗对象 (0xC8 字节) — 池 0x02037028 的 12 个槽 (步长 0xC8, +0xBE 槽号 ≤0xB, 0xFF=空)
+ * 与 IWRAM 独立实例 gUnk_03000248 (0x03000248..0x03000310 = 恰好 0xC8) 共用布局。
+ * 2026-09-11 zcode 分析, 证据:
+ *  - sub_8020F4C(0x03000248) 按 0xC8 对象初始化 (field_BB/BC/B0/BE/36);
+ *  - sub_801FA10(obj,kind) 写 +0xB0 bits0-3, 并按 kind 调 sub_801B81C(obj + 0xC, ...);
+ *  - 帧/命令分发 call site (code.s 0x080180F8+): 对同一对象 r4 先后
+ *      sub_801B8AC(r4+0xC, r4[0x39]) 与 sub_801B8AC(r4+0x3C, r4[0x69]),
+ *    且 kind 分别读 `[r4,#0x24]` 与 `[r4,#0x54]` = (0xC+0x18) 与 (0x3C+0x18)
+ *    → **对象内置两个 ObjHead** (各 0x30 字节, +0x0C 与 +0x3C);
+ *  - sub_8020A0C 用 sub_801B81C((u8*)arg0 + 0x3C, ...) 装配第二个头;
+ *  - sub_802151C/sub_802192C/sub_801FAB8/sub_802103C 对 0x03000248 访问 +0x24/+0x37/+0x38/+0xB0/+0xBD/+0xBE;
+ *  - BattleTask_Run 尾部 ListNode_InitKey(obj, obj[0x38]) 把对象挂 0x03000318 行动链 → +0x00 是链表头。
+ * 语义: +0x00 12B UnkNode (key=+0x38 值), 两个 ObjHead 图形/脚本头, +0xB0 状态字, +0xBE 槽号。 */
+typedef struct BattleObj
+{
+    UnkNode node;                          /* +0x00 key/prev/next (key 由 +0x38 值填充) */
+    ObjHead headA;                         /* +0x0C 主头 (sub_801B81C(obj+0xC), 801B8AC(obj+0xC)) */
+    ObjHead headB;                         /* +0x3C 次头 (sub_801B81C(obj+0x3C), 801B8AC(obj+0x3C)) */
+    u8 pad_6C[0xB0 - 0x6C];                /* +0x6C..+0xAF 坐标/移动/精灵区 (未逐一验证) */
+    u16 state;                             /* +0xB0 bits0-3=kind, bits4-7=子态(0x10/0x20/0x60), 0x400=不入链, 0x2000=跳跃 */
+    u8 pad_B2[0xBB - 0xB2];                /* +0xB2 步长等 */
+    u8 f_BB;                               /* +0xBB 辅助 */
+    u8 f_BC;                               /* +0xBC 辅助 */
+    u8 f_BD;                               /* +0xBD (sub_802103C 写入 arg1) */
+    u8 slot;                               /* +0xBE 槽号 (≤0xB; 0xFF=空) */
+    u8 f_BF;                               /* +0xBF 朝向/参数 */
+    u8 f_C0;                               /* +0xC0 朝向/参数 */
+    u8 pad_C1[0xC8 - 0xC1];                /* +0xC1..+0xC7 事件值等 (未逐一验证) */
+} BattleObj;
+
+void ObjGfxLoad_Copy(ObjHead *, ObjHead *);
+void sub_801A684(ObjHead *);
 void sub_801A6F4();
 u8 sub_801A884(u8 *, u8, u8 *);
 void sub_801AD0C(u8 *);
 u8 sub_801B0B8(u8 *, u8);
 void sub_801B570(u8 *);
-void sub_801B688();
+void sub_801B688(u8); // 唯一调用点 sub_8018070: r0 = 本帧 u8 结果 (asm 体内还读 [sp,#4], 实参可能不止 1 个)
 void sub_801B760(u16);
 u8 sub_801B790(u16);
 void sub_801B7B8();
@@ -493,8 +529,8 @@ u8 sub_801B8AC(u8 *, u8);
 u16 *sub_801B8E8(u16 *, u16);
 u16 *sub_801B8FC(u8 *, u8, u16);
 void sub_801B920();
-u8 sub_801B954(void **ptr);
-u16 sub_801B95C(void **ptr);
+u8 sub_801B954(ObjHead *head);
+u16 sub_801B95C(ObjHead *head);
 void sub_801B964();
 u8 sub_801BE34(void *);
 u8 sub_801C484(void *);
@@ -504,7 +540,7 @@ void sub_801CE80(u8 *, u8, u16, u8, u8);
 void sub_801CF90();
 void sub_801D12C(u8 *, u8);
 u16 sub_801D19C(u8 *, u8);
-void sub_801D214();
+u8 sub_801D214(u8 *, u8); // 唯一调用点 sub_8018070: (gObjPoolPtr, 本帧结果) -> u8
 u8 sub_801D378(u8 *, u8);
 void sub_801D468();
 void sub_801D568();
@@ -519,7 +555,7 @@ void sub_801DE44(); // ResetSceneObjects: 重置 3 个标志 + 7 项表 + sub_80
 #define ResetSceneObjects sub_801DE44
 void sub_801DEDC();
 void sub_801DF90();
-void sub_801E040();
+u8 sub_801E040(void);
 u8 sub_801E1D8(void);
 void sub_801E30C();
 void sub_801E4D4();
@@ -536,7 +572,7 @@ void sub_801F884();
 void sub_801FA10(u8 *, u8);
 void sub_801FAB8();
 void sub_801FEBC(void *, u16, u8);
-void sub_801FF40();
+s8 sub_801FF40(u8);
 void sub_80200E8(u8 *, u8 *, u8);
 void sub_8020228(u8 *, u8 *, u8);
 void sub_802031C();
@@ -586,12 +622,12 @@ void sub_80210C0(void *, u8);
 void MenuSlot_ResetAll();
 void sub_8021184(u8, u8 *); // 战斗对象槽号/状态同步: arg1+0xBE 槽号→idx, switch((s8)arg0) case 0/3/6/7 更新 gUnk_030007xx 系列
 void sub_80212B4();
-void sub_802151C();
+u8 sub_802151C(void *, void *);
 u8 sub_8021700(void);
 void sub_8021788(u8 arg0);
 void sub_802181C();
-void sub_802192C();
-void sub_8022458();
+u8 sub_802192C(void *, void *, u8 *);
+u8 sub_8022458(u8); // 唯一调用点 sub_8018070: 入参 0x7F, 返回 u8
 void sub_8022550();
 void sub_8022710();
 void sub_8022F2C();
@@ -681,8 +717,8 @@ u8 sub_8031EF8(u8 *);
 u8 sub_803208C(u8 *);
 u8 sub_8032220(u8 *);
 u8 sub_80323B4(u8 *);
-void sub_8032548();
-void sub_803272C();
+u32 sub_8032548();
+u32 sub_803272C();
 void sub_8032948();
 u8 sub_8032D74();
 void sub_8032EA0();
@@ -704,7 +740,7 @@ u32 sub_8035D9C();
 u32 sub_8036034();
 u32 sub_80362CC();
 void sub_8036564();
-void sub_80368FC();
+u32 sub_80368FC();
 void sub_8036B30();
 void sub_8036EA4();
 void sub_8037078();
@@ -718,7 +754,7 @@ u32 sub_8038390();
 u32 sub_8038568();
 u32 sub_803874C();
 void sub_8038920();
-void sub_8038C84();
+u32 sub_8038C84();
 void sub_8038E44();
 void sub_8039024();
 u8 sub_80392C0();
@@ -736,15 +772,15 @@ void sub_803CE0C();
 void sub_803D20C();
 void sub_803D60C();
 void sub_803DECC();
-void sub_803E58C();
-void sub_803ED34();
+u8 sub_803E58C();
+u8 sub_803ED34();
 void sub_803F21C();
 u8 sub_803F328(u8 arg0);
 void sub_803F444();
 void sub_803F5B4();
 void sub_803F658();
 u8 sub_803FF54(u8 *);
-void sub_80401AC();
+u8 sub_80401AC(void);
 u8 sub_80405A4(u8 *);
 void sub_8040690();
 void sub_8040EE8();
@@ -783,12 +819,12 @@ s32 sub_8044730();
 s32 sub_8044734();
 s32 sub_8044738();
 u32 sub_804473C();
-void sub_80448A8();
-void sub_8044A40();
-void sub_8044F4C();
-void sub_8045098();
+u32 sub_80448A8();
+u32 sub_8044A40();
+u32 sub_8044F4C();
+u32 sub_8045098();
 void sub_804519C();
-void sub_8045328();
+u8 sub_8045328(); // 2026-09-11 zcode-engine: sub_8046480 调用点反汇编证据 (lsls/lsrs/cmp #1), 无已匹配调用者
 u16 sub_80453D8(void);
 u16 sub_804542C(void);
 u8 sub_80454A4(u16);
@@ -810,21 +846,21 @@ void sub_804612C(u8 *, u16, u16);
 void sub_804621C();
 u32 sub_80462E4();
 u32 sub_8046480(u8 *, u8 *, u8);
-void sub_8046558();
+void sub_8046558(); // 2026-09-11 zcode-engine 回退: 函数未匹配, 原型保持原样
 void sub_804666C();
 void sub_80466F0();
 void sub_8046C50();
 void sub_8046CD4();
-u8 sub_8046E18(u8 *, s8, s8);
-void sub_8046F0C();
-void sub_8047024();
+u8 sub_8046E18(u8 *, s32, s32); // 2026-09-11 zcode-engine: 宽参+窄局部 (经验71), 匹配调用方传参无截断证据
+u16 sub_8046F0C(); // 2026-09-11 zcode-engine: 调用点返回值按 u16 用 (lsls/lsrs #0x10), 无已匹配调用者
+u16 sub_8047024();
 u8 sub_80471AC();
-void sub_80472E8();
+u32 sub_80472E8();
 void sub_804753C();
 u8 sub_80476DC();
 u8 sub_8047B1C();
 u8 sub_8047D28(u8 *, u8);
-void sub_8047DC8();
+u8 sub_8047DC8();
 s32 sub_8047FCC(u16);
 void sub_80480EC();
 void sub_80481B8();
@@ -860,26 +896,26 @@ u16 sub_8048D64(u8 *, u16);
 u8 sub_8048D84(u8 *, u8 *);
 void sub_8048DA4();
 void sub_8048F0C();
-void sub_8048FB8();
+u8 sub_8048FB8(void);
 void sub_80492C0();
 void sub_80494F0();
-void sub_80497B0();
+u32 sub_80497B0(u16 *arg0, u16 arg1);
 u32 sub_80498E0();
 void sub_8049958();
 void sub_8049AD8();
 void sub_8049B70();
-void sub_8049C1C();
-void sub_8049D58();
-void sub_8049DF8();
+u8 sub_8049C1C(u8 *); // 2026-09-11 zcode-engine: void*→u8* (定义侧 arg0[0] 字节读写), 无已匹配调用者
+u8 sub_8049D58(u8); // 唯一调用点 sub_8018070: 入参/返回均 u8
+u8 sub_8049DF8(void *, void *);
 void sub_804A148();
-void sub_804A368();
+u8 sub_804A368(void *);
 void sub_804AA2C();
 void sub_804AB10(void);
 void sub_804AB40();
 void sub_804ABD0(void);
 u32 sub_804ABF8(u16 *dest, u8 arg1);
 void sub_804AC60(void);
-void sub_804ACC0();
+u16 *sub_804ACC0(u8);
 void sub_804AD24();
 void sub_804AD54();
 void sub_804AD60(void);
@@ -914,9 +950,9 @@ void sub_804B8E8(u8, u8);
 void sub_804B96C();
 void sub_804BB64(u8, u8);
 u8 sub_804BBDC(u8, u32, u32, u32, u32, u32, u32, u32);
-u32 sub_804BD54(u8, u32);
+void sub_804BD54(u8, u8);
 void sub_804BDD8();
-void sub_804BE90();
+void sub_804BE90(u8, u8);
 void sub_804BF14();
 void sub_804C10C(u8, u8);
 void sub_804C184();
@@ -982,13 +1018,13 @@ void sub_804DE20();
 void sub_804DE8C();
 u8 sub_804DF14(Unk_03000DEntry *);
 void sub_804DF74(Unk_03000DEntry *, u8 *, u8);
-void sub_804DFD8();
+void sub_804DFD8(u16 *, u8, u8, u8 *, u8, u8, u8);
 u8 sub_804E0E4(u8 *, u32);
 u8 sub_804E2AC(u8 *, u32);
 s8 sub_804E6DC(u8 *, u8);
 s8 sub_804E76C(u8 *, u8, u8);
 void sub_804E7EC();
-void sub_804E85C();
+u8 sub_804E85C(void);
 void sub_804E9DC();
 void sub_804EC04();
 void sub_804EEC4(void);

@@ -72,7 +72,71 @@ u8 ChestFlags_Test(u8 arg0)
     return (val >> (arg0 & 7)) & 1;
 }
 // @ 0x080091C4
-INCLUDE_ASM("asm/nonmatchings", PaletteEffects_Update);
+/* 调色板混合特效逐帧驱动 (gSceneBlendMode 三值 switch; SpriteEngine 每帧调):
+ * 8  = 相位 0..0x6F 循环, BLDY 摆 7..14..7 (>>3 三角波+7, 低 5 位保留 gBlendCoefficients 原值);
+ * 11 = 相位 &6==0 交替 0x0D03/0x0F03 (BLDY 摆 13/15 的闪烁);
+ * 17 = 地图 0x6B 且 gViewportFlags[VF_FADE_PHASE]==1 时相位 ++, 0x1F08|(相位>>1 三角波)
+ *      (bit4==0 → 0xF&~x, bit4!=0 → x, 波谷/波峰两相; 注意 0x1F08 低段含 BLDY=8);
+ * 尾部: gPaletteFxMode==0 时推进 4 项菜单条目调色板动画计数器 (flags bit2=暂停,
+ *   计满按 bit1 决定单次停播还是回零循环; 计满瞬间 strh 0 复用 CSE 自 r6)。 */
+void PaletteEffects_Update(void)
+{
+    u16 value;
+    s16 i;
+
+    switch (gSceneBlendMode)
+    {
+    case 8:
+        gPaletteFxPhase++;
+        if (gPaletteFxPhase > 0x6F)
+            gPaletteFxPhase = 0;
+        value = gPaletteFxPhase >> 3;
+        if (value > 7)
+            value = 14 - value;
+        value += 7;
+        gBlendCoefficients = (gBlendCoefficients & 0xFFE0) | value;
+        break;
+    case 11:
+        gPaletteFxPhase++;
+        if ((gPaletteFxPhase & 6) == 0)
+            gBlendCoefficients = 0xD03;
+        else
+            gBlendCoefficients = 0xF03;
+        break;
+    case 17:
+        if (gCurrentMapId == 0x6B && gViewportFlags[VF_FADE_PHASE] == 1)
+        {
+            gPaletteFxPhase++;
+            if ((gPaletteFxPhase & 0x10) == 0)
+                gBlendCoefficients = 0x1F08 | (0xF & ~((gPaletteFxPhase >> 1) & 7));
+            else
+                gBlendCoefficients = 0x1F08 | ((gPaletteFxPhase >> 1) & 7);
+        }
+        break;
+    }
+
+    if (gPaletteFxMode != 0)
+    {
+        PaletteFx_Transform();
+    }
+    else
+    {
+        for (i = 0; i <= 3; i++)
+        {
+            if (gUnk_03000010[i] != 0 && (gUnk_03000010[i] & 4) == 0)
+            {
+                gUnk_03000020[i]++;
+                if ((gUnk_03000020[i] >> gUnk_03000018[i]) >= gUnk_03000014[i])
+                {
+                    if ((gUnk_03000010[i] & 2) != 0)
+                        gUnk_03000010[i] = 0;
+                    else
+                        gUnk_03000020[i] = 0;
+                }
+            }
+        }
+    }
+}
 
 /* 调色板 DMA 上传: 平时整表刷新; 若 gPaletteFxMode 非零则走特效流程 PaletteFx_Step。
  * 逐项: 标志 gUnk_03000010[i] 非零且未设 bit2 → 计算表内偏移:
@@ -819,9 +883,156 @@ u8 Chara_GetFormGfx(u8 arg0)
     }
 }
 // @ 0x0800A1B4
-INCLUDE_ASM("asm/nonmatchings", sub_800A1B4);
+void sub_800A1B4(u8 charId)
+{
+    PlayerStats *st;
+    u8 idx;
+    u8 i;
+    u8 j;
+    u32 sum;
+
+    idx = 0;
+    if (charId != 0)
+        idx = charId - 1;
+    st = &gPartyStats[idx];
+
+    if ((u8)(charId - 9) < 2)
+    {
+        st->lv = 0x62;
+        sum = 0;
+        i = 0;
+        do
+        {
+            sum += gLevelUpExpTable[i];
+            i++;
+        } while (i <= 0x61);
+        st->exp = sum;
+    }
+    else
+    {
+        st->lv = 0;
+        st->exp = 0;
+    }
+    st->field_unk[1] = 0;
+    st->field_unk[5] = 0;
+    st->equip_slot1 = gStatGrowthTail[idx * 6 + 0];
+    st->equip_slot2 = gStatGrowthTail[idx * 6 + 1];
+    st->equip_slot3 = gStatGrowthTail[idx * 6 + 2];
+    st->equip_slot4 = gStatGrowthTail[idx * 6 + 3];
+    st->equip_slot5 = gStatGrowthTail[idx * 6 + 4];
+    st->equip_slot6 = gStatGrowthTail[idx * 6 + 5];
+    i = st->lv;
+    sum = 0;
+    j = 0;
+    if (sum <= i)
+    {
+        do
+        {
+            sum += gLevelUpExpTable[j];
+            j++;
+        } while (j <= i);
+    }
+    st->next_exp = sum;
+    st->max_hp = sub_8009F70(charId, st->lv, 0);
+    st->max_mp = sub_8009F70(charId, st->lv, 1);
+    st->base_atc = sub_8009F70(charId, st->lv, 2);
+    st->base_def = sub_8009F70(charId, st->lv, 3);
+    st->base_agl = sub_8009F70(charId, st->lv, 4);
+    st->base_men = sub_8009F70(charId, st->lv, 5);
+    st->base_res = sub_8009F70(charId, st->lv, 6);
+    st->base_noa = sub_8009F70(charId, st->lv, 7);
+    st->base_luc = sub_8009F70(charId, st->lv, 8);
+    st->hp = st->max_hp;
+    st->mp = st->max_mp;
+    st->atc = st->base_atc;
+    st->def = st->base_def;
+    st->agl = st->base_agl;
+    st->men = st->base_men;
+    st->res = st->base_res;
+    st->noa = st->base_noa;
+    st->luc = st->base_luc;
+    Stats_BuildSkillList(st->skills, st->lv, charId);
+    st->field_unk[0] = Chara_GetFormGfx(charId);
+    st->field_unk[2] = 0;
+    st->field_unk[3] = 0;
+}
+/* 角色等级设定 (脚本 opcode Op_SetCharacterLevel 的实现)。
+ *   lvParam: 目标等级 (0 = 同步为队长 gPartyStats[0].lv; 否则 = lvParam-1)
+ *   charaId: 队伍角色 ID (1-based, 0 = 队长)
+ * 若新等级 > 当前等级, 则: 重算经验 (gLevelUpExpTable 累加)、逐属性
+ *   (sub_8009F70 九维)、复制到当前值、重建技能列表 (Stats_BuildSkillList)、
+ *   图形 (Chara_GetFormGfx)、装备加成 (Stats_RebuildEquipBonuses/Stats_RecalcEquip)。
+ * 代码生成要点 (逐字节验证):
+ *   - slot 是 u8 局部, 经 (u8)(charaId-1) 截断后才 <<6 索引 gPartyStats
+ *   - lv 由 if/else 合并; lv 的 live range 不可跨越 sub_8009F70 调用
+ *     (否则 global-alloc 会把 lv 推到 r3 而非 r0, 级联 36 处寄存器漂移)。
+ *     解法: loop2 用独立变量 curLv 重载 st->lv, 拆断 lv 的 web。
+ *   - loop1 的上界用独立 u8 bound = lv - 1 (强制 u8 截断, 经验 88) */
 // @ 0x0800A3C8
-INCLUDE_ASM("asm/nonmatchings", sub_800A3C8);
+void sub_800A3C8(u8 lvParam, u8 charaId)
+{
+    PlayerStats *st;
+    u8 lv;
+    u8 slot;
+    u8 i;
+    u8 j;
+    u32 exp;
+    u32 nextExp;
+    u8 curLv;
+    u8 bound;
+
+    slot = charaId;
+    if (charaId != 0)
+        slot = charaId - 1;
+    st = &gPartyStats[slot];
+    if (lvParam == 0)
+        lv = gPartyStats[0].lv;
+    else
+        lv = lvParam - 1;
+
+    if (lv > st->lv)
+    {
+        st->lv = lv;
+        bound = lv - 1;
+        exp = 0;
+        for (i = 0; i <= bound; i++)
+            exp += gLevelUpExpTable[i];
+        st->exp = exp;
+
+        curLv = st->lv;
+        nextExp = 0;
+        for (j = 0; j <= curLv; j++)
+            nextExp += gLevelUpExpTable[j];
+        st->next_exp = nextExp;
+
+        st->max_hp = sub_8009F70(charaId, st->lv, 0);
+        st->max_mp = sub_8009F70(charaId, st->lv, 1);
+        st->base_atc = sub_8009F70(charaId, st->lv, 2);
+        st->base_def = sub_8009F70(charaId, st->lv, 3);
+        st->base_agl = sub_8009F70(charaId, st->lv, 4);
+        st->base_men = sub_8009F70(charaId, st->lv, 5);
+        st->base_res = sub_8009F70(charaId, st->lv, 6);
+        st->base_noa = sub_8009F70(charaId, st->lv, 7);
+        st->base_luc = sub_8009F70(charaId, st->lv, 8);
+
+        st->hp = st->max_hp;
+        st->mp = st->max_mp;
+        st->atc = st->base_atc;
+        st->def = st->base_def;
+        st->agl = st->base_agl;
+        st->men = st->base_men;
+        st->res = st->base_res;
+        st->noa = st->base_noa;
+        st->luc = st->base_luc;
+
+        Stats_BuildSkillList(st->skills, st->lv, charaId);
+        st->field_unk[0] = Chara_GetFormGfx(charaId);
+        st->field_unk[2] = 0;
+        st->field_unk[3] = 0;
+        Stats_RebuildEquipBonuses(charaId);
+        Stats_RecalcEquip(charaId);
+    }
+}
 
 extern u8 gUnk_087EA580[];
 

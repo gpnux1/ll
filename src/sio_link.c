@@ -189,8 +189,84 @@ s16 sub_801768C(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 mode)
 INCLUDE_ASM("asm/nonmatchings", BattleTask_Run);
 // @ 0x08017FA4
 INCLUDE_ASM("asm/nonmatchings", sub_8017FA4);
+/* 战斗场景 VBlank 流水线 (VBlankIntr 的 gVBlankPipelineMode==2 分支)。
+ * 顺序: BG 滚动/战斗 FX/全局状态刷新 → 未冻结(bit4)时把 0x020352C0 的图块缓冲 DMA 到
+ * 0x06006800 → 对话上下文 → 对象链 (0x03000318) 逐节点分发:
+ *   · kind (kindFlags&0xF) 为 6/7 的对象先刷 0x020362C0 → 0x06007800;
+ *   · 恒调 sub_801B8AC(headA, headA.f_2D); 若 state&0x2000 (跳跃) 且 headB 未禁用 DMA(0x800)
+ *     再调 sub_801B8AC(headB, headB.f_2D)。
+ * 之后: 结果回填 0x03000344 → OAM 刷屏 → 待传图块 (bit10) / 图块装载 (bit11) 收尾 →
+ * 常量图块回刷 0x060125C0 → 战斗 UI 显示位生效。 */
 // @ 0x08018070
-INCLUDE_ASM("asm/nonmatchings", sub_8018070);
+void sub_8018070(void)
+{
+    UnkNode *node;
+    BattleObj *obj;
+    u8 ret;
+
+    BgScrolls_WriteAll();
+    sub_801889C();
+    sub_804C184();
+
+    if (!(gGstate324 & 0x10))
+    {
+        DmaCopy32(3, gUnk_020352C0, (void *)0x06006800, 0x800);
+        DmaWait(3);
+    }
+
+    sub_804B224(&gGstate324);
+    DialogCtx_Flush();
+
+    gUnk_03000344 = 0x7F;
+    ret = sub_8022458(0x7F);
+    ret = sub_8049D58(ret);
+    sub_801B7B8();
+
+    node = gUnk_03000318.next;
+    while (node->key <= 0xFE && !(gGstate324 & 8))
+    {
+        obj = (BattleObj *)node;
+        if ((obj->headA.kindFlags & 0xF) == 6 || (obj->headB.kindFlags & 0xF) == 6
+            || (obj->headA.kindFlags & 0xF) == 7 || (obj->headB.kindFlags & 0xF) == 7)
+        {
+            DmaCopy32(3, (void *)0x020362C0, (void *)0x06007800, 0x800);
+            DmaWait(3);
+        }
+        ret = sub_801B8AC((u8 *)&obj->headA, obj->headA.f_2D);
+        if (obj->state & 0x2000)
+        {
+            if (!(obj->headB.kindFlags & 0x800))
+                ret = sub_801B8AC((u8 *)&obj->headB, obj->headB.f_2D);
+        }
+        node = node->next;
+    }
+
+    if (!(gGstate324 & 0x10))
+        ret = sub_801D214(gObjPoolPtr, ret);
+
+    sub_801B688(ret);
+    sub_801B920();
+    gUnk_03000344 = ret;
+
+    DmaCopy32(3, gOamBuffer, OAM, 0x400);
+    DmaWait(3);
+
+    if (gGstate324 & 0x400)
+    {
+        if (sub_80527AC() < 0)
+            gGstate324 &= 0xFBFF;
+    }
+    if (gGstate324 & 0x800)
+    {
+        BgTiles_LoadSet(0);
+        gGstate324 &= 0xF7FF;
+    }
+
+    DmaCopy32(3, (void *)0x0861A7E4, (void *)0x060125C0, 0x2C0);
+    DmaWait(3);
+
+    sub_8018928();
+}
 // @ 0x080182A8
 INCLUDE_ASM("asm/nonmatchings", sub_80182A8);
 // @ 0x080184A8
@@ -458,7 +534,95 @@ void sub_8018928(void)
     }
 }
 // @ 0x08018A58
-INCLUDE_ASM("asm/nonmatchings", sub_8018A58);
+/* 战斗背景加载: idx*12 查 0x087ED394 三元组 (背景/纹理/tilemap), DMA 拼块 +
+ * 重配 DISPCNT/混合控制。bldcnt 的位组合写入 0x0400000C (GREENSWAP 地址),
+ * 与二进制一致 —— 原始代码疑似本想写 BLDCNT (0x04000050) 的死写入。
+ * D8/E8 表 = BG0..3 HOFS/VOFS 寄存器地址, 供 BgScrolls_WriteAll 消费。 */
+typedef struct Unk_087ED394
+{
+    u8 *field_0;
+    u8 *field_4;
+    u8 *field_8;
+} Unk_087ED394;
+
+extern const Unk_087ED394 gUnk_087ED394[];
+extern const u8 gUnk_0861A4A4[];
+extern const u8 gUnk_0809C834[];
+extern u8 gUnk_02036EC0[];
+extern u32 gUnk_030004D0;
+extern u32 gUnk_030004D8[4];
+extern u32 gUnk_030004E8[4];
+extern u8 gUnk_030004D7;
+
+void sub_8018BF8();
+void sub_804C548();
+void BgLoad_Finish();
+
+void sub_8018A58(u8 unused)
+{
+    u32 dispcnt;
+    u32 bldcnt;
+    u32 idx;
+
+    idx = sub_8018E34();
+    LZ77UnCompVram((void *)gUnk_087ED394[idx].field_0, (void *)0x06000000);
+    sub_804C548(gUnk_087ED394[idx].field_4, 0, 3);
+    LZ77UnCompVram((void *)gUnk_087ED394[idx].field_8, (void *)0x06006000);
+
+    DmaCopy32(3, &gUnk_0861A4A4, 0x06005000, 0x50 * 4);
+    DmaWait(3);
+
+    sub_8018BF8();
+
+    dispcnt &= ~7;
+    dispcnt &= ~16;
+    dispcnt |= 32;
+    dispcnt |= 0x40;
+    dispcnt &= ~0x80;
+    dispcnt &= ~0x100;
+    dispcnt &= ~0x200;
+    dispcnt |= 0x400;
+    dispcnt |= 0x800;
+    dispcnt |= 0x1000;
+    dispcnt |= 0x2000;
+    dispcnt &= ~0x4000;
+    dispcnt &= ~0x8000;
+    bldcnt |= 3;
+    bldcnt &= ~0xC;
+    bldcnt &= ~0x30;
+    bldcnt &= ~0x40;
+    bldcnt &= ~0x80;
+    bldcnt &= ~0x1F00;
+    bldcnt |= 0xC00;
+    bldcnt |= 0x2000;
+    bldcnt &= ~0xC000;
+    REG_DISPCNT = dispcnt;
+    REG_BG2CNT = bldcnt;
+
+    DmaFill16(3, 0, &gUnk_02036EC0, 0xB4 * 2);
+    DmaWait(3);
+
+    gUnk_030004D0 = (u32)gUnk_02036EC0;
+    sub_804C548((u32)gUnk_0809C834, 0xB, 3);
+    gUnk_030004D7 = 0;
+    gUnk_030004D8[0] = REG_ADDR_BG0HOFS;
+    gUnk_030004D8[1] = REG_ADDR_BG1HOFS;
+    gUnk_030004D8[2] = REG_ADDR_BG2HOFS;
+    gUnk_030004D8[3] = REG_ADDR_BG3HOFS;
+    gUnk_030004E8[0] = REG_ADDR_BG0VOFS;
+    gUnk_030004E8[1] = REG_ADDR_BG1VOFS;
+    gUnk_030004E8[2] = REG_ADDR_BG2VOFS;
+    gUnk_030004E8[3] = REG_ADDR_BG3VOFS;
+    gUnk_03000500.field_2 = 0;
+    gUnk_03000500.field_0 = 0;
+    gUnk_03000500.field_6 = 0;
+    gUnk_03000500.field_4 = 0;
+    gUnk_03000500.field_A = 0;
+    gUnk_03000500.field_8 = 0;
+    gUnk_03000500.field_E = 0;
+    gUnk_03000500.field_C = 0;
+    BgLoad_Finish();
+}
 // @ 0x08018BF8
 INCLUDE_ASM("asm/nonmatchings", sub_8018BF8);
 /* 战斗场景 tilemap 缓冲(0x020352C0 + 错位视图 0x020352C2)的第 0x221/0x241 项:
@@ -494,7 +658,7 @@ extern u8 gUnk_083989CB[];
 extern u8 gUnk_083989DC[];
 
 // @ 0x08018E34
-u8 sub_8018E34(void)
+u32 sub_8018E34(void)
 {
     u8 ret;
     if (sub_80187B4() & 0x20)

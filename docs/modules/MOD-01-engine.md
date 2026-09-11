@@ -199,7 +199,8 @@ gMainGameState 值: 0xB=LOGO/启动, 1=地图探索, 2=场景切换装载, 3=传
 | gUnk_0300465C | bit7=剧情锁 (锁移动/传送) |
 | gUnk_03004820 | 遇敌开关 |
 | gUnk_030025D4 | 遇敌计数器 (0xE8+rand&7<<5, 地图 0x7B 减半) |
-| gUnk_030047B0 | 当前地图 id (MapGroup_Lookup / 遇敌减半) |
+| gUnk_030047B0 | 当前地图 id (MapGroup_Lookup / 遇敌减半) — 即 gCurrentMapId |
+| gSceneBlendMode | 0x03004628 场景混合特效模式 (MapScene_Load 从 gMapSceneDescriptors[].bgLoadMode 装入; PaletteEffects_Update 驱动) |
 | gObjGraphicsSetId | 精灵图形集 (0xFF=无, bit7=过场模式, sub_8002154 分支) |
 | gPendingSpriteLoad | 延迟装载位图 (bit0=图形, bit1=调色板) |
 | gUnk_03003480 | 待切角色 id (0xFF=无; 1D08 里触发 80526A0) |
@@ -218,3 +219,14 @@ gMainGameState 值: 0xB=LOGO/启动, 1=地图探索, 2=场景切换装载, 3=传
 1. 本模块是**引擎地基**: 显示流水线全部集中于此, gMainGameState 状态机的任务函数也大半在此。
 2. 4 个未匹配函数全部有明确语义判定, 建议匹配顺序: **sub_8003C54(碰撞, 与 sub_8003958 同消费 25F8/2C3C) → sub_80040E4 → sub_800478C → sub_8003958(继续)**。
 3. 建议名已按子系统前缀归类 (VBlank_/HBlank_/System_/LZ_/EventFlags_/SwitchFlags_/Task_/Scene_/Sprite_/Chara_/Party_/VramTransfer_/PalTransfer_/CutsceneAnim_), 可直接用于 IDA 批量标注脚本与 progress.md 命名同步。
+
+## 2026-09-11 claude-8018A58: 战斗背景加载器 (sub_8018A58, sio_link.c M10 聚类)
+
+✅ 已匹配 (fncheck 416B)。调用图: `BattleTask_Run → sub_8018A58 → sub_8018E34 / LZ77UnCompVram / sub_804C548(3) / sub_8018BF8 / BgLoad_Finish`。
+
+- **入参**: `u8 unused` (code_0.h 原型带 u8, 函数体不读 r0; caller `movs r0,#0` 传 0)。
+- **gUnk_087ED394** = 战斗背景三元组表, 每项 12B (3 个 ROM 指针): `field_0`=tilemap/tile 图 (LZ77→0x06000000), `field_4`=副资源 (sub_804C548 参数 0,3), `field_8`=块图 (LZ77→0x06006000)。索引 = `sub_8018E34()` 返回的场景/对话图标 ID (u32 接收, 无 u8 扩展 —— 原型已改 u32, 见 progress.md 2026-09-11)。
+- **gUnk_0861A4A4** (0x140B) DmaCopy32(3)→0x06005000 (BG 拼块调色/字符数据)。
+- **bldcnt 位组合写入 0x0400000C (GREENSWAP 地址)**: 原始代码死写, 用 REG_BG2CNT 宏达成同址形状; 疑似原 SDK 头文件 BLDCNT 定位差异, 勿"纠正"为 REG_BLDCNT (0x04000050) —— 字节为准。
+- **gUnk_02036EC0** (EWRAM, 0x168B) DmaFill16(3) 清零 = 战斗 BG 滚动工作区; 首址存 `gUnk_030004D0`; `gUnk_030004D8[4]` = BG0..3 HOFS 寄存器地址 (0x04000010/14/18/1C), `gUnk_030004E8[4]` = BG0..3 VOFS (0x04000012/16/1A/1E), 消费方 = `BgScrolls_WriteAll` (0x0801A36C, 经 gUnk_03000500 8 字段)。
+- `gUnk_030004D7` = 0 (滚动禁用标志?)。

@@ -117,10 +117,11 @@
 | sub_8016D24 | 0x08016D24 | SIO簇 | code_1.c | ⏸ 语义全解 + 结构 ~90% 对 (132 vs 140 指令, 差 61B, 多为寄存器 home 级联)。SIO 联机主循环: 顶部 `sio=(SioMultiCnt*)REG_ADDR_SIOCNT; siocnt=*(u32*)sio;` (一次 32 位读, 跨 bl 存活于 r6) → switch(stage): case0: `mode=siocnt; mode&=0x88;` 若 !=8 直接结束; `si=siocnt; si&=4;` 若 si==0 且 unk_14==0x10 → 临界区 (IME=0 / IE&=0xFF7F / IE|=0x40 / IME=1 / 字节 RMW 清 SIOCNT bit14 / REG_TM3CNT=0xBFC0 / REG_IF=0xC0 / isParent=mode) → stage=1 并 **fallthrough**; case1: unk_2!=0 时 unk_8<=7 则 ++ 否则 stage=2 → **fallthrough**; case2: `sub_8016E80(arg0)`; default 什么都不做。末尾 `counter++` 后拼状态字返回: `status = (isParent==8?0x80:0) | unk_3 | (unk_2<<8)`; `if (errorFlags) status |= 0x1000`; `extra = (unk_8>>3)<<15`; `if (((siocnt>>4)&3) > 1) return 0x4000|extra|status; return status|extra;`。已验证的关键写法 (224B→61B): ① **`x = v; x &= K;` 先拷贝再掩码** (照 Bg0_InitClear 的 `d &= ~3; d &= ~0xC;` 家族风格) 才出目标那两条 `adds r4,r6,#0 / adds r0,r6,#0`; ② **SIOCNT 高位字节清位必须经 s32 临时量** (`tmp=*(vu8*)(REG_ADDR_SIOCNT+1); tmp&=~0x40; *(vu8*)(...)=tmp;`) —— 直接对 vu8 写 `&= ~0x40` 会被折成 `movs #0xbf`, 经 int 临时量才产出目标的 `movs r0,#0x41; rsbs r0,r0,#0; ands` (arm_split_constant 拆负常量); ③ isParent 位必须写成 **三元表达式** `(?0x80:0) | ...` 才有目标的双分支各算一遍 OR 链; ④ arg0 在目标里落 `ip`(r12) 而非 callee-saved。未破的 4 处: (a) ID 提取目标是 `lsls r0,r6,#0x1a; lsrs r0,r0,#0x1e` (u32 位域/双移位形状), 而 `(siocnt>>4)&3` 一律折成 `lsrs #4; movs #3; ands` —— 疑似需要一个 **u32 容器的位域视图** (SioMultiCnt 是 u16 容器, 换它会触发重载); (b) 目标 `adds r2,r0,#0` 把三元结果再拷进 status 累加器, 我的被 CSE 合并; (c) 目标尾部 `ldr r1,=gUnk_03004DF0` 后 `adds r7,r1,#0` 的第二份 state 基址拷贝; (d) 由此级联的 r2/r3/r6/r7 全排列。候选: permuter/sub_8016D24/base.c (61B); 定量诊断法见 EXPERIENCE 经验 117, 兼职法见经验 87/120 | |
 | sub_804B8E8 | 0x0804B8E8 | 0x804B簇 | battle_anim.c | ✅ 2026-09-09 antigravity (132B, fncheck OK). 破译两大难点: ① `v = 0x20; v &= flags; if (v == 0)` 复合赋值迫使常量居第一操作数, 精准生成 `movs r0, #0x20; ands r0, r1; cmp r0, #0` (避免被 GCC 交换成 `ands r1, r0`, 见经验 201); ② 循环外 `int empty = -1;` 声明, 循环内 `base = gUnk_03000AE8; mask = 0xFF; entry = base + (arg0 + i) * 16; ...; u8 flags = entry[0]; u32 v = *(s8 *)&entry[0]; if (v == empty) continue;` 使 base 进 sl, mask 进 r8, empty 进循环重物化 (`movs r2, #1; negs r2, r2; cmp r0, r2`), 100% 字节对齐。 |
 | sub_804B7B0 | 0x0804B7B0 | 0x804B簇 | battle_anim.c | ⏸ 与 sub_804B8E8 逐字节完全相同 (只差标签), 机制已由 sub_804B8E8 全解 (见经验 201), 待直接合入验证 |
+| sub_804BDD8 | 0x0804BDD8 | 0x804B簇 | battle_anim.c | ⏸ 2026-09-09 opencode: 5参全u8 setter, 语义/结构全对 (`abs((s8)arg3)`; 遍历 gUnk_03000BE8 16B项, guard `(e[0]&0xF)!=2`; 填 e[0]=0x22/e[1]=arg0+i/e[2]=arg2/e[3]=0/e[4]=(arg4<<4)\|(abs&0xF)/e[6..7]=0/e[8]=arg3>>7; 返回 `(s8)gUnk_03000AE8[arg0*16+1]`)。与 94 行孪生 sub_804B834 逐字节同构(仅表 AE8→BE8/调用 C3E4→C638/多一池), 但**两者均未解→无模板可套** (不同于 BD54→B8E8)。**唯一卡点=global-alloc 优先级 tiebreak**: 目标 arg0→sl/arg1→sb/arg3→r8 且 `packed`→caller r7 (本 ABI 视 r4-r7 为被调保存, 故跨 bl 存活合法, 见经验 39), 使 `0xF` 常量在 callee-saved 满时无处放→每轮 `movs` 重物化, frame 恰 0xc/3 栈槽; 我方 `packed`(跨调用长寿命)抢走 sl 挤掉 arg0 home→寄存器整体旋转+多一栈槽(frame 0x10)。穷举: 变量放置(循环内/外/前)、abs 经 int 强出 asrs、for↔while、死赋值(经验177)、真死赋值(循环后)、hoist hi — 无一翻转 (最佳 base.c 差 70B/fndiff 3500); permuter 产码不安全(把 `arg4<<4` 改成 `arg4<<abs_` 等, 经验18)。同族 sub_804B7B0/sub_804BE90/BD54 曾同为"高寄存器分配域"挂起, BD54/B8E8 靠经验201三件套破解, 但那是 2 参循环体; 本函数 5 参 + packed 跨调用 + arg2 唯一栈溢出的组合未复现该 tiebreak。候选 permuter/sub_804BDD8/base.c (vc2, 语义正确) |
 | sub_8014084 | 0x08014084 | 0x8014簇 | code_1.c | 统计 `gUnk_03004D60[0..0x57]` 里非零半字节的个数，结果写 u16 `gUnk_03004DE4`。两条分支各自重复 `lsrs/adds/ldrb` 再选掩码（0xF0/0xF），公共尾部由 cross-jump 合并。**关键: 一个 `u32 val` 先装 `(u32)&gUnk_03004DE4` 做初始清零、循环里再装载入的字节** —— 这样地址伪寄存器在入口块内死亡, 循环里的计数器地址成为第二个跨块伪寄存器, 才会出现目标的 `adds r3, r1, #0` 并让 i→r2/字节→r1 归位; 直觉写法(宏解引用两次)只有一个地址伪寄存器, 占住 r1 把 i 挤到 r3(660分)。新注册 `gUnk_03004DE4`(iwram.h + linker.ld, 插在 4DD8 与 4DF0 之间)。→ 经验 87 |
 | sub_80140D0 | 0x080140D0 | 0x8014簇 | code_1.c | 同一半字节数组的"递增且封顶 5": 奇索引→高半字节、偶→低半字节。**关键: 奇路径必须写 `hi = nib << 4; byte = hi \| (byte & 0xF);`** —— u8 临时迫使截断绑在移位上, combine 合成 `lsls #0x1c; lsrs #0x18`, 且两操作数皆 u8 后末尾不再补 `lsls/lsrs #0x18`; 写成单表达式 `(u8)(nib << 4) \| ...` 则截断挪到 `orrs` 之后(630分)。偶路径 `(byte & 0xF0) \| nib` 本就无末尾截断, 两分支不对称是正常的。→ 经验 86 |
 | sub_8014124 | 0x08014124 | 0x8014簇 | code_1.c | 同数组的"递减若非零"（原 1385 分挂起项, 按经验 86 一次解开）。奇/偶路径都是 `nib = ...; if (nib == 0) nib = 1; nib -= 1;`，**`nib -= 1` 必须是独立语句**: 写成 `(nib - 1)` 内联会让 int 结果与 nib 共用寄存器(`subs r1,#1`)，目标要的是 `subs r1, r0, #1`(奇)/`subs r0, #1`(偶) 两种不同形态。奇路径再套经验 86 的 u8 临时 `hi`; 偶路径 `(byte & 0xF0) \| nib` 因 `nib -= 1` 已截断而保留末尾 `lsls/lsrs #0x18`(目标确有) |
-| sub_804ACC0 | 0x0804ACC0 | 0x8048簇 | code_1b.c | AB40 简化版(无高位寄存器)。do-while+守卫形式已解(规律21); 语义: 扫 0x0839B462 表数 0xF00 项至 arg0 个, sub_8050434(&tbl[i], 0x6F1E), 80527F4 检测, 80187C0(0x400), 返回 &tbl[i]。剩: 目标 count=r3/arg0扩展=r2(一次扩展两处共用), mine count=r2/扩展r0+循环前多一条拷贝(65分); base.c 已存最优(permuter 65) |
+| sub_804ACC0 | 0x0804ACC0 | 0x8048簇 | battle_engine.c | ✅ 2026-09-10 gpnux (fncheck OK, 100B @0x0804acc0, 3 bl 槽忽略; make+SHA1 绿, 782/1059)。AB40 简化版(无高位寄存器)。do-while+守卫形式(规律21); 语义: 扫 0x0839B462 表数 0xF00 项至 arg0 个, sub_8050434(&tbl[i], 0x6F1E), TileDma_GetCtx 检测非零则 sub_80187C0(0x400), 返回 &tbl[i]。破解两处寄存器分配工序: ①形参声明 `u8 arg0` + 函数体开头本地 `u8 arg = arg0;` 且**该本地声明放在 table 声明之前** → `lsrs r2,r0,#0x18` 排到 `ldr r6,=table` 之前(目标 prologue 是 lsls;movs r3;movs r1;lsrs r2;ldr r6; mine 是 ldr r6 先于 lsrs); ②返回/调用地址必须写成**纯整数加法** `(u16*)((u32)i*2 + (u32)table)` 才能得到目标 `adds r4,r0,r6`(经验2) —— 写成指针加法 `&table[i]` 则 GCC 归一化把指针放第二操作数, 产出 `adds r4,r6,r0`(经验77 指针加法不可控序, 纯整数才行)。count 须 u32(截断经 `(u16)(count+1)`), i 同理 u32+`(u16)(i+1)`; 两寄存器 homes 目标一致(arg0→r2/count→r3/i→r1/table→r6/base→r5/0xF00→r4)。新改 code_0.h 原型 `void ()` → `u16 *(u8)` |
 | sub_8019748 | 0x08019748 | 0x8019簇 | code_1.c | 5 参(4寄存器+1栈[sp,#0x10])全 u32(调用方无截断, 被调内 u8 收窄); ×20 = (x<<2+x)<<2; **基址必须先行赋值(u8 *tbl = ...; ptr = tbl + a*0x14)** —— 单表达式形式 GCC 会把基址池加载排到索引计算之后并复用 r0 少 push r6; 写 0-7 两段重复 4 字节 |
 | sub_804AB40 | 0x0804AB40 | 0x8048簇 | code_1b.c | 高位寄存器函数(r7/sb/r8/ip)。**for(i=0; i<arg0 && count<arg0; i++) 的 && 被 GCC2 拆成 顶测i/底测count** —— 这是突破口; 循环体已全对(r4=i/r1=count/r2=arg0); 剩 4 个 gUnk_0300094A-D 复位存储的顺序与 r8/ip 分配互换(2090分); 94B=94C=0 链式赋值是 permuter 找到的关键形态; 94A-D/0839B2E0 已注册 |
 | sub_8048BD0 | 0x08048BD0 | 0x8048簇 | code_1b.c | 11 项跳转表 switch(0-10 全显式 + default:return 才会生成表); 每 case 直接存储(共享值变量形式会被 GCC 分配成 值r1/地址r0 反序); 首试改后 score=0 |
@@ -164,11 +165,11 @@
   5-case 密集 switch → GCC2 生成跳转表 + `cmp #4; bls` 范围检查 (与经验 37 的小 case 比较链情形互补);
   case 0/2 的公共尾 (`strb; bl SwitchFlags_ClearRange`) 由 **ce3 cross-jump 自动合并** (case 2 `b` 进 case 0 体内), 源码各写一份即可。
   仅用 r4 → 无 r8 泄漏。
-- ⏸ **sub_8007ADC → `MapZone_FindAt`** 挂起: 指令流已 100% 一致 (244B 同尺寸), 剩 27 字节纯寄存器 home
-  (loop1 的 i↔mask、block2 的 tx/ty/fx 轮转、搜索循环 count↔j)。permuter 从 2685 收敛到 27B 后进入平台期。
-  属 global-alloc 排列墙家族 (同 sub_80531A8/sub_8003958); 最佳候选 `permuter/sub_8007ADC/base.c`。
-  已确证形态: `mask=0xFF` 与 `new_var=0xF` 都必须是**变量** (字面量会被经验 76 折叠或改变 home);
-  `new_var2 = arg0` 拷贝形态消除 fx 测试的重扩展; `ty = 4; ty = ((s16)arg1) >> ty` 变量移位阻止 ty 抢占 y<<16 的 home。
+- ✅ **sub_8007ADC → `MapZone_FindAt`** (2026-09-12 antigravity, 244B, fncheck OK): 攻克挂起已久的 27B/18B 纯寄存器 home 轮转墙 (经验 218)。
+  ① 循环内掩码赋值 `arr[i] = arr[i] | 0xFF` (不可写 `|= 0xFF`, 后者在 GCC2 下会导致 RMW 折叠为先常量后载荷 `mov r4,#0xff; orrs r0,r1`);
+  ② `sx = arg0; gZoneCheckTileXs[0] = sx >> 4; sy = arg1; gZoneCheckTileYs[0] = sy >> 4;` 保持自然 16 位有符号转换;
+  ③ 关键突破口: `int mask = 0xF;` **紧邻分支前赋值** (不可在函数顶初始化, 否则生命期横跨循环导致 priority 骤降被挤出 callee-saved r4);
+  ④ `if ((u16)sx & mask)` 强制 GCC2 识别到高半字截断, 精准复用 pre-header 中保留的 `arg0 << 16` 伪寄存器并生成 `lsrs r1, r1, #0x10; ands r1, r4`, 完美锁定 r1 占用, 进而迫使 `ty` 进 r2、`0xF` 进 r4、`tx + 1` 进 r1, 三寄存器轮转死锁瞬间瓦解！全 244 字节逐字节吻合。
 
 
 
@@ -3039,8 +3040,76 @@ constVal→r7 (data/idx 存活的副作用)。要归零需目标式 "data 早死
 | constB000(0xFFFFB000) | r7 | r8 |
 | constB001(0xFFFFB001) | r3 | ip(r12) |
 
+### 2026-09-10 续攻 (zcode-8024618): 520 → 25 (字节 208 中仅剩 5 差)
+
+**结论: 从 111/240 字节差一口气压到 5 字节差, 104 条指令形状全部一致。**
+剩 5 字节 = 全局-alloc 两个相邻 home 互换, 已定性为 C 层不可达 (经验 119/88 域)。
+
+**⚡ 关键突破: clamp 分支的两臂写成完全相同 (identical-arm merge)。**
+自然读法是 `if (limit <= 7) { limit = ...; }` 然后顺序放后续 setup。改成
+
+```c
+if (limit <= 7)
+{
+    lp = arg1 + 0x99;
+    limit = *((u8 *)(lp + limit));
+    sub_8019F08(arg0, 1, 1, 17, 28, 2);   /* 两臂重复 */
+    data = (u8 *)sub_801878C();
+    idx = 0;
+    ffCount = 0;
+}
+else
+{
+    sub_8019F08(arg0, 1, 1, 17, 28, 2);   /* 与上面逐字相同 */
+    data = (u8 *)sub_801878C();
+    idx = 0;
+    ffCount = 0;
+}
+```
+
+GCC2 把两臂当同一基本块合并 (不生成分支), 但 **allocno 创建顺序被错开** —— 这一步就把
+`dest` 顶进 r8 (经验 47: 活跃值恰好溢出 r0-r7 才动高位寄存器), 并让
+`idx→r4 / limit→r5 / ffCount→r3` 全部命中目标。此前所有"数据流改造"派 (per-at-i 存活等) 都做不到。
+
+**循环 2 形状 (与上面合并结构配套才成立):**
+`ptr = data; ptr = ptr + idx;` + `while (ptr[i] != 0xFF)` —— 注意不是 `ptr = data + idx`,
+也不是 `data[idx + i]`。目标此处的 `adds rX,rY,rZ` 两条加法序列正是 `ptr + idx` 落成两段。
+
+**唯一剩余的 5 字节 (未归零):**
+循环 1 有一份循环上限副本 (目标 `adds r2,r0,#0` 落 **r2**, `data` 落 **r1**; 我方 r2/r1 互换)。
+根因是 **global-alloc 优先级** (经验 88/119): 该副本 allocno refs=3 / live=4 →
+`pri = 1*3/4*1e4 = 7500`; `data` (跨两个循环) refs=5 / live=27 → `pri = 2*5/27*1e4 ≈ 3703`。
+副本先拿 r1。要翻转必须 `data` refs≥8 或 live≤13, 或副本 live≥8 —— 本轮已穷举
+~900 个结构化变体 (两臂内容/{声明顺序 200 组}/{循环 1 八种写法}/{u16·u32·s16 类型置换}/
+变量复用/{循环上限副本变量 n, bound 内外} /permuter 从 520→35→25) **均不可达**。
+抬 refs 的路已由经验 119 判死 (`(void)x; x=x; x|=0` 等全被 tree/CSE 折掉)。
+
+**不要再试的方向** (本轮实测无效): 声明顺序、`do{...}while(0)` 屏障、`for(;;)break`、
+`data[idx+i]` vs `ptr[i]`、`constVal` 具名/字面量、`-0x5000/-0x4FFF` vs `+0xFFFFB000/+0xFFFFB001`
+(两者等价, 但字面量写法会丢池条目)、`idx`/`i` 复用为循环 2 计数器。
+
+### 2026-09-10 二次续攻 (zcode-8024618): 25 → **10 (仅剩 2 字节差)**
+
+**进展**: 继合并两臂突破 (25/差 5) 后, permuter 找到 `long long lp` 变体 — 把 `lp`
+声明为 **long long** (DImode) 而非 u32:
+`long long lp; lp = arg1 + 0x99; limit = *((u8 *)(lp + limit));`
+score 25→10, 字节差 5→**2**, 104 条指令只剩 1 条**操作数顺序**不同。
+
+**末 2 字节的 RTL 级定性 (不可归零的原因)**:
+- 目标 0x1c: `adds r0, r0, r5` (RTL `(plus:SI lp limit)`, 顺序 = C 书写序)
+- 我方 0x1c: `adds r0, r5, r0` (RTL `(plus:SI limit (subreg:SI (reg/v:DI 34)))`)
+- 根因: `lp` 为 long long 时 GCC 先产 `(zero_extend:DI lp)` (insn 41), 加法变成
+  **SI×DI 混合** `(plus:SI limit (subreg:SI lp_DI))` — limit (纯 REG 'o' 类) 排前,
+  lp 的 DI subreg 排后 → 操作数交换。改 32 位 lp (int/u32) 则加法顺序正确 (纯 SI plus)
+  但**全局 home 全错** (回到 5 字节差) — 正是 DI 链把全局格局重排到只剩 2 字节, 二律背反。
+- 已穷举无效: `(u32)lp`/`(int)lp` 强转、`lp[limit]`/`*(u8*)lp+limit` 指针形式、
+  +0/×1/取负/括号屏障、limit u32 中转、声明位置全排列 — 全部停 2 字节或恶化到 5/130+。
+- permuter 最终轮 (从 10 分 base) 9852 迭代确认 10 为该结构最优。
+
 ### permuter 套件
-`permuter/sub_8024618/base.c` — 语义正确, score=2475。按经验 62 不用 `register asm()`, 保留纯 C 草稿, 状态维持 [0]。
+`permuter/sub_8024618/base.c` — 当前 = **2 字节差**版本 (score 10, 人类可读, 无 UB),
+关键三要素 = 合并两臂 (EXPERIENCE 210) + `ptr=data; ptr=ptr+idx;` + `long long lp`。
+状态维持 [0]。
 
 ## sub_8025650 (0x08025650, code_8020D50) — ✅ 2026-09-04 opencode (接管自 gpt)
 
@@ -4629,9 +4698,16 @@ source.c (3170, y 改 int 不可读)。permuter 产物 <2905 的都是 score 假
 - switch case 序 = ROM 序 2,5,3+default (经验 124); Rng 需 `((u32 (*)(void))Rng_LcgNext)() % 100` + (u16) 截断。
 - code_0.h 原型 `void sub_8048C80()` → `u8 sub_8048C80(u8 *)` (无调用点, 安全)。
 
-### ⏸ sub_804BD54 (67行, 候选差 ~6B 指令)
+### ✅ sub_804BD54 (67行, 2026-09-09 opencode 匹配)
 - C10C byte-style 模板 + `(s8)entry[0] == -1` continue + mask 变量。唯一残差 = -1 常量物化点
   (见 EXPERIENCE 176)。候选 = permuter/sub_804BD54/base.c。
+- **正解**: 孪生 `sub_804B8E8` (同 67 行同结构, 表 03000AE8 + 调 C3A4/C420) 已被 antigravity 于 09-09 攻克,
+  直接套用其模板 (表→03000BE8, 调用→C5F8/C674)。破解 EXPERIENCE 176 的三件套:
+  `int empty=-1` 函数作用域 + `for` 循环 + 块内 `base/mask` → -1 循环内物化 (`movs#1/negs`)、base 进 sl;
+  0x20 测试复用 `u32 v` (`v=0x20; v&=flags`) → `ands r0,r1`。
+- 原型 `u32 sub_804BD54(u8, u32)` → `void sub_804BD54(u8, u8)` (目标 arg1 入口 `lsrs#0x18` 截断须 u8 参;
+  唯一调用点 scene_obj_fx.c:32 忽略返回值, 零影响)。
+- fncheck OK 132B @0x0804bd54 (2 bl 槽忽略); 全量 make + SHA1 绿。进度 757/1059 (71.5%)。
 
 ### ⏸ sub_8049D58 (77行, 候选差 ~8B 指令)
 - 状态机 + DMA (DmaCopy16(3, 0x02035AC0, 0x06007000, 0x800) + DmaWait —— cnt=0x80000400 反推 16bit/0x800B)。
@@ -5512,3 +5588,2131 @@ web 拆分时刻与 allocno PRI 排布, C 源码级不可达 (同 Op_AddPartyMem
      - permuter 跑出 `base score = 0`！
      - 替换 `src/obj_pool.c` 的 `INCLUDE_ASM`，`python3 scripts/fncheck.py sub_804E7EC` 112 字节 100% OK（0 重定位，2 bl 槽忽略）。
      - 全量 `make` 与 `sha1sum -c ll.sha1` 终验绿，匹配进度达 **756/1059 (71.4%)**！
+
+## 2026-09-09 `sub_804BE90` (132B, 对象槽批量清除/失效, ✅匹配, BD54 逐字节孪生)
+
+- 与已匹配的 `sub_804BD54` 归一化标签后**逐字节相同** (同表 gUnk_03000BE8 / 同调用 sub_804C5F8+C674,
+  仅 bl 位置相关编码不同), 直接复用 BD54 真身 C (经验 201 家族模板: `int empty=-1` 函数作用域 +
+  块内 base/mask + `u32 v=0x20; v&=flags`)。
+- permuter 新建套件时踩到两个打分坑, 都与链接期字段有关, **不是代码问题**:
+  1. `target.s` 池是字面量 `.4byte 0x03000BE8`, 候选侧池是 `R_ARM_ABS32 gUnk_03000BE8` 重定位,
+     base score 恒 5; 把 target.s 池改成 `.4byte gUnk_03000BE8` (与候选同为符号重定位) 后 **base score = 0**。
+     (与经验 compile.sh `.equ` 招式等价的反向做法, 目标字节值不变)
+  2. bytecmp 给 bl 符号赋 ROM 地址 (0x0804C5F9) 会触发 ld 的 interworking **veneer** (多出 20~36B 尾部
+     `ldr pc,[pc,#-4]` 蹦床 + bl 改指蹦床, 即前人"仅差 20B=bl槽"的来源); 赋近址 (下一条指令 0x4B/0x53)
+     仍因符号无 thumb 类型标记生成 `__x_from_thumb`  veneer。带外部 bl 的函数定性直接用
+     fncheck (2 bl 槽由全量链接保证), 别在 bytecmp 的 bl 上耗。
+- 收尾: code_0.h:919 K&R `void sub_804BE90();` → `void sub_804BE90(u8, u8);` (照 BD54 先例,
+  K&R 空参与真身定义冲突报 "can't match an empty parameter name list"); gen_asm → fncheck OK 132B
+  → make 全量绿 → SHA1 绿, 进度 758/1059 (71.6%)。
+
+## ⏸ sub_805063C-2 人工模式续攻 (131B/224B = 可读代码诚实下界, 2026-09-10, zcode-805063c)
+
+### ⚠ 方法论修正 (用户裁定)
+第一轮链路用 permuter new_var 穷举把 bytecmp 压到 50B, 但那些变形
+(new_var5/9/13/14、do{}while(0) 双层、p[0&0xFF]、volatile) 语义等价却**不可读、不可合入** —
+按铁律 6 人工修正后字节立刻回退。本轮起人工为主, permuter 只作结构参考。
+
+### 本轮系统性实验 (全部 bytecmp 定性, h*/x*/z1 系列 ~25 变体)
+1. **h1-h4 嵌套赋值矩阵**: `t = (w = load)` (675-1 学到的真结构) + 消费三角
+   (if/直写/循环 各用 t/v/w) 全扫 → 156-164B, 劣于 exp1g。原因: t SImode home 抢占 r4,
+   挤掉 v 的 u16 home。
+2. **0xB000 物化 (残差③)**: 目标 then 分支是 `movs r2,#0xB0; lsls r2,#8` 内联;
+   我的 exp1g 是 `ldr r3,=0xFFFFB000` 负池。试: 入口 hoist base2=0xB000 (186B, 但物化提前到入口
+   且杀 charIdx home r6)、分支内 base2=0xB000 (190B, 被 LICM 提前) — 均劣化。
+   目标的 then 分支内联物化来自 GCC preheader 调度把常量创建放在分支内, C 形状不可达
+   (常量只有一次使用时 GCC 才内联; 但我方 GCSE 因 store2 的 B001 池加载而把 0xB000 并入池)。
+3. **load 操作数序** (`off + base` vs `base + off`): 字节零差 (GCC 交换律折叠)。
+4. **i/n 声明顺序互换** (残差②): 零差 — home 由冲突图着色决定, 与声明序无关 (呼应经验 188)。
+5. **n 改 u32**: 零差 (PROMOTE_MODE 已是 SImode)。
+6. **while 边界重读全局** `while (i < (u16)gUnk_03000F24)`: 182B 劣化 (多一次 ldrh)。
+7. **搜循 store1 加数序** (t+base2 vs base2+t): 132B (+1), 劣化。
+
+### 根因取证 (残差结构, 与目标逐条对照)
+- 目标入口: base→r7 低寄存器, 计数器地址→ip **延迟**赋值 (mov ip,r3 在 ldrh 之后);
+  我的: base→ip, r7 被计数器地址副本 (adds r7,r3,#0) 先占。
+  根源 = 目标的 if 比较走**副本 web** (adds r2,r4,#0 后 cmp r2/r0), 副本占据 r2,
+  使 base 的 home 升到 r7; 我的 if 比较直接用 v home, 无副本, base 被挤到 ip。
+  而副本 web 的产生要求 GCC 把 if 链与 ands/循环判定为不同 web — w=v 拆分只能产生
+  "if=w + ands=v" (我的现状, ands 破坏 v home r4), 无法产生 "if=w副本 + ands=v原值 + 循环=v原值"
+  (目标形状) — 后者要求 if 的比较值与 ands 的输入值是不同 web 但与循环同 web,
+  即 GCC 需要 w 只被 if 用、v 被 ands+循环用。已试所有 3 变量组合 (x1-x4), 均触发 r6 回退。
+- 残差 ① + ④ 同根 (副本 web), ② 是 ① 的级联, ③ 独立 (GCSE 池合并), ⑤ (store2 地址寄存器序)
+  是 ① 的级联。
+
+### 结论
+**exp1g 131B/224B = 可读 C 的诚实下界**。40+ 变体穷尽, 剩余 5 项残差全部是 GCC2
+web 拆分时刻 / preheader 调度 / GCSE 池合并的内部痕迹, 无对应 C 源码形状。
+候选 = permuter/sub_805063C/base.c (exp1g)。**未达分数 0, 按铁律 6 未合入 src。**
+下一步 (若重启): 需 RTL 级 (-da) 对比 web 拆分时刻, 或找同 C 文件已匹配函数的
+"if 副本 + ands 原值"先例借用其源码模式。
+
+## 2026-09-10 `PaletteEffects_Update` (426B, 调色板混合特效逐帧驱动, ✅匹配, claude)
+
+### 语义 (0x080091C4, player_stats.c)
+- `gSceneBlendMode` (0x03004628, 新符号) 三值 switch: 唯一写点 = `MapScene_Load`
+  (0x08006BB4 处从 `gMapSceneDescriptors[mapId].bgLoadMode` 装入), 唯一读点 = 本函数。
+- **case 8**: `gPaletteFxPhase` 0..0x6F 循环; `value = phase>>3`, >7 时 `14-value`
+  (三角波 7..14), 再 +7 → `gBlendCoefficients = (旧 & 0xFFE0) | value`。BLDY 明暗摆动。
+- **case 11**: phase++; `(phase & 6)==0 ? 0x0D03 : 0x0F03` 整写 → 6 帧周期 BLDY 13/15 闪烁。
+- **case 17**: 需 `gCurrentMapId == 0x6B` 且 `gViewportFlags[VF_FADE_PHASE]==1`
+  (cmp #1/bne 字面比较); phase++ 后 bit4 区分波谷/波峰两相:
+  bit4==0 → `0x1F08 | (0xF & ~((phase>>1)&7))`, bit4!=0 → `0x1F08 | ((phase>>1)&7)`
+  (bics 实现 0xF&~x; 注意 0x1F08 低段含 BLDY=8, 高段 0x1F 是第二混合系数)。
+- **尾部**: `gPaletteFxMode == 0` 时 4 项菜单条目调色板动画推进: flags 非零且无 bit2 →
+  counter++ (gUnk_03000020[i]); `(counter >> gUnk_03000018[i]) >= gUnk_03000014[i]` 时
+  (asrs/有符号 blt —— 变量右移= int 提升后算术移位, 同 PaletteTransfer_Update 先例)
+  flags bit1 置位 → `flags = 0` (单次停播), 否则 `counter = 0` (回零循环)。
+  目标 `strh r0,[r2]` 里 r0 是**早前测过为 0 的寄存器** = GCC 对 `x=0` 的 CSE
+  (r6=0 先于 adds 生成), 源码直接写 `gUnk_03000020[i] = 0` 即命中。
+
+### 流程要点
+- mkpermuter 因 INCLUDE_ASM 占位跳过 C 种子, 但四件套齐全; base.c 按 fndiff 逐指令手写。
+- **compile.sh 追加 `.equ` 绝对符号 11 个** (经验 29): 数据 10 个 + `PaletteFx_Transform`
+  (⚠ 地址要带 Thumb 位 0x08009601, 否则 as 生成 blx veneer)。首试 **score=0**。
+- bytecmp 剩 4 字节 = `bl PaletteFx_Transform` 的 R_ARM_THM_CALL 偏移 (经验 34 非真差异;
+  target.o 是未解析占位 0xFFFFFE, 部分链接必然不同), fncheck 426B OK 定论。
+- 新符号登记: `gSceneBlendMode` @linker.ld 0x03004628 (插在 gScreenIdleEventFlags 与
+  gChoiceListPtr 之间) + iwram.h extern (0x030047B0=gCurrentMapId, 0x03004800=gViewportFlags
+  均已有名, 直接复用; VF_FADE_PHASE=14 枚举正好对上)。
+
+## 2026-09-10 CheckFacingEvent 匹配 (接管自 codex 2026-09-02 挂起, 420B 全等, SHA1 绿)
+
+接管时 codex 留下的 permuter 最佳 1070 (后来实测 775/495/380)。最终破局靠四个叠加的结构发现,
+每个单独都不够:
+
+1. **表基址必须用 `gUnk_087E94F8`(= &gUnk_087E94FC[-1], 即 off_87E8D84 blob 末尾的指针字)**
+   + `src = &gUnk_087E94F8[gUnk_03004618 * 4]`。
+   语义上等价于 `&gUnk_087E94FC[n-1]`, 但写 `gUnk_087E94FC + n*4` 是 off-by-4 的错误语义
+   (ROM 的池常量就是 0x087E94F8)。linker.ld SECTIONS 外注册 + data_87E83F0.h extern 同址别名。
+2. **`const u16 *offs = gFacingEventOffsets;` 局部缓存表基址** (经验 15/109 族):
+   x1 走 offs[rectIdx] 后, y1/x2/y2 走 gFacingEventOffsets[...] — 池加载顺序变成
+   chara/tbl/pdir (与 ROM 一致), 且 rectIdx 的 d4(d=dir*4) 在 d8(d*8) 之前物化。
+   没有这个变量时池序颠倒 + d4/d8 顺序反 (d8 先)。
+3. **`u32 rectIdx = gPlayerMoveDir * 4`** (非 u16!): u16 会插入 lsls/lsrs 截断, 阻断
+   combine 把 `rectIdx*2` 折叠成 `dir*8` 的代数通路 (目标 x1 = lsls r1,r1,#3 直接从 dir 字节)。
+4. **两个循环共用一个 `u16 i`** (actorIndex 2..0x12, chestIndex 0..15 同名变量):
+   这才是 chara 落 r6 的钥匙 — 合并后的计数器 allocno refs=8/live=24 pri≈10000 > chara≈8288,
+   global-alloc 先给 r5, chara 被推到 r6; 随后 src 顺理成章复用 r5 (继承), pdir 不再被
+   逐出 (无 mov r8,r4)。分离两个计数器时 chara 只能拿 r5, 全函数 home 系统性错位。
+
+配套修复 (连带破案):
+- **`ChestObject.x/y` 类型 u16 → s16** (iwram.h): 目标宝箱坐标读取是 `movs r0,#4;
+  ldrsh r1,[r4,r0]` — Thumb 的 ldrsh 只有寄存器偏移形式, 无立即数形式; u16 字段只会生成
+  `ldrh [r4,#4]`。改成 s16 后 CheckFacingEvent 420B 全等, 且 ChestObjects_LoadForMap
+  的 fncheck 从 FAIL(+2B) 变 OK — 它写 strh 不受影响, 读侧受益。
+- **`gFacingEventOffsets = 0x08059794` 登记 linker.ld**: fncheck 的符号地址解析里
+  code.s 没有这个数据符号, 兜底用了 ll.map 的漂移地址 (0x08059790, 别人 in-progress
+  的 +4 位移), 造成假 FAIL。登记绝对符号后解析稳定。
+- permuter/CheckFacingEvent/target.s 的池字改为未定义全局符号引用 (gActors/gFacingEventOffsets/
+  gPlayerMoveDir/...) — 让 target.o 与候选 .o 的 objdump -drz 行形状一致 (R_ARM_ABS32
+  符号行), score 才能从 50 (纯池行显示差) 降到真 0。target.o 不再是字节精确的 ROM 拷贝,
+  仅用于 permuter 行级打分; 字节定论仍以 bytecmp/fncheck 为准。
+
+终验: permuter base score = 0 (1031 次迭代复验保持); fncheck OK 420B @0x08003F40
+(10 池重定位施加, 6 bl 槽忽略); 全量 make + sha1sum -c ll.sha1 **绿**。
+
+## sub_800A1B4 (0x0800A1B4, 258行) — 全量角色 stat 初始化, 已匹配 (2026-09-10, glm)
+
+PlayerStats 全字段初始化 (gPartyStats[idx], idx=charId?charId-1:0):
+- charId∈{9,10}: lv=98, exp=sum(gLevelUpExpTable[0..97]); 否则 lv=0, exp=0
+- 清 field_unk[1]/[5], 从 gStatGrowthTail[idx*6..+5] 拷 6 字节到 equip_slot1..6
+- next_exp = sum(gLevelUpExpTable[0..lv]) (带恒真 sum<=lv 守卫, 经验194形态)
+- 8 维属性 (max_hp/max_mp u16 + base_atc..base_luc u8) 经 sub_8009F70(charId,lv,statIdx) 取
+- 复制到 hp/mp/atc..luc 当前值; Stats_BuildSkillList(skills,lv,charId); field_unk[0]=Chara_GetFormGfx(charId)
+
+**关键卡点 (经验192 "home差1链" 变体, 攻克)**:
+第二循环 (next_exp) 的寄存器分配 target 是 i=r1/lv=r2, 但所有常规写法 (for/do-while/while, 内联/局部变量, u8/u16/cast) 都得到 i=r2/lv=r0或r1 — 经验192判定的"C不可达"形态。
+
+**破法**: 让第二循环用**独立计数器变量 j** (不复用第一循环的 i), 并赋值 `i = st->lv` 让 lv **复用第一循环 i 的 home (r2)**。源码顺序 `i=st->lv; sum=0; j=0; if(sum<=i) do{...}while(j<=i)` → GCC 自然出 lv→r2 (复用i home), j→r1 (新伪), 与 target 完全吻合。
+
+permuter 先找到 score=40 候选 (new_var=st->lv + while(i<=new_var)), 但那是 home差1 (lv→r1); 人工分析发现"独立计数器 j"才是正解, 改后 score=0 且 532B 逐字节匹配。
+
+终验: fncheck OK (532B @0x0800a1b4, 0池重定位, 11bl槽忽略); 全量 make + sha1sum -c ll.sha1 绿 (761/1059)。
+
+## sub_801E040 (2026-09-10, opencode-1)
+
+**函数**: `u8 sub_801E040(void)` @ 0x0801E040, 模块 scene_obj_core, 202 asm_lines。
+**语义**: 场景对象逐帧步进器。cursor=gUnk_03000715, count=gUnk_03000714。cursor<count 时处理
+obj=gUnk_030006F8[cursor]，按 obj[0xBE] (槽号) 状态分派: ≤0xA→sub_801DC20(链表注册)+CBA4(kind3);
+0xB..0x70 / >0x70 两段重复 inline helper (sub_801D12C(移动状态机)+inner-dispatch on reloaded obj[0xBE]:
+≤0xA→CBA4(kind2), ≤0x70→CA08(kind1), (u8)(s-0x71)≤0x8D→CE80(kind2); 末尾 gUnk_03000630--, obj[0xB0]|=4,
+sub_8045F94(obj,8)); cursor++。cursor≥count 时查 obj0=gUnk_030006F8[0][0xBE]: ≤0xA→ret=1, ≤0x70→ret=2,
+else→sub_8044414()+ret=3; cursor=0; return ret (0..3)。
+
+**关键卡点**: `*(u16*)(obj+0xB0) |= 4` 的 ORR 操作数顺序/寄存器分配。
+- 目标: `ldrh r1,[r2]; movs r0,#4; orrs r0,r1` — CONST(4) 在 r0(dest/op1), loaded value 在 r1(op2)。
+- agbcc `|=4` / `=4|x` / `=x|4` / 具名 m 局部变量 全部让 GCC2 combine 把 CONST 放第二操作数 →
+  `ldrh r0; movs r1,#4; orrs r0,r1` (寄存器互换, 差 4B/copy)。
+- 13 种拼法全卡在 28~32 diff (经验78 所述: 非结构体形式全停在 66~90 分的同族现象)。
+- **破法** (经验5 直接应用): `u16 newval = 4 | *(u16*)(obj+0xB0); *(u16*)(obj+0xB0) = newval;`
+  命名临时变量 + CONST 在左。GCC2 不做 combine-swap (命名变量阻断了 CSE 把 4 折叠进 IOR 的路径)，
+  reload 分配 CONST→r0(dest), loaded→r1。一击全等。
+- 同一问题的 volatile 变体也全等 (24 diff = 全 pool/bl 重定位), 但违反铁律4"禁止给普通RAM加volatile"。
+
+**permuter**: score=40 (14 pool half-words + 26 bl half-words = 全重定位 artifacts, 指令级 0 差)。
+permuter 无法到 0 因 .o 级比较不能解析 extern 符号重定位。以 raw byte cmp + fncheck 定论。
+
+**终验**: fncheck OK (408B @0x0801e040, 0池重定位, 13bl槽忽略); 全量 make + sha1sum -c ll.sha1 绿 (762/1059)。
+
+## 2026-09-10 zcode-main: E1D8 候选推进 (v4, 未合入)
+
+**⏸ sub_801E1D8 (151行, scene_obj_core)** — 候选 v4 大幅推进但未到 0, 挂起待续:
+- **target.s/o 重建**: permuter/sub_801E1D8/ 旧套件整体是 sub_801E040 错拷 (target.s 标 @0x0801E040),
+  已用 asm/nonmatchings/sub_801E1D8.s 重建 target.s/o (arm-none-eabi-as 通过)。
+- **v4 候选** (.scratch/main801E1D8/v4.c): `stride = 0xC8` 必须是**守卫内的局部变量** (经验 87 生死边界:
+  目标 `movs r1,#0xc8; mov sb,r1` 在入口守卫之后、do 之前物化, 全函数零 remat) — 这一步让 pool 落 r7 +
+  ret 落 sl, 头部 34B 逐指令全对 (v3 把 stride 放函数顶部物化过早, pool 被挤到 r8)。
+- 四处乘加操作数序已破解: 倒计时/入队 `k*stride + pool` (adds r0,r0,r7 / adds r3,r3,r7), F90 两处
+  `pool + k*stride` (adds r0,r7,r0); F90 段 ldr 4F90→r6 + ldr 730+i→r4 双缓存。
+- **剩余差异** (fndiff): ① i/stride home 互换 (目标 i=r8/stride=sb, v4 是 i=r9/stride=r8) — i/stride
+  的 pri (refs×live) 差异待 -da flow 量化; ② queue-flag 被 GCC 线程化: 目标保留
+  `movs r0,#1`(零路径)/`movs r0,#0`(减路径) + 汇合单点 `cmp r0,#0; beq`, v4 被直接跳转穿透; 入队段需
+  `obj2` 局部单乘积复用 (str r3 → adds r0,r3 → str r3,718 全复用), 但 v5 加回 obj2 局部引发 global-alloc
+  全洗牌 (pool 掉 r9), 说明 obj2 形态与 home 格局耦合, 需同轮解。
+- **工具发现**: `agbcc -da` 的 f.pp.flow 转储 (flow.c dump_flow_info) 可直接拿跨块 allocno 的
+  (n_refs, REG_LIVE_LENGTH) — 经验 117 手法可批量用, 无需补丁。
+- 套件 target.o 已重建, base.c=v1 (需换 v4 再跑 permuter)。score 参考: v1=3915 最优 (字面池虚高)。
+
+## 2026-09-10 zcode: PaletteFx_Transform 候选推进 (接管自 claude 死锁, 590行, 挂起)
+
+**⏸ PaletteFx_Transform (0x08009600, 590行, player_stats)** — permuter 从 claude 遗留 2750 压到 830
+(fndiff 实测 1045), 形状除 amount/count 的 r4↔r6 互换外**逐指令全对**:
+
+- 接管时发现 claude 认领后 50+ 分钟无活动 (锁 08:13, 最后文件改动 11:33), 事实接管。claude 遗留:
+  base=2750 (m2c 修订), base_2340=2475, 27 个 output 最佳 1665。
+- **还原目标的关键源语义** (相对 m2c/claude 版, 六步):
+  1. 循环守卫 `if (count != 0)` + `do {...} while (--count)` 包裹块 (claude 版是 `for(;;)+break`, 编出 pat
+     完全不同; 目标守卫跳向尾部 store 而非 return — claude 版此处理解错误, 见函数结构段);
+  2. 尾部 `gUnk_03004914 = gUnk_03004910 + 1` **重读全局** (阻断 'mov r8,r3/adds r3,#1' 循环出口 hoist,
+     -1195 分) + `effect` 局部变量保留 sw3 专用 (mode 不再全程存活, r8=&4910/r9=&4914 home 归位);
+  3. mode5 块双判拆开 `effect = gUnk_03004910; if (effect == 5) { if (gUnk_03004918 > 0x20) {...} }`
+     (目标 'mov r0,r8/ldrb r2/cmp #5' 在前, timer 重读在后);
+  4. sw1/sw2 内 timer 全部改直读 `gUnk_03004918` (timer 局部删除, -635 分; sw2 由 'mode = gUnk & 3' 借道
+     补出目标 e2 `adds r0,r3,#0` 复制);
+  5. 乘法操作数交换: 源码写 `ch * amount` 而非 `amount * ch` (dark 体 7 处 subs/lsrs/ands 归位),
+     像素组装 `(r + (g << 5)) + (b << 10)` (r 通道在左, -50 分);
+  6. permuter 发现 **值借道** (经验 207): bright 体守卫 `amount = count != 0; if (amount)` +
+     case7 `count = (gUnk>>1)+1; amount = count << 1` (885→830)。
+- **剩余卡点** (fndiff 1045): amount home=r6/count home=r4 与目标互反, 连锁 ~33 处寄存器名差异
+  (muls r0,r6↔r4, cmp r4/r6, ands, m6 体常量31 remat 位置跟随)。C 表层穷举无效
+  (类型矩阵/声明序/new_var 位置/case 重排/指针化, 见经验 208 存档)。
+- **工具坑**: asm-differ 对 NaN 池/填充行的并行对比含大量 'movs r0, r0' 噪声行,
+  分析差异时用脚本剥离后真实差异只有 ~33 行; fndiff 目标侧 'subs r0,r3,r0' 等 operand 序
+  在错位对齐时会被颜色标淹没, 需先修大块 (守卫/tail) 再看细节。
+- 套件: base.c=830 winner, target.o 已重建, compile.sh 含 3 个 .equ。
+- **最佳候选路径**: 经验 208 的"可能出路" (qtydump 引用计数干预) 或等 GCC2 flow 级新证据。
+
+## sub_800BFF8 (0x0800BFF8) — ✅ 2026-09-10 glm, 攻克 gpnux ⏸ (2026-09-04 score=650)
+
+数字→3位tiles转换: value 拆百/十/个位, 0 填空白 tile (0x25), base16=ROM基址低16位。
+tiles 顺序 [dest_orig]=个位, [dest-1]=十位, [dest-2]=百位。
+
+**三个叠加卡点 (gpnux 穷举 permuter 只到 650)**:
+1. **hundreds/tens 必须共用单 `count` 变量** — 分声明让 GCC 把百位放 r2、base16 放 r4 (目标: count→r4, base16→r6)。单一变量让两个循环的计数器同 web, GCC 分到 r4 且 base16 自然落 r6。
+2. **tiles[0] 必须写 `base16 + (0x25A + count)` 括号形** — 左结合形 GCC 重关联成 (count+0x25A)+base16, 括号形出 (base16+0x25A)+count 与目标一致。
+3. **tiles[1]/[2] 必须写 `(u16)(base16 + 0x25A) + digit`** — u16 强转截断阻止 GCC combine 把两次加法重关联成 (digit+0x25A)+base16, 使 `base16+0x25A` 保留在 r0 跨两条 tiles 计算复用 (目标 0xae `adds r0,r6,r1` → 0xb6 `adds r0,r3,r0` 复用)。
+   - 无强转: GCC CSE 只保留字面量 0x25A 在 r1, base16 每次单独加 → 多 2 条 adds (52 diff 卡点)。
+   - 显式中间变量 (base25 = base16+0x25A) 会把 base16 挤到 r2、d 挤到 r6 — RA 全崩 (130/170 diff)。
+
+**降 diff 轨迹**: gpnux 650 → v6 (单count) 54 → v11 (tiles[0]括号) 52 → v19 (u16强转) **0**。
+
+关键教训: 三个问题各自独立修正才收敛 — 单修任何一个都不够。permuter 自身无法发现"强转截断"这类 combine 控制手段 (它只探索语句顺序/变量提升)。
+
+终验: permuter base score=0 (2800+ 次迭代复验); fncheck OK (224B @0x0800bff8, 0池重定位, 0bl槽); 全量 make + sha1sum -c ll.sha1 绿 (768/1059)。
+
+## 2026-09-10 claude-d840 — battle_rewards.c 剩余 8 函数全灭 (765→773/1059)
+
+同族作战: D1B4 drop 家族的 8 个尾函数 (D4FC/D5B4/D8F4/D840/DA04/DB64/DC24/DCD8), 全部 permuter 5 分
+(唯一池计分) + fncheck OK + ROM SHA1 绿。攻破两个前人挂起项 ((glm-batch 的 D840/DC24 同坑, opencode 的
+DCD8 4B 差, sound-agent 的 D4FC scrutinee home)。
+
+### 核心 idiom — "flag 指针 + v 局部 + 表指针进分支" 三件套 (适用于 ldrsb scrutinee 族)
+sub_804D840 (D4FC/DC24 同构): ROM 入口 `movs r4,#0; ldrsb r4,[r1,r4]` (零索引落 dest) + case1 `ands r4,r0`
+(scrutinee 值直接 AND) + 尾 `ldrb r0,[r2]` 重读。C 还原:
+1. **flag 指针在 if/else 两分支内各自赋值** `flag = (s8*)(obj+0xBC);` — strb 后 r1 复活留给 ldrsb;
+2. **v 用 unsigned int** (非 s8, 非 u8) — s8 出双 ldrb;
+3. **case1 `v &= Rng(); obj[0xC2] = v;`** — 不能 RMW `*flag &=` (会展开成 ldrb+ands+strb 三步);
+4. probe 别名表 `Unk_804DABC_Ptr.field_8[obj[0xC2]]` 保持 `ldrb [r2]+lsls #1+adds #8` 链。
+key 变体: DB64 case1 = `kind=Rng%5`+`if((u32)obj[0xC2]==2) obj[0xC2]=v` (kind 独立局部);
+DA04 (D1B4 家族 push{r4,r5,r6}) = 全部同上但 scrutinee `(s8)obj[0xBC]` 数组读归一化, 无 flag 指针。
+
+### DCD8 4B 差的真相 — break 后调度屏障
+opencode 2026-09-04 挂起 "global-alloc r1 跨块复用+地址拷 r2, agbcc 产不出"。解 = case0 `break;` 后
+**`while (value) break;`** 一行 (两路皆 break, 零行为差, 比 permuter 的 `do{}while(0)` 可读) — 触发 agbcc
+重排 region1 成 `movs r1,#0; movs r0,#1; strb r0,[r2](拷贝地址); strb r1,[r0xC2]`。zero 局部 (u8 zero=0)
++ flag 分支内赋值合用即 152B 全对。d5b4/DCD8/D840 三处证明: **"奇怪的单行屏障"胜过 30 个语句变体**。
+
+### D8F4 幸运掉落 (gold 语义勘误)
+ROM `lsls r0,#0x12; lsrs r6,#0x10` = `X/10<<2` (u16 gold 视角的归一化形状; 写 `/10*4` 会出 `<<16>>14` 折叠)。
+gold 基址 = **obj+0x6E** (不是 arg1!) — `adds r0,#0x6e` 直接吃 r0 老值 (obj), 写 arg1 会多一条 copy。
+lucky=victory 用 r7 低位; case1 else 的 `obj[0xC2] = v` 须复用 scrutinee 局部 (cse 阻断点同 D840)。
+
+### D5B4 团队战奖励 (count=1 载体)
+`(count = 1)` 出 `cmp r0,#1` 常量 + count home 保 r6 — 双赢。count 随即被 sub_80489E8 重算, 行为零差。
+i 必须 u8 (归一化 lsls/lsrs); victory=unsigned int 声明在末位 (r8 高位); obj[0xAC]== 比较左值化
+(`obj[0xAC] == arg1[...]`, == 反转就 130 分)。
+
+### 验证纪律 (次目标完成度)
+8/8 函数 permuter 分数 = 5 (唯一池项 0x08393B28 未重定位的固有计分, 经验 29 的 400 分池计分在 permuter
+内部折半呈现), 即**逐指令逐字节 0 差异**; bytecmp 全部除 bl 槽逐字节一致; fncheck 全 OK; 每合入一个
+make+sha1 全绿。无一依赖 >1000 分退路。
+
+## sub_800F3AC (0x0800F3AC, menu_ui, 屏幕待机图标绘制) — ✅ 2026-09-10 glm
+破除 gpnux 挂起 (TSV ⏸ score 240, "待解5条指令参数调度")。语义: ClearBuffer 清 0x02005986
+(24x10, 0xB001) 后遍历 gScreenIdleIconIds[i+游标] (i=0..4), 调色板 11/13/12 三态 + 图标 8/0x18
+的 EventFlags 分支, 写 0xB190/0xB191 框瓦片并 Msg_DrawPoolSegment+Text_PutGlyph。
+
+### 逐项破关 (4 个独立卡点, 全部为"指令形状全对"级别)
+1. **off 移位合并**: `(i << 7) + 0x180` → GCC 合并为 `((i<<23)+(0xC0<<17))>>16`。两步
+   `off = i << 7; off += 0x180;` 解。⚠ 先踩了 `i << 7 + 0x180` = `i << 187` 的优先级坑
+   (off 恒 0, 三条地址指令静默消失, mine 107 vs 目标 112 条指令才暴露)。
+2. **ClearBuffer 展开的 home (w→r7 / 0xB001→r1)**: 由函数级 int 局部的声明序支配。
+   终态 `u16 *ptr; int tileOff; u8 i; int iconId; u8 segIdx;` — 逐个试出 tileOff/iconId
+   必须 int (u8 则 w→r3/0xB001→r7, 30 处差异)。该问题属 global-alloc (qty 表 0 项, 经验 88)。
+3. **ORR 重写**: `base + 0x190` → `mov r1,r8; orrs r1,r2`。tileOff = 0x190 独立成句保住
+   `add r1, r8`。
+4. **0x02005812 的 CSE**: `subs r1, #62` (= 0x02005850-0x3E) 用 msgPtr 变量/拆语句均无法阻止。
+   permuter 中奖 (330→60): `new_var = iconId;` 插在 tile2 存储与 pool3 之间。人工化为
+   `segIdx = iconId;` (u8) — 同时买下 CSE 阻断与 `adds r1,r4,#0` 的调度位置。
+
+### 流程
+permuter base score = 0 (cleanX.c) → 人工代码 (无 perm 残留, 语义注释完整) → 复验 base score = 0
+→ fndiff 仅剩 `...` vs `.short 0` 的 objdump 填充显示差 → 合入 src/menu_ui.c → fncheck OK (252B)
+→ make + sha1 全绿。经验 214 已归档。
+
+## sub_800FF10 (0x0800FF10, menu_ui, 装备更换属性预览) — ✅ 2026-09-10 claude_1
+
+接管 `claude_1` 的进行中锁。306 asm 行 / 608B, 两个跳转表。语义: arg0=装备/道具 id (0xFF=不换),
+arg1=装备槽 (0..5), arg2=队伍成员索引 (gPartyStats 下标, stride 0x40)。调用方
+`SkillMenu_SaveCursor` (text_engine.c)。
+
+### 结构 (四段)
+1. `arg0 == 0xFF` → 早返回: 把 `gPartyStats[arg2]` 的 equip_atc..equip_luc (0x1D..0x23) 依次拷进
+   `gEquipBonusAtkBase/Def2/Agl/Men/Res/Noa/Luc`。⚠ 写入顺序 (atc,def,agl,men,res,noa,luc) 与
+   地址顺序 (0x4A90,0x4AA8,0x4AB0,0x4A98,0x4A94,0x4AB4,0x4AB8) 不同, 照反汇编逐条写。
+2. 否则 **两组 `switch(arg1)`**: 第一组临时把 arg0 写进 `equip_slotN` (先存旧值 prev),
+   然后 `Stats_RebuildEquipBonuses(gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)])`, 第二组把 prev 写回。
+3. `gEquipBonusAtkBase += gEquipBonusAtk; gEquipBonusDef2 += gEquipBonusDef;`
+4. 7 组 `if (ps->equip_X > gX) gStatArrowIds[k] = 0xC; else if (ps->equip_X < gX) gStatArrowIds[k] = 0xD;`
+   (相等则保持调用方预置的 0xB)。
+
+### 卡点/关键点
+- **双跳转表**: 两组 switch 的 6 个 case 体是相同语句序列, GCC2 把它们 cross-jump 成**共享尾块**,
+  每个 case 只剩 `adds r0,#0x24+k; b 共享尾块`。源码按"每个 case 各写两/一句"写即可;
+  **不要**写成 `u8 *p = &ps->equip_slot1; p[arg1]` (会退化成单条 add, 跳转表消失)。经验 215。
+- **sizeof(PlayerStats) 必须 = 0x40**: 首版 base.c 结构体写到 0x29 就收尾 (sizeof=0x2C), GCC 生成
+  `movs r0,#0x2c; muls r1,r0`, 目标却是 `(u8)arg2 << 6` (`lsrs r2,#0x12`)。补 `u8 pad2[0x16]` 立刻对齐。
+- **字面池假高**: base score 首测 135 (fndiff 10800) 全来自 13 个数据符号未重定位。按经验 117/§9
+  给 `permuter/sub_800FF10/compile.sh` 追加 13 条 `.equ <sym>, 0x<addr>` → base score 立即 0。
+- **bytecmp 多 16B**: mine.bin 624 vs 目标 608, 多出的 16B 是 ld 为超出 Thumb BL 范围的目标
+  (0x0800A664) 生成的**长跳桩**; 608B 内只有 1 处 4B 差异 = 那条 `bl` 的重定位槽 (bytecmp 已豁免)。
+- **luc/noa 顺序**: gStatArrowIds 索引序是 atk,def,agl,men,res,**luc(5),noa(6)** — 与
+  `Stats_RebuildEquipBonuses` 内 case 5=Noa / case 6=Luc 相反; sub_800B374 的读取端证实了 luc→[5]。
+
+### 新增/修正符号
+- 新增 `gStatArrowIds` @ 0x030001BC (7×u8): 本函数填写, `sub_800B374` 读取后交给 `sub_800EAE4` 渲染;
+  0xB=平 / 0xC=升 / 0xD=降。已登记 include/iwram.h + linker.ld (按地址序插在 0x1BA 与 0x1C4 之间)。
+- include/code_0.h:214 `void sub_800A664(u8);` 是重命名遗留的旧名 (ll.cfg 与 asm 早已是
+  `Stats_RebuildEquipBonuses`), 原位改成规范名。三个调用点实参均为 u8, 补原型后字节不变。
+
+### ⚠ 流程坑 (本轮实踩)
+- **Makefile 不跟踪头文件依赖**: 改 `include/*.h` 后必须 `touch src/*.c` 再 make, 否则旧 .o 复用 →
+  sha1 假绿。第一次 make 仅 714ms 空转即为信号。已用 `find build -name '*.o' ! -newer include/code_0.h`
+  确认 36 个 C 目标全量重编后才认绿。
+- **functions.tsv 被并发写坏 (非本 agent)**: 0x0800f3ac/0x0800f4a8 与 0x08024618/0x080246e8 两组相邻行
+  各自粘连成一行 (丢换行+note, name 变 `sub_800F3AC1` / `sub_80246180`), 导致 gen_asm 误删
+  `asm/matchings/MenuUi_DrawItemList.s` 与 `asm/nonmatchings/sub_80246E8.s`, 全量 make 红在
+  `Assembler: can't open asm/nonmatchings/sub_80246E8.s`。详见 INCIDENTS.md。
+
+### 流程
+mkpermuter (INCLUDE_ASM 失败)→ 手工搭套件 (copy compile.sh + 汇编 target.o) → m2c 草稿
+→ 人工 base.c → fndiff 逐指令一致 (仅池注解差) → bytecmp 4B(=bl 槽) 差 → compile.sh 加 13 条 .equ
+→ permuter base score 0 → 合入 src/menu_ui.c → gen_asm → fncheck OK 608B
+→ touch src/*.c + make + sha1 绿 (776/1059) → audit 776/776 通过。经验 215 已归档。
+
+## sub_804DFD8 (0x0804DFD8, obj_pool, 物件栏"名称+数量"绘制) — ✅ 2026-09-10 claude_1
+
+138 asm 行 / 266B, 7 个参数 (3 个走栈) + 一次 `__udivsi3`。唯一调用方是 `sub_8024940`
+(scene_obj_fx, 未匹配) 的物件列表循环。
+
+### 签名与语义
+```
+void sub_804DFD8(u16 *arg0, u8 arg1, u8 arg2, u8 *arg3, u8 arg4, u8 arg5, u8 arg6)
+```
+- `arg0` = tilemap 基址 (调用方传 0x02035AC0); `arg1` = 列, 行 = `arg2 + arg4*2`;
+- `arg3` = 4 字节物件条目 (0x030007C8 表): `arg3[0]` = 名称 id (索引 `gItemNames`, 256×8B),
+  `arg3[1]` = 数量;
+- `arg5` = 调色板号 (<<12 组成 tilemap 条目); `arg6 != 1` 时跳过数量绘制。
+- 名称 8 格 × 2 瓦片 (`(arg5<<12) + ch*2` / `+1`), 空字符用空格瓦片 `(arg5<<12)+1`;
+- 数量取两位, 个位/十位字形 = `(arg5<<12) + (d + 0xA2)*2 (+1)`; 十位为 0 时整格用空格。
+
+### 三个卡点 (按发现顺序)
+1. **字节域分组**: `dst = (u16*)arg0 + row*32 + col` 被 GCC 折成 `row*64 + col*2`
+   (`lsls #6` + 复用 truncate 出的 `col*2`); 目标却是 `(row*32+col)*2`
+   (`lsls #5; adds col; lsls #1`)。改成 `(u16 *)((u8 *)arg0 + ((row) * 32 + col) * 2)` 即对齐。
+2. **抽变量 vs 内联 = 活跃值数量**: 目标把 `arg5` 经 `ip` 保留进循环、循环内重新物化 `(arg5<<12)`,
+   因此活跃值多 1 个 → GCC 才把 name 放 sb(r9)、arg6 放 sl(r10), prologue 多压 3 个寄存器。
+   我抽了 `int base = arg5 << 12;` → arg5 提前死亡、活跃值 -1、prologue 缩成 `push {r7}`、全函数
+   寄存器整体错位 (3234 分, 但逐指令形状全对)。**把 `(arg5 << 12)` 在循环体内联写** → prologue 立即
+   对齐, 3234 → 1000。经验 216。
+3. **`%` → `__umodsi3`**: `digits[1] = arg3[1] % 10;` 会调 `__umodsi3`, 而目标只有一次
+   `bl __udivsi3` + 手算余数 (`d1 = x - d0*10`, 且 d0 从栈重载)。改为 `d0 = (u32)x/10;
+   d1 = (u32)x - d0*10;` 后到 0。注意 x 必须按 unsigned (否则 `__divsi3`)。
+
+### 其余记录
+- 剩余 1000 分里 dst 的 r5/r6 互换: 到 0 后自动消失 (修 #3 后一并解决)。
+- back-edge 的 dead `lsls r6, ip, #0xc` 是正确分配的副产品 (经验 11 类), **不要消除**。
+- 新增/修正: `include/code_0.h:985` 原型 `void sub_804DFD8();` → 补全 7 参;
+  obj_pool.c 内新增局部 `extern const u8 gUnk_08095028[][8];` (与 menu_ui.c 同风格)。
+
+### 流程
+手工搭 permuter 套件 (mkpermuter 对 INCLUDE_ASM 失败) → compile.sh 预置 `.equ gUnk_08095028`
+→ 人工 base.c 三轮 (3234 → 1000 → 0) → permuter base score 0 → 合入 src/obj_pool.c
+→ gen_asm → fncheck OK 266B → touch src/*.c + make + sha1 绿 (777/1059) → audit 777/777。经验 216 已归档。
+
+## sub_804E0E4 (0x0804E0E4, obj_pool, 物件使用演出状态机) — ✅ 2026-09-10 claude_1
+
+209 asm 行 / 456B, 两个跳转表 + 7 个 bl。调用方 `sub_804F088` (arg0[0xA4] > 0xDC 时进入)。
+
+### 结构
+```
+u8 sub_804E0E4(u8 *arg0, u32 arg1)
+```
+1. **前段** `switch (arg0[0xA4] - 0xDD)` (8 cases): 选出一对 (a→r3, b→r2), 只供 case 4 使用;
+   注意 case 5/6/7 只赋 a, b 沿用未初始化值 (与目标一致, 不要"补"初值)。
+2. **后段** `switch (gUnk_03000DDE)` (0..13 状态机, 返回 1 = 演出结束):
+   - 0: `sub_8020DE4()`; state=1; `gUnk_03000DE6 = *(u16*)(arg0+0x2A)`; `gUnk_03000DE8 = arg0[0x35]`;
+   - 1: `sub_801CBA4(arg0, 6, 0x1B4, 0xD, 0)`; state=2; `Sfx_Play(0x17,0,0)`;
+   - 2: `if (*(u16*)(arg0+0x24) & 0x1000)` → 见下; state=3;
+   - 3: `if (!(*(u16*)(arg0+0x24) & 0x800))` → `&= 0xFEFF`; state=4;
+   - 4: `if ((u8)sub_801EEE4(arg0, arg1, 0, a, b) == 1)` → state=0xD;
+   - 13: result=1; state=0。
+
+### case 2 明细 (三个卡点都在这)
+```c
+v = arg0[0x35];
+sub_804C3A4(v, (u8)sub_801B954((void **)(arg0 + 0xC)));
+keys = *(u16 *)(arg0 + 0x24) & 0xEFFF;
+zero = 0;
+*(u16 *)(arg0 + 0x24) = keys;
+sub_801CBA4(arg0, zero, gUnk_03000DE6, gUnk_03000DE8, zero);
+keys = *(u16 *)(arg0 + 0x24) | 0x100;
+*(u16 *)(arg0 + 0x24) = keys;
+gUnk_03000DDE = 3;
+```
+- 第 2、5 参必须传**同一个 `u32 zero` 变量**(不是两个字面 0) → GCC 才只 `movs r1,#0` 一次并一职两用;
+  直写字面 0 会多一条 `movs r0,#0` 且把 `movs r1,#0` 排到调用前 (fndiff 280)。
+- 尾部 OR 必须用 `u16 keys` **临时承接再回存**, 不能写 `*(u16*)p |= 0x100;` —— 后者差 2 条指令
+  (r0/r1 操作数互换, fndiff 10)。
+- 两处写法**都是照抄同族已匹配函数**: `sub_8034440` (event_hub.c) 与 `event_actor.c:190`。经验 217。
+
+### 新增符号
+`gUnk_03000DE6` (u16, 保存 `obj+0x2A`) / `gUnk_03000DE8` (u8, 保存 `obj+0x35`), 均在 0x03000DDE
+与 0x03000DF0 之间的空洞里, 按地址序登记 iwram.h + linker.ld。原型 `u8 sub_804E0E4(u8 *, u32)`
+(code_0.h:986) 本就正确, 未改。
+
+### 流程
+手工搭 permuter 套件 + `.equ` 固化 3 个符号 → 人工 base.c 三轮 (280 → 10 → 0)
+→ permuter base score 0 → 合入 src/obj_pool.c → gen_asm → fncheck OK 456B
+→ touch src/*.c + make + sha1 绿 (778/1059) → audit 778/778。经验 217 已归档。
+
+## sub_804E85C (0x0804E85C, obj_pool, 物件"演出"状态机) — ✅ 2026-09-10 claude_1
+
+192 asm 行 / 384B, 返回 1 = 演出播完。无 C 调用方 (原型原为 `void`, 实为返回 u8)。
+
+### 结构
+```
+u8 sub_804E85C(void)
+```
+`gUnk_03000DF0` = 对象指针表 (u32 每项), 第 0 项是**模板对象**; `gUnk_03000E04` = 对象数;
+`gUnk_03000E05` = 状态。四个 case:
+- **0** 起手: `sub_8020CC4(obj0, obj0[0xBF], obj0[0xC0], 0x2EA, 0xE, 0xA6, 0x104)`; `obj0[0x66] = 3`; → 1
+- **1** 等 `*(u16*)(obj0+0x54)` 的 0x800 清零, 然后把模板对象 `+0x3C` 起 0x30 字节状态块
+  复制到对象 1..count-1; → 2
+- **2** 等 `*(u16*)(obj0+0x54)` 的 0x1000: `sub_804C3A4(obj0[0x65], (u8)sub_801B954(obj0+0x3C))`,
+  再清所有对象 `*(u16*)(obji+0xB0)` 的 0x2000 位; → 4
+- **4** 逐对象 `sub_804612C(obji, 0xA, 1)`; `result = 1`
+
+### 唯一卡点: 表项必须"每次重读", 不能抽局部指针 (经验 218)
+首版写成 `u8 *obj = (u8 *)gUnk_03000DF0[0];` 复用 → 1115 分, 全程逐指令形状几乎全对,
+只是寄存器角色整体错位 (r5↔r6、r9↔r8、对象指针落 r5 而非 r0/r2)。
+判据 (目标给出两条铁证):
+1. **每个 case 开头都重新 `ldr rX, =0x03000DF0`** (没有复用寄存器);
+2. **循环体内**还有一条 `ldr r0, [r2]` 重读表项 0 —— 只有源码每次都写表达式才不会被提升成循环不变量。
+
+改成**全程直接下标** `((u8 *)gUnk_03000DF0[n])` → 一次到 0。为可读性收尾时用文件内宏
+`#define ObjSlot(n) ((u8 *)gUnk_03000DF0[n])` (纯文本替换), 按铁律 6.6 复验 fndiff 仍 = 0。
+
+### 附带
+- `obj+0x3C` 起 0x30 字节整块拷贝: 写成 `*(struct { u32 w[12]; } *)dst = *(struct {...} *)src;`
+  即得目标的 `4 × (ldmia r0!,{r5,r6,r7} / stmia r1!,{r5,r6,r7})` —— 不要手写循环或 memcpy。
+- 新增文件内 `typedef struct { u32 w[12]; } ObjBlk;` 与 `ObjSlot` 宏 (均在 obj_pool.c 局部)。
+- `code_0.h:991` 原型 `void sub_804E85C();` → `u8 sub_804E85C(void);` (反汇编有 r0 返回)。
+
+### 流程
+手工搭 permuter 套件 + `.equ` 固化 3 个符号 → 两版 base.c (1115 → 0) → 宏化后复验 0
+→ permuter base score 0 → 合入 src/obj_pool.c → gen_asm → fncheck OK 384B
+→ touch src/*.c + make + sha1 绿 (779/1059) → audit 779/779。经验 218 已归档。
+
+## sub_804E9DC (0x0804E9DC, obj_pool, 战斗掉落结算) — ⏸ 2026-09-10 claude_1 挂起
+
+271 asm 行。**结构已全部对齐, 只剩 global-alloc home** (终分 6030)。
+
+### 已还原的语义 (结构 100% 对)
+```
+u8 sub_804E9DC(u32 *arg0)
+```
+- `gUnk_03000E30 = 0`; `pool = GetObjPool()`; `list = sub_8020E68()` (含 `list[0]`=条数,
+  条目在 `list[i*4+1]`); `objs = GetObjPool()` (注意**两次** GetObjPool, 分存两个变量);
+- `count = sub_80489E8(objs, values, 0, 0x1FF)` (`u8 values[8]`);
+- **第一段**: 遍历 values 找第一个 `sub_804E76C(objs + values[i]*0xC8, 5, 4)` 返回 ≥0 的槽
+  (`v = sub_804E76C(...); if ((s8)v >= 0) { found = v; break; }` — u8 临时 + (s8) 判定,
+  这样 GCC 才会把 (u8) 归一化做在比较之前并复用 `lsls`); 命中则 `bonus = 0xF` 否则 0;
+- **第二段**: `for (i = 0; i < list[0]; i++)`: 跳过 `pool[i*0xC8+0x493] == 7` 的槽;
+  `v = list[i*4+1]`; `v <= 0x70` → `k = v-0xC`, 表 `gUnk_0839D9B8`; 否则 `k = v-0x71`,
+  表 `gUnk_0839DBB1` (两表都是 **101 条 × 5 字节**, 0x0839DBB1-0x0839D9B8 = 0x1F9 = 101*5);
+  `Rng_LcgNext() % 100` 与 0x3B 比较分两路, 再 `% 100` 与 `tbl[k][1]`(低路)/`tbl[k][3]`(高路)
+  比较, 命中取 `tbl[k][0]` / `tbl[k][2]`, 加 `bonus` 后为 val;
+- val 非 0 则并入 `gUnk_03000E08[]` (按 field_0 找同 id 累加 field_2, 否则新开一条并 `gUnk_03000E30++`);
+- 末尾逐条 `sub_800AA60(field_0, field_2)` (= AddInventoryItem), 返回 `gUnk_03000E30`,
+  并把 `gUnk_03000E08` 地址写入 `*arg0`。
+
+### 卡点 (唯一, 且属 global-alloc 域)
+寄存器角色整体错位一档: **目标 loop1 索引=r4、objs=r5、count=r6、loop2 索引=r6**,
+我这边 **objs=r4、i=r5** (r4↔r5 互换), 以及 loop2 索引落不同寄存器。指令**形状逐条一致**。
+
+### 已穷举无效的手段
+- 局部声明序 (指针在前/在后、去掉未使用的 `s8 res` 声明) — **完全无变化** (恒 6030);
+- 把两处 GetObjPool 合并成一个变量 — 更差 (6010→结构错);
+- permuter (`-j 1`, 260s): 只把分降到 2930, 但**根因是把 `u16 Rng_LcgNext()` 改成 `int`**
+  —— 改回 `u16` 立刻退回 6030, 即"给另一个程序打分"(经验 96)。**不可采纳**,
+  `output-2930-1/` 等产物请勿直接合入。
+
+### 判据留档
+- `sub_804E9DC` 的 `%` 走 **`__modsi3`(有符号)**, 而其他已匹配调用点 (sub_802761C/sub_8034BFC/
+  sub_803586C…) 走 **`__umodsi3`** → 说明别处源码显式转 unsigned, 本函数是纯 `int` 域。
+- `Rng_LcgNext` 定义在 sio_link.c 返回 u16, 但 GCC2 在此处**不插零扩展**,
+  所以 `u16` 原型 (code_0.h:397) 是正确的, 不要改成 int。
+
+### 下一步建议
+需要 qtydump/`-dl` 级分析 (经验 88/119/214/216/218 的 global-alloc 判定族),
+或找到与 sub_804E9DC 同族的**已匹配**函数 (battle_rewards.c 里有多处 `values[8]` + 掉落循环)
+抄其声明序/变量切分。悬赏见 `claim.sh --table`。
+
+## sub_800F128 (0x0800F128, menu_ui, 技能菜单逐项绘制) — ⏸ 2026-09-10 glm (语义全解, 差纯寄存器漂移)
+### 语义 (已完整还原)
+arg0=memberId(gPartyMemberIds 值), arg1=cursorPos。
+1. ClearBuffer(0x02005A44, 0x1C, 8) — 技能菜单 28x8 瓦片缓冲 (0xB001, 行距 0x40)。
+2. gMenuCursorStack[0]==0 → 无角色分支: id=0x3E; cursorPos==0 → selVal=0x3E/palette=0xD else
+   palette=0xB; !(gUnk_03002C44 & 0x80) → palette=0xC; id!=0xFF → 从 gCharacterNames[(id-1)*8]
+   画角色名 8 字到 0x02005A86 (Text_PutGlyph, palette)。id==0xFF → 直达函数尾。
+3. 主分支: id=memberId; id!=0 → id--; st=&gPartyStats[id]; 遍历 st->skills[idx] (idx=0..7):
+   id==0xFF → break; idx++; !(gSkillLearnTable[(id-1)*5+2] & 0x80) (非双手武器) →
+   skillRow==cursorPos → selVal=id/palette=0xD else palette=0xB; name=gCharacterNames+(id-1)*8;
+   dest=0x02005800+((skillRow&0xFE)+0xA)*0x40+(0xD*(skillRow&1)+3)*2; 画 8 字名;
+   sub_800EAE4(0x02005A80+(skillRow&0xFE)*0x40+(0xD*(skillRow&1)+0xD)*2,
+   ItemGetUsePower(memberId,id), 0xE) — MP 消耗数字; skillRow++。
+4. 尾: gUnk_030001C8 = selVal+0x128 (u16); *(u8*)0x030001C3 = selVal;
+   gMenuCursorSel<=3 → 从 0x08098611 画描述文本 (页头 x,y,palette; 文本 0xFF 分隔, 0xFE 转义:
+   Text_PutGlyph(dest, 0xFE00|next, palette); dest 逐项 +2)。
+
+### 差异状态
+fndiff 252 行差 (~126 条指令), 循环形状/池布局/sp 槽布局(5 槽同内容)全对, 剩余为纯 global-alloc
+寄存器 home 漂移:
+- id (0x3E/memberId/skillId 合并 web): 目标 r8 (每次赋值经 `mov r8, rX` 拷贝形态), 我侧 r3。
+- palette (int→u8 均试): 目标 r9, 我侧 r8 (整体下移一位)。
+- skillRow+1: 目标 sp10 (栈), 我侧 r9。idx: 目标 r4/sl 对, 我侧 ip/sp16。
+- 无角色分支目标 `movs r2,#0x3e; mov r8,r2` 拷贝形不可达 (常量直落 r3)。
+
+### 已试 (均不可达)
+int/u8 类型矩阵 (id, palette), 声明序 ×3, idx++ 位置 (for 尾/0x80 检查前显式/while(1)+break),
+三元 vs if-else, 合并 descId/skillId 为单变量 (关键结构 — 合并后形态更近但 home 仍 r3),
+死赋值。permuter 两轮各 ~2000 迭代 (8375→7040, 7420→5940) — 分数被寄存器漂移锁死。
+
+### 最佳候选
+permuter/sub_800F128/base.c (=t6: int id 合并 + idx++ 显式前置 + u8 pagePal)。
+经验线索: 经验 87/214 的"变量兼多职"已用于合并 id web, 但 global-alloc 的 callee-saved
+优先级翻转仍差一档 — 可能需要增加 id web 的 refs (找源码里缺失的一次读) 或等同类案例。
+
+## sub_800E8F8 (0x0800E8F8, menu_ui, 状态/选择框五位数计时绘制) — ⏸ 2026-09-10 gpnux (语义 100% 解, 剩 LRA 家族寄存器全局分配墙)
+### 语义 (已完整还原, 结构 ~99% 对)
+签名 `void sub_800E8F8(u16 *dst, s32 value, u8 flags)`; 调用点: sub_800C194(0x02005B18, *0x03001948, 0xB) 画状态窗计时,
+sub_8010F10(gUnk_03000210[idx], flags) 画选择框数字。
+
+1. **五位数 = 余数链除法**: `d0=Math_DivLoop(&value,21600000)` 然后 value%21600000 继续
+   `d1=/2160000, d2=/216000, d3=/36000, d4=/3600` (Math_DivLoop 改 *ptr 为余数), 商各取 u8.
+   [21600000,2160000,216000,36000,3600] = 100小时/时/分十/分 的 60fps 帧数。
+2. **每位画 8×16 两格**: `w = p; v = d + 0xA2; p++` 后, 三分支 `if (v==0){} else if ((v&0xFF)==0xFE){} else {}`
+   (v==0 体物理在最后 = 嵌套 if, 同族 Text_PutGlyph 证实); 每分支**各自内联** `base = flags << 12`,
+   写 `*w = base + v; w += 0x20; *w = base | (v + 1)` (tile 连续上下两格, 行距 0x20 u16)。
+3. **tile 判定**: 正常 `v <<= 1` (=2*(digit+0xA2)=2*digit+0x144); 0xFE 分支
+   `v = ((u32)((v & 0xFF00) << 0x10) >> 0x17) | 0x280` (扩展字模基址 0x280, 死分支)。
+4. **布局**: 五格写 dest+0,1,2,4,5 (u16), 第 3 位 (冒号:时:分) 不写; p 指针依次 +1+1+1,
+   block4 前额外 `p++` (跳冒号格), block5 不递增。
+5. 关键类型: **`int v`** (非 s16) — permuter 找到, 才让 `v <<= 1` 纯 `lsls rX,#1`、`v+1` 直接 adds、
+   且差分对齐后 p→r5/flags→r6 归位 (s16 时 p/flags 互换)。`base` u16, `p`/`w` u16*。
+
+### 卡点 (唯一已定位, 属 global-alloc 域, 与 sub_800EAE4/sub_8010F10 同族)
+fndiff 1945 分 (~29 条系统性差异, 全是指令形状对而寄存器错位):
+- **flags<<28 CSE 临时的 home**: 目标在块1三路各算 `lsls r6,#0x1c` 后**都**存进 r2
+  (`adds r2,rX,#0`), 块2-5 全用 `lsrs r?,r2,#0x10`; 我侧只 normal 路存 r1 → 块2-5 用 r1。
+  r1/r2 一差, 每块的 w(base/v/w) 三寄存器整族下移: 目标 {w:r1,base:r4,v:r3}, 我侧 {w:r2,base:r3,v:r4}。
+- **p++ 经 w 计算**: 目标 `adds r5,#2` (原位), 我侧 `adds r5,rX,#2` (用 w 拷贝做基)。
+- **0x280 物化**: 目标 `movs r6,#0xa0; lsls r6,r6,#2; adds r0,r6,#0; orrs r4,r0` (多一条 adds 拷贝, 经验 31),
+  我侧 `movs r0,...; orrs r4,r0` (3 条, 少拷贝)。
+- 序言 `str r1,[sp]` 先于 `adds r5,r0` (目标 p 先), 五个除法中间无差异。
+
+### 已穷举 (均不达 0)
+- 双指针 p/w: `w=p; p++` vs `p++; w=p` × 全 6 排列 (brute.py 全试, 序言 r1/r2 不变)。
+- base 位置: 三分支内联 / 每块顶外提(w2, homes 对但块2为 reload 目标不 reload) / 块1 一次全局 (vbase)。
+- v 类型: s16/u16/int; `v=d; v+=0xA2` 两语句 vs 单表达式。
+- `flags<<12` 显式 `(u16)((u32)flags<<28>>16)` 移域形式 (2130 分)。
+- 内联 store `(flags<<12)+v` 去 base 变量 (5875 分)。
+- 嵌套 if vs if/else-if 平铺 (flux 翻转 905 规律同族)。
+- `s32 *vp=&value` 先取地址 / 声明序 ×3。
+- 0xFE 拆分 3 语句 (v&=0xFF00; v=...; v|=0x280)。
+- permuter 两轮 ~14000 迭代 (10975→1945)。-g 变体无效。
+- 关键取舍实测: "base 每块外提" 唯一买到 p=r5/flags=r6 正确 homes 但块2 重算 base (目标不复算);
+  "base 分支内联" 结构全对但 p/flags 互换 (w2 vs n1 的 10495 vs 3130)。
+
+### 下一步建议
+flags<<28 临时落 r2 是全局 key (经验 87/214 的变量兼多职制造生死边界方向): 试令块1 base 赋值
+显式为 `u32 h = (u32)flags << 28` 且 h 在块2-5 以 `h >> 16` 消费 (让 gcse 把临时固定到块1汇聚点
+而非块2); 或接受 n1 结构 (3130) 用 permuter 长时间压寄存器梯度。同族 sub_800EAE4 停 1670 分,
+此家族 (LRA) 为公认硬区, 建议转挂起留档。
+
+### 最佳候选
+`permuter/sub_800E8F8/base.c` (permuter output-1965-1, fndiff 1945 分, 语义等价、结构逼近目标)。
+
+## sub_804473C (0x0804473C, battle_engine, 战斗物件状态服务分派) — ✅ 2026-09-10 wb (permuter score=0, fncheck OK 364B, ROM SHA1 绿)
+### 语义 (已完整还原)
+战斗物件 (obj) 的状态服务总入口, 被 MOD-06 hub `sub_803F5B4` 在遍历物件池时逐项调用
+(参数2 = `pool + (slot_id & 0xF) * 0xC8`, 即 0xC8 字节的池 entry)。
+- `arg0[0xBE] > 0xA` → 直接走 `sub_8044A40` (默认/兜底服务)。
+- 否则按 `(s8)arg0[0xBC]` 三分派: `0`→A40 / `1`→按 `sub_8048764(arg0)` (技能/招式索引) 再细分 / `2`→`sub_8045098`;
+  其余值 (负数或 >2) 落到"未初始化 result"返回 (源码 switch 无 default)。
+- 内层 `switch (sub_8048764(arg0))` (u8, 表 0..59): `0,1,2,38,39,40,42,48,53,55,58,59`→A40,
+  `17,18,19,20`→返回 0, 其余 (含 >0x3B)→F4C。
+- 全部经共享 `u16 result` 汇聚, 函数末尾一次 `return result;` (函数本体返回 u32)。
+
+### 结构判据 (一次到 0 的关键, 见 EXPERIENCE 经验 222)
+1. **单一 result 变量 + 末尾一次 return**: 目标 `_0804489C` 是被 A40/F4C/5098 三个 call 块共享的
+   `lsls r0,#0x10; lsrs r2,#0x10` (u16 截断) + `_080448A0` epilogue (`adds r0,r2,#0`)。
+   写成"每分支自带 return"会出现多份转换块 (sen1 的 cand1..cand6 全部 4550 分即此因)。
+2. **case 0 与外层 if 的相同 call 跨块合并**: `result = sub_8044A40(arg0,arg1)` 在 case 0 和
+   `arg0[0xBE] > 0xA` 分支重复 → GCC cross-jumping 合并成末尾一块 (0x08044894), case 0 的
+   dispatch 直接远跳过去; 源码顺序仍是 0,1,2, 无需手写 goto。
+3. **内层不要画蛇添足写 `if (idx > 0x3B)`:** 目标里 `cmp #0x3B; bls 表; b F4C` 就是 switch 表驱动
+   的边界检查 + default 合并, 手写外层 if 反而多出一个分支 (sen1 cand6 即此)。
+4. **被调原型**: `sub_8044A40/sub_8044F4C/sub_8045098` 的赋值处有 `lsls#0x10` 截断 → 返回类型是
+   32 位, code_0.h 由 `void` 改 `u32`。`sub_804473C` 本体保持 `u32` 返回 (改 u16 会让已匹配的
+   `sub_803F5B4` 多出一次零扩展而破坏其匹配)。
+5. **校验捷径**: permuter/bytecmp 的 target.o 其 bl 是未解析占位 (`f7ff fffe`), 候选 compile.sh
+   **不要**给被调符号加 `.equ` —— 两边同为占位时, 直接 `objcopy -O binary --only-section=.text`
+   后 `cmp` 即可 0 差异 (364B); 加了 `.equ` 反而 16B (4×bl) 差异 + 链接后长度 432≠364, 造成假 DIFF。
+
+### 产物
+- `src/battle_engine.c`: INCLUDE_ASM → 真 C (39 行 switch 结构)。
+- `include/code_0.h`: 3 个被调原型 void→u32。
+- `functions.tsv`: status 0→1。
+- permuter 套件保留 `permuter/sub_804473C/base.c` (score=0 种子); sen1 遗留 cand1..cand6 已无价值。
+
+## sub_80497B0 (0x080497B0, battle_engine) — ✅ 2026-09-10 zcode-8024618
+
+### 语义
+数字翻牌显示 (战斗奖励/HP 变化等数字滚动 UI 的底层):
+把 `arg1` (u16) 拆成 5 个十进制位 `digits[0..4]` (万/千/百/十/个) 存栈上数组;
+引导循环跳过前导零, i 指向首个非零位; `i` 加上全局翻牌计数器 `gUnk_0300094C`
+(u8 回绕) 得到本次显示位, 写 `arg0[0]` / `arg0[0x20]` 两行 tilemap
+(值 = `digit*2 - 0x4EBC / -0x4EBB`, 即 0xFFFFB144/5 + digit*2), 计数器 ++。
+返回: val==0 → 1 (立即完成); i>3 → 1 (全部位播完); 否则 0 (逐位动画进行中)。
+调用点: `sub_8049420` 的 kind 分发表 (战斗 UI 边框数字)。
+
+### 关键匹配点 (一次 fndiff 回环即 3 字节收尾)
+1. **参数 `u16 arg1`**: 入口产生 `lsls #0x10; lsrs #0x10` 截断 (u32 参数没有)。
+2. **除法双通道**: 第 1 次 `(u32)val / 10000` → `__udivsi3`; 其余 3 次 `(int)(...)` →
+   `__divsi3`。混用任何一个都差 2 字节 bl 编码。
+3. **中间和括号全式**: `val - (d0*10000 + d1*1000 + d2*100)` 形式。链式
+   `val - d0*10000 - d1*1000 - d2*100` 会被 GCC 拆成多次 `subs r0,r7,r0` 并 CSE 复用
+   `val - d0*10000` 子树 (与目标逐项 muls 重算 + adds 累加 + 单次 subs 的形状冲突,
+   差 88 字节)。(经验 209 姊妹形: 括号阻止重关联在这里是**必须**而非可选。)
+4. **前导零循环计数器必须 u8**: `lsls #0x18; lsrs #0x18` 截断让 GCC 无法证明 i 单调,
+   保留数组寻址 (`lsls r0,r4,#1; add r0,sp; ldrh`); u16/u32 计数器会被强度削减成
+   指针步进 (`adds r1,#2`), 形状全变 (88→163 字节差的分水岭)。
+5. **清零条件 `if (i > 4 && val == 0)`**: && 不是 ||。目标块流 = i>4 → cmp val →
+   val==0 才清零; || 会把 i>4 直接 bhi 到清零 (跳过 cmp val), 差 11 字节。
+6. **尾部 3 return 顺序**: `if (val == 0) return 1; if (i <= 3) return 0; return 1;`
+   决定 ret1@10c (近) / ret0@120 (远) 的块布局; 写成 `val!=0 && i<=3` 合并形会把
+   ret0/ret1 块位置互换 (差 11 字节)。
+7. **tile 常量写 `x - 0x4EBC / -0x4EBB`** (非 `+0xFFFFB144/5`): 直接加会截断成
+   0x0000B144 池条目, 目标池是 0xFFFFB144/5 (经验 209 姊妹形, 同 sub_8024618 的
+   -0x4FFF 技巧)。
+8. 原型: `code_0.h` 的 K&R `u32 sub_80497B0();` 必须改全原型
+   `u32 sub_80497B0(u16 *arg0, u16 arg1);` — agbcc 对"空参数表 K&R 声明 + 带参定义"
+   报 `can't match an empty parameter name list declaration`。
+
+### 产物
+- `src/battle_engine.c`: INCLUDE_ASM → 真 C (43 行)。
+- `include/code_0.h`: sub_80497B0 原型 K&R → 全原型。
+- `functions.tsv`: status 0→1 (780/1059)。
+- permuter 套件 `permuter/sub_80497B0/` (手工搭建: mkpermuter 不支持 INCLUDE_ASM 占位)。
+- fncheck OK 302B; make verify 780/780 OK; SHA1 通过。
+
+## 2026-09-10 sub_80448A8 匹配 (战斗结果技能恢复量分发, battle_engine, 408B)
+
+**语义**: `stats = *(obj+0x88)`; 默认 `kind = stats[0x2F]`, `(s8)obj[0xBC]==1` 时改取
+`stats[0x30 + obj[0xC2]]`; `switch(kind)` 0..54 跳表分发到 `sub_8044A40(obj,arg1)`
+(恢复量基准), case 12/34/38/41 结果 +0xF, case 14/37/40 结果 +0x1E, 其余原值;
+u16 截断后写 `gUnk_03000908` (新登记 IWRAM) 并返回。恢复量与 skill id 联动 =
+ HP 恢复类技能的效果量分发 (部分技能档位恢复 +15/+30)。
+
+**过程**: 头部 `(s8)obj[0xBC]` 双 cmp + case1 取址用 permuter/exp-11 "结构体成员访问"
+形状 (stats->unk30[obj->field_C2]) 直接命中; result/kind 的 r1/r4 home 互换穷举
+10+ 声明/顺序/类型变体无效, permuter 从 1415 压到 5 分平台后靠 **`do{}while(0)`
+整体包住 switch** 的屏障变体拿到正确 home (while(kind)break/置于 case 间/置于 switch
+后全部无效 — 见 EXPERIENCE 223)。
+
+**池计分伪差印证 (exp-29 permuter 侧)**: 人工修正版用 `extern u16 gUnk_03000908`
+→ permuter base score = 5 (池字重定位计分); 换 `#define gUnk_03000908 (*(u16*)0x03000908)`
+→ score = 0; 两版 bytecmp 字节完全一致 (bl 槽伪差外 0 差)。合入 src 用具名符号
+(linker.ld+iwram.h 登记), fncheck OK 408B。
+
+**产物**: src/battle_engine.c 真 C (99 行); code_0.h `void sub_80448A8()` → `u32`
+(返回值 lsls#0x10 截断自证; 无已匹配调用方, 安全); linker.ld/iwram.h 登记
+`gUnk_03000908`; functions.tsv status 0→1 + note。
+
+## sub_80485A4 (0x080485A4, battle_engine, 战斗对象允许判定) — ⏸ 2026-09-10 zcode-main 挂起
+
+**语义全解** (109 行, 3 实参 `(u8 *obj, u8 mode)` → `u8`; 调用方 sub_8044A40 传 mode=1/2):
+
+三分支判定函数, `be = obj[0xBE]` (战斗对象类型字段):
+
+1. `be <= 0xA` → 直接 `return 0` (基础职业不适用)
+2. `(u8)(be - 0xC) <= 0x64` (0x0C..0x70 区间) → 查表 `gUnk_0839D5BC`:
+   `(s8)obj[0xBC]==0` 取 `tbl[k2*6+4]`, `==1` 取 `tbl[k2*6+5]` (k2=be-0xC), 其余取常量 0x32;
+   与 `mode` 相等 → ret=1。表布局 = 每条目 6 字节, +4/+5 是两个允许标志位
+   (与已匹配姊妹 sub_8048C30 同表, 该函数判 `(flagA==1 || flagB==1)`, 本函数判 `flag == mode`)。
+3. `be > 0x70` → 17 项跳转表 switch (0x71..0x81):
+   0x7D/0x7E 直接置 1; 0x76/0x7B/0x7F 依赖内层 `switch((s8)obj[0xBC])`(0=空, 非0=置1);
+   0x71-75/77-7A/80/81 显式 `ret=0` (jump table 有 11 项指向 `movs r3,#0`); 0x7C 缺席 = 落到比较末尾 ret 保持 0。
+
+**关键代码生成发现**:
+
+- 第三分支 0x7C 处理: 目标 `70: cmp r4,#0x70; bls 尾; 74: ldrb r0,[r1]; subs #0x71; cmp #0x10; bhi 尾; lsls #2; mov pc,r0`
+  = GCC2 的 switch 双段守卫。跳转表 17 项里 11 项显式 `ret=0`、3 项内层 switch、2 项 `ret=1`,
+  **源码必须显式写 ret=0 组** (写成无 default 的 switch + 跳转表外落入) 产生同样 jump table。
+- 内层判定必须用 **switch 而非 if**: `if ((s8)obj[0xBC])` 形式 combine 会消掉
+  `lsls #0x18; asrs #0x18` 符号扩展对 (目标尾部 0xd6-0xd8 有), `switch` 分发保留符号扩展 (b23/b39 实证, 差 32-39B)。
+- 表地址读取形态: 每个 case 内 `const u8 *tbl = gUnk_0839D5BC; int k2 = ...; int idx = k2*6; const u8 *p = tbl+4;`
+  (与 sub_8048C30 成功模式逐句对应) — GCC2 对 extern 符号不折叠 `+4` 进池, 生成运行时 `adds r2,#4`;
+  任何把 `(be-0xC)*6` 与 `+4` 合并成一个表达式的写法都被 flatten 归到最左项 (经验 30), 产生错误池形态。
+- `be` 值不能缓存为显式局部变量 (`u8 be = obj[0xBE]`): 会让第二次比较 `(u8)(obj[0xBE]-0xC)`
+  复用缓存值 → 丢失目标里的重读 (`ldrb r0,[r1]` 第二次), 全函数移位 (v_b/v_c 实证, 差 128-150B)。
+
+**卡点 (7 字节, 指令形状 100% 对齐)**:
+
+mine 与目标仅入口/中段/尾部 7 字节差 = 两个伪寄存器 home 恰好互换:
+```
+mine:   8: movs r4,#0 (ret→r4)   10: adds r3,r0,#0 (be→r3)   70: cmp r3,#0x70   e0: movs r4,#0
+target: 8: movs r3,#0 (ret→r3)   10: adds r4,r0,#0 (be→r4)   70: cmp r4,#0x70   e0: movs r3,#0
+```
+- agbcc `-da` greg 量化 (经验 117 方法): `be (allocno 33): 3 refs / live 10 → pri = 3000`;
+  `ret (allocno 29): 6 refs / live 132 → pri = 909`。降序发号 → be 先挑, 拿 r3; ret 拿 r4。
+- 目标要求 ret=r3/be=r4 → 需 pri(ret) > pri(be), 即 be 的 live > 33 或 ret 的 refs ≥ 14 (floor_log2 跳档 3)。
+- **穷举 40 种人工变体全部无效**: be 提前读 (b13/b34, be_addr 形状破坏), be 显式缓存 (v_b/v_c, 丢重读),
+  ret 提前 return (b21, CSE 吸收), ret 双重零赋值 (b35/b38, DCE 或 obj home 错位), ret|=1 (会产生 orrs 破坏 movs 形状),
+  内层 case 0 显式 ret=0 (b37, GCC2 重写 switch 为 ldrsb 形态), do-while 屏障 (b22/b36, 持平无效),
+  cast 组合 (b29-b31, CSE 吸收), 第二指针转发 (b16/b27, 持平), else-if 链 (b19, 持平) 等。
+- be 的 live=10 由两个短活跃区间构成 (定义→第一次cmp 3 insns + CSE 复活→第二次cmp 7 insns),
+  中间无任何合法语句可插入引用 (第二比较必须重读, switch 分发也重读) — live 无法合法拉长。
+- 4 轮 permuter (3 轮无-g + 1 轮带-g, 13.5k 迭代) 平台期 score 45, 变异算子对 global-alloc 槽位无杠杆。
+
+**给接手者的路径**:
+1. 套件已建好 `permuter/sub_80485A4/` (compile.sh 已修为 -g 版, base.c = 最优候选 v_n 人工化)。
+2. 最优候选 bytecmp = `DIFF: 7 bytes / 236` — 先复现: `scripts/bytecmp.sh sub_80485A4 permuter/sub_80485A4/base.c "gUnk_0839D5BC = 0x0839D5BC;"`。
+3. 方向: 寻找使 ret 的 allocno pri 升到 3000 以上 / be 的 allocno live 拉到 33 以上的**人类可读**写法;
+   或确认目标源码的 ret/be 声明顺序与逻辑结构与已试 40 种根本不同 (如 ret 非局部变量而是参数转发? 罕见)。
+4. 若仍无解, 考虑与同表的 sub_8048C80 (已匹配, 同款三分支头) 对照其 ret/入口变量的写法。
+
+## sub_8044F4C (0x08044F4C, battle_engine, 战斗伤害结算) — ✅ 2026-09-11 wb (permuter score=0, fncheck OK 332B, audit 784/784)
+### 语义 (已完整还原)
+战斗伤害结算。arg0 = 攻方对象, arg1 = 守方 (pool + entry*0xC8)。
+
+| 阶段 | 行为 |
+|---|---|
+| 前置① | `*(u16*)(arg1+0xB0) & 0x1000` → 清该位 (&=0xEFFF) 并 return 0 |
+| 前置② | `*(u16*)(arg1+0xB0) & 0x10` → 把 (hw&0x1000) 写 `arg1+0xB2` 并 return 0 |
+| 随机项 | `mod = ((u32 (*)(void))Rng_LcgNext)() % (sub_8047024(arg0,8) / 10)` |
+| 基础伤害 | `dmg = (sub_8047024(arg0,8) + v*arg0[0xAA] + mod - w9) / 2`, `v = sub_80472E8(arg0,(u8)sub_8048764(arg0),0)`, `w9 = sub_8047024(arg1,9)` (有符号除 2) |
+| 属性克制 | `switch (sub_8047D28(arg1, sub_8047DC8(arg0)))`: 1→×2, 2→(s16)dmg/2, 0→noop |
+| 暴击 | `arg0+0xB0 & 0x4000` → ×2 并清位 |
+| 加成 | `sub_804E6DC(arg0,0xC) >= 0` → +10% |
+| 钳位 | `<0 → 0`, `>999 → 999` |
+
+### 收敛过程 (1865 → 850 → 630 → 340 → 245 → 0)
+1. **Rng_LcgNext 强转调用** (850): 声明是 `u16`, 直接 `Rng_LcgNext() % x` 会多插零扩展;已匹配代码用
+   `((u32 (*)(void))Rng_LcgNext)()` (battle_rewards.c:37) —— 照抄即消失。
+2. **switch 要显式 `case 0:`** (245): 目标判定树多一条 `cmp r0,#1; ble`, probe 证明只有 case 1/2 时不出这条;
+   加 `case 0: break;` 完全复现。
+3. **sub_8047024 调用结果与变量同宽**: `u16 f()` 的结果参与算术要零扩展 (probe_f 证实);
+   用 `u16 sub_8047024()` 声明 + `u16` 变量即得到目标的 `bl → lsls/lsrs → __udivsi3` 形状。
+4. **`u32 bit`** (245): `u16 bit = *p & 0x1000` 出"先截断再搬";改 u32 即"截断直接进 home"。
+5. **`v` 中间变量** (630→340): `dmg` 连赋两次会改变转换落点, 拆出 `v` 才对齐。
+6. **+10% 必须 `s16 t` 中转** (245→0): 见经验 227③。
+
+### 产物
+- `src/battle_engine.c`: INCLUDE_ASM → 真 C。
+- `include/code_0.h`: `sub_8047024` void→u16, `sub_80472E8` void→u32, `sub_8047DC8` void→u8 (均无其它 C 调用者)。
+- `functions.tsv` (status 0→1 + note); 经验归档 **226/227**。
+- 认领已释放, `permuter/sub_8044F4C/base.c` 保留 score=0 种子。
+
+## sub_804AF60 (0x0804AF60, battle_anim, OAM 扫描线精灵显隐) — ⏸ 2026-09-11 claude_1 挂起 (best 940 忠实 / 800 带块嵌套技巧)
+### 语义 (已完整还原)
+按 VCOUNT 把一批精灵的 X 坐标在"表值"与"移出屏幕"之间切换 (HBlank 光栅效果), 由 `sub_801887C` 每帧调用。
+
+| 阶段 | 行为 |
+|---|---|
+| 闸门① | `gUnk_03000ADE & 2` 为 0 → return |
+| 闸门② | `(gUnk_03000ADE & 0xF0) != 0x10` → return |
+| 窗口 | `vc = *(u8*)0x04000006`; `gUnk_03000ADB > vc` / `gUnk_03000ADC < vc` → return |
+| 基准 | `base = (u16)(gUnk_03000ADC - gUnk_03000ADD)`; `base > vc` → return |
+| 扫描线 | `vc` 命中 `base + {1,3,6,13,18,23,30}` 之一 **且** `gUnk_03000AD8 & 1` → 显示分支 |
+| 显示 | `for (i=gAD9; i>gADA; i--)` 把 `oam[i].attr1` 低 9 位换成 `gUnk_030009D8[i] & 0x1FF`; 然后 return |
+| 隐藏 | 同一循环写 `oam[i].attr1 = (attr1 & 0xFFFFFE00) | 0xF0` (X=240 移出屏幕) |
+
+`oam` = 硬件 OAM `0x07000000` (`0xE0 << 19`), 条目 8 字节, `attr1` 在偏移 2。
+
+### 收敛过程 (3290 → 2840 → 1775 → 1430 → 1310 → 1130 → 940 (800))
+1. **标志判据不能合并** (3290→2840): `(x&2)!=0 && (x&0xF0)==0x10` 被 fold_range_test 合成 `(x&0xF2)==0x12`;
+   写成两个独立早返回 if 才出目标的两段判据。(同族 `sub_804AE2C` 用 `&&` 没问题, 因为它是 `& 1`。)
+2. **0xFFFFFE00 收窄** (2840→1775): 见经验 228① —— 必须先 `u32 v = oam[i].attr1; v &= 0xFFFFFE00; v |= ...; oam[i].attr1 = v;`。
+3. **非 volatile 读 VCOUNT** (1775→1430): `*(u8 *)0x04000006` 让全局 CSE 把 3 处读合成 1 处。
+4. **for 循环** (1430→1130), **表指针提到循环外** (1130→940), **循环体包一层 `do{}while(0)`** (→800, 伪改进)。
+
+### 卡点 (剩 9~10 条归一化指令差)
+- **头**: 第 3 次 VCOUNT 比较时我这边重新 `ldrb` 了一次 (目标把值一直留在 r1 复用);
+  试过 `vcount` 局部变量 (1450)、非 volatile 变量 (1450)、`(char)/(u8)` 强转 (1130) 均无效。
+- **show 循环**: 目标 hoist 顺序是 `ip=表基址 / r6=0x1FF / r7=掩码` 且**先载表后载 attr1**;
+  我这边是 `r6=掩码 / r7=0x1FF` 且先载 attr1。"表先"的各种写法 (`v = p[i]&0x1FF; v |= attr1&M;`、
+  双 u32 临时 `v/w`、`p` 在循环内外) 全部更差 (1970~2385)。
+- **high-reg 对调**: 目标 `r8=OAM 基址, ip=表基址`; 加 `do{}while(0)` 后我这边会**反过来** (`ip=OAM, r8=表`)。
+
+### 给接手者的路径
+1. 套件已建好 `permuter/sub_804AF60/` (compile.sh 已加 8 条 `.equ`, base.c = 800 候选即 `dw1.c` 形态)。
+2. 忠实最优候选 = `.scratch/claude_1/p_pBeforeLoop.c` (940, 无伪改进); 800 版 = `.scratch/claude_1/dw1.c` (含 do-while(0))。
+3. 优先攻**头的重复 ldrb** (2 字节) —— 它还会连带消掉两处池填充 padding。
+4. 再攻 show 循环的 0x1FF/掩码寄存器对调: 目标是 `ldr r0,=0x1FF; adds r6,r0,#0`(带一次搬寄存器) + `ldr r7,=掩码`(直达),
+   说明 0x1FF 的 home 不是直接可载的低寄存器, 可能源里 0x1FF 来自某个表达式/变量而非常量。
+5. 别信 permuter 的 `output-795-1` (空 `if(1){}`) 与 `output-715-1` (`new_var = oam[i]` 死结构体拷贝) —— 均为伪改进。
+
+## 2026-09-11 sub_80480EC 挂起记录 (battle_engine, 104 asm 行, zcode)
+
+**语义全解**: `ret = 0x32` (默认值 50); `pool = GetObjPool()`; `buf[5]` (sp+0..4) 清零;
+收集循环: `for(i=0;i<5;i++)` 中 `sub_8045F10(pool+i*0xC8, 0x1FF)==2` 的槽下标填进
+`buf[found++]`; 搜索循环: 找第一个 `pool[buf[j]*0xC8+0xBE] <= 1` 的槽, 返回其
+`pool[buf[j]*0xC8+0xAA]` (等级字段), 找不到保持 0x32。语义 = 从活动战斗槽中
+找首个等级≤1 的新单位, 返回其等级 (0/1), 无则 50 (表示无新单位)。
+
+**卡点 — count/stride 双变量 r8↔r9 home 互换**:
+- 目标寄存器域: pool→r7, &buf→r6(sp拷贝), found→r5, i→r4, ret→sl, **count(5)→r9, stride(0xC8)→r8**, 搜索下标→r2, found拷贝→r3 (`adds r3,r5,#0`)。
+- 我方最优 (v29): 全部一致**除了 count→r8 / stride→r9 互换** + stride 早生于 GetObjPool 之前 (目标在零循环后才赋值)。fndiff 3105 / permuter 平台 2075。
+- 已穷举: stride 类型 (u8/u16/s32), 声明顺序 7 种, 初始化位置 (ret 前/ret 后/GetObjPool 前/后/for-init/comma), 乘数顺序 (i*stride/stride*i), 独立搜索下标 j (有效: 3135→3105, r2/r3 形状归位), count int 化, buf 指针化 (有效: pool→r7/&buf→r6 命中), 防循环2 CSE (u32 cast 重算) — 均未翻转 r8/r9。
+- stride 必须出生在 `GetObjPool()` 调用前才能保住高位寄存器 (v17 迟生 → 跌落 r2 + `str r2,[sp,#8]` spill); 但目标确实在 bl 后才赋值仍拿 r8 — 说明目标源码里 stride 的 QTY 排序高于 count, 而 GCC2 的 QTY 计数受 CSE 影响 (目标循环2无 CSE, 两次独立 muls; 我方 CSE 合并一次 → refs 减少 → QTY 降低)。u32 cast 防重算未成功。
+- permuter 两轮 ~24k 迭代: 3655→2075 平台; 其最优解靠 `new_var/new_var2` 拷贝变量 hack (不忠实, 疑改数据流, 不可用 — 经验 18)。
+
+**候选**: `permuter/sub_80480EC/candidates_v29.c` (j 独立搜索下标 + stride 早生版,
+与目标仅差 count/stride 的 r8/r9 互换 6 条指令); `candidates_v22.c` (i 复用版, 3135)。
+**待攻方向**: ① 找到阻止循环2 CSE 的写法 (目标两次独立 `movs #0xc8; muls` — 若复现可抬 stride QTY);
+② GCC2 QTY 计算 (local_alloc.c) 对照 -dl RTL 转储定位 stride 伪寄存器的排序输入;
+③ 若 stride QTY 抬过 count, 需要同时让 GCC 把 movs 指令调度到 bl 后 (agbcc 无调度器, expand 顺序即源序, 需 C 层面晚生 + 全局分配早占 — 可能本质矛盾, 或需第二个跨调用变量挤占 r2/r3 窗口)。
+
+## 2026-09-11 sub_8032548 匹配 (NPC 对话状态机, event_hub, 484B)
+
+**语义**: `switch(gUnk_03000820)` 10 态分发 (NPC 对话流程):
+- case 0: 存 NPC 屏位 `gUnk_03000828/29 = arg0[0xBF]/[0xC0]`, `gUnk_03000825 = 0`,
+  `sub_80444A4` + `sub_803F5B4` 初始化, 清 `arg0[0xB4]/[0xB6]` (u16 对),
+  `gUnk_03000820 = 1`, `gUnk_0300086B = 0` (新登记 IWRAM 符号, 对话子状态)。
+- case 1: `sub_803E58C(arg0,arg1,0) == 1` (对话对象到位) → 播开场动画
+  `sub_8020974(arg0+0xC, b4, 0x1B4, 0xD, 2)`, `b4 = 0x368`, 若 `arg0[0xBE]==0` 则 `-=0xF`
+  (=0x359, 两种 NPC 门样式); `arg1[0xBE] <= 0xA` 时 `arg0[0x24] |= 0x20`; 状态→2。
+- case 2: 等 `[arg0+0x24] & 0x800` 清零 (动画完成) → 3。
+- case 3: 按键分发: `[arg0+0x28]==0x21` (A 键?) → `Sfx_Play(0x31,1,1)` + `sub_8044514(0x5E)`;
+  `==0x7C` → `Sfx_StopTrack(1)`; `==0x90` → `sub_8044514(0x28)` + 状态→5。
+- case 5: `[arg0+0x24] & 0x1000` (选择确认) → `sub_804C3A4(arg0[0x35], sub_801B954(arg0+0xC))`
+  (选项结果入队), `gUnk_0300086B = 0xC`, 状态→8。
+- case 8: `sub_803E58C == 1` → 9; case 9: `gUnk_03000844/45/56 == 0` (无对话遮挡) 时
+  `sub_8045B90(arg0, arg0[0xA1])` (对象退场) 并 `ret = 1`。尾部每态 `sub_803F658(arg0)`。
+
+**匹配关键 (4 个非平凡点)**:
+1. **case 0 双零变量**: 目标把 `B6/B4` 清零与 `086B=0` 用**两个不同零寄存器** (r1 stores / r2 to-086B)。
+   单一 `zero` 变量被 GCC2 CSE 成一个 movs; 必须 `zero = 0; zero2 = 0;` 两个独立变量
+   (zero2 供 stores, zero 供 086B), 且 `b4 = zero2` 中转 (permuter 发现, 借 b4 的 home 调度)。
+2. **b6ptr 指针变量**: `b6ptr = (u16*)(arg0+0xB6); *b6ptr = zero2;` 与直接
+   `*(u16*)(...)` 的池加载调度不同 — 指针变量让地址计算提前一条 (对齐目标 78 行)。
+3. **case 1 参数序**: `sub_8020974(arg0+0xC, b4, 0x1B4, 0xD, 2)` — 参数 2=动画 id (b4),
+   3=0x1B4 时长。最初写反 (0x1B4 在前) 导致 r1/r2 参数寄存器互换、连锁 home 漂移 (6260→5885)。
+   同族已匹配 `sub_803586C` 的 `sub_8020974(arg+0xC, 0x386, 0x1B4, 0xD, 2)` 证实参数序。
+4. **case 1 keys/b4 寄存器序**: `keys = arg0[0xBE]` (u8 读) + `b4 = 0x368` 紧随 +
+   `if (keys == 0) b4 -= 0xF` — 顺序错则 movs 先于 ldrb (6260); keys 必须独立命名变量
+   (内联读会让 GCC 先物化常量)。
+
+**permuter 70 分 = 池计分伪差 (经验 29)**: 剩余 9 个池字 (0x03000820/25/28/29/6B/844/845/856
+等地址值) 在 permuter 侧未重定位被计分; 指令级 fndiff 全同。合入后 fncheck OK 484B,
+全量 make + SHA1 绿。battle_rewards 家族 (permuter 5 分) 先例一致。
+
+**产物**: src/event_hub.c 真 C (110 行); code_0.h `sub_8032548()` → u32、
+`sub_803E58C()` → u8 (两原型无已匹配调用方, 消费方 lsls#0x18 截断自证);
+ linker.ld/iwram.h 登记 `gUnk_0300086B`; functions.tsv status 0→1。
+
+---
+
+## sub_804B080 (0x0804b080, battle_anim, 186行) — ⏸ 挂起 2026-09-11 (opencode)
+
+**语义已全解, 卡点 = 纯寄存器分配 (permuter 到不了 0)**。候选 `permuter/sub_804B080/human_candidate.c`
+(人类可读, 归一化指令 diff 169 行全是 callee-saved 寄存器换号, 语义/跳转表/访存形态全对)。
+
+**函数原型**: `s32 sub_804B080(u8 *obj, u8 index, u16 flags)`。r2(flags) 入口 `lsls#0x10;lsrs#0x10`
+→ u16; r1(index) 入口 `lsls#0x18;lsrs#0x18` → u8 (存进 sb/r9)。返回 `(index-1)&0xff`
+(所有早退都 `return index`, 末尾 `index=index-1` 后统一尾返回, 供调用方 sub_8018500 递减循环)。
+
+**逻辑**: 若 `(flags&0x100)==0` 或 `*(u16*)(obj+0xB0)&4` 或 `sub_8045F10(obj,0x6E)!=2` → return index。
+否则 `cnt=obj+0xA8`: 若 `flagword&0x200` 则 `cnt++`, 进位过 0xF 清 0x200; 否则 `cnt--`, 归 0 置 0x200。
+`sh = *cnt>>2`; `switch(obj[0xAB])` 选 tile (见下); 写 OAM 表项 `OAM_BUF[index]`:
+`VPos = obj[0xC0]-(sh+0x22)`, byte1(AffineMode/ObjMode/Mosaic/ColorMode/Shape)=0,
+`HPos = obj[0xBF]+4`, HFlip=VFlip=0, Size=1, `CharNo=tile`, Priority=1, Pltt=0xF。
+
+**两个关键发现**:
+1. **sub_8045F10 返回在此函数不截断**: 全 ROM 31 处 `bl sub_8045F10` 里, 唯此处在 `cmp r0,#2` 前
+   **没有** `lsls#0x18;lsrs#0x18` (其余 30 处都有, 含同 battle_anim.c 的 0x0801C... 两处)。
+   → 原 TU 在此调用点看到的是 **非 u8 返回原型**。合入时必须用
+   `((s32 (*)(u8*,u16))sub_8045F10)(obj,0x6e)` 函数指针强转抑制零扩展, 否则多 4 字节 (待验证)。
+2. **switch(obj[0xAB]) 是 6-case 跳转表, 不是 obj[0xAB]-1**: 直接 `switch(obj[0xAB])` 且必须
+   **写出 case 2、case 4 到 default 同值 0x174** (6 个 case 标签才触发 agbcc 跳转表; 只写
+   {1,3,5,6}+default = 4 标签 → agbcc 出决策树 bgt/cmp, 与目标 `subs#1;cmp#5;bhi;mov pc` 全不符)。
+   映射: 1→0x180, 2→0x174, 3→0x184, 4→0x174, 5→0x178, 6→0x17c, default→0x174
+   (0x180=0xC0<<1 等, agbcc 自动 movs+ lsl#1)。min-case=1 → `subs#1` 偏移, 表 6 槽, 索引=value-1。
+
+**卡点 (为什么 permuter 到不了 0)**: best score 2350 (跑 ~15k 迭代, 稳定平台)。残差 100% 是
+callee-saved 寄存器着色互换: 目标 `obj→r7 / index→sb(r9) / tile→r6`, 我这版 `obj→sb / index→r7 / tile→r7`;
+且目标把 4 个位段掩码常量 (`-13=~0x0C`→r4, `-17=~0x10`→ip, `-33=~0x20`→r5, `0x3F`→r8) 提前物化进
+callee-saved 复用, 我这版就地重算。语句重排 (permuter 唯一能力) 不改 liveness, 翻不动着色 →
+经验 87 类"调度槽位"可解, 此属"结构/着色"permuter 救不了 (AGENTS §2b)。试过的翻车变体: index/obj
+声明序互换、u8/u32 index、`fl` 提前物化、`&buf[i]` 取址写法 —— normalized diff 均 169~171 无改善。
+
+**下一步候选路**: (a) 手改 `sub_8045F10` 强转后重新 fncheck 看池布局是否带动着色 (合入前禁改 src,
+先在 permuter 内验证强转的字节); (b) 找同结构已匹配 OAM 写函数抄寄存器序; (c) 换目标。
+
+## 2026-09-11 sub_803272C 匹配 (战斗型 NPC 对话状态机, event_hub, 540B)
+
+**语义**: `switch(gUnk_03000820)` 十态, 与 sub_8032548 同族 (战斗触发的对话):
+- case 0: 同 8032548 (存位/初始化/清 0825/086B)。
+- case 1: `sub_803ED34(arg0,arg1,0)==1` (战斗对象到位, 原型 u8) → 动画 id `b4=0x36B`,
+  `arg0[0xBE]==0` 时 `-=0xF` (0x35C); `sub_8020974(arg0+0xC, b4, 0x1B4, 0xD, 2)`;
+  `[arg0+0xB6]=0x35E` (战斗对话 UI 序号), `[arg0+0xB4]=0`; `arg1[0xBE]<=0xA` 置 0x20 → 2。
+- case 2: 等 0x800 → `Sfx_Play(0x4F,1,0)` + `sub_8044514(0x28)` +
+  `sub_804BF14(0,3,7,0xE, 0x1C,4,4,-1,2)` (9 参窗口/对话框设置) + `0825=0` → 3。
+- case 3: `gUnk_03000825 <= 3` → `sub_804C728(0,3,0x10)` (对象命令标记) → 5。
+- case 5: 0x1000 确认 → `sub_804C3A4` + `086B=0xC` → 8; case 8/9 同 8032548。尾 `sub_803F658`。
+
+**匹配关键 (4 个非平凡点, 均为 case1 的寄存器调度)**:
+1. **b6val 独立载体**: `b6val = 0x35E; *b6ptr = b6val;` — 直接 `*b6ptr = 0x35E` 会让 GCC2 把
+   SImode 池字伪寄存器分到 r3 再拷 r0 (多 2 条); u16 载体变量强制 HImode 池读直达 r0。
+   (经验 227: SImode 常量经 u16 局部中转可消除 strh 前的拷贝)
+2. **flagval 常量载体**: `keys = *(u16*)(arg0+0x24); flagval = 0x20; keys = keys|flagval;` —
+   三段式让 GCC2 先评估 mem (进 keys home r0 = 结果寄存器), 常量后评估进 r1。
+   任何单表达式/|= 形式都产出 mem→r1 (2 条寄存器互换, 4 字节差)。
+   (经验 228: "先读后 OR" 的两段式 + 常量独立载体 = 控制 GCC2 双操作数求值序的手段)
+3. **kind (u16) 与 keys (int) 分离**: 0xBE 读给 kind, ORR 给 keys — 共用会引发 home 级联漂移。
+4. **sub_803ED34 原型 u8**: 消费点 `lsls#0x18/lsrs#0x18` 截断自证。
+
+**permuter 85 分 = 池计分 floor (经验 29)**: 34 个 halfword 差全为未重定位池字 (0x03000820 等
+地址值), 代码指令 0 差 (540B 两侧全同)。合入后 fncheck OK 540B, 全量 make + SHA1 绿。
+
+**产物**: src/event_hub.c 真 C (约 120 行); code_0.h `sub_803272C()`/`sub_803ED34()` → u8/u32 修正;
+functions.tsv status 0→1; functions.tsv note + 本条。
+
+## 2026-09-11 sub_80368FC 匹配 (NPC 剧情对话状态机, event_hub, 564B)
+
+**语义**: 单参数 (`u8 *arg0`), `switch(gUnk_03000820)` 0..0x14 二十一态 (战斗剧情对话):
+- case 0: `0824 = arg0[0x35]` (NPC 槽), `0822 = arg0[0x2A]` (位置), 初始化, `[0xB6]=0x3A9`
+  (对话 UI 序号), `[0xB4]=0` → 1。case 1: 动画 0x3A5 → 2。case 2: 等 0x800 → Sfx 0xA5 → 5。
+- case 5: 0x1000 确认 → `sub_804C3A4(arg0[0x35], 801B954(arg0+0xC))`, 清 0xEFFF,
+  动画 0x3A6 (第 5 参 0x102 = 0x81<<1) → 0x12。
+- case 18: 等 0x800, 清 0xFEFF, `sub_8044514(0x32)` → 0x13。
+- case 19: `sub_80471AC()==0` (打字机完成) → Sfx 0x64 → 0x14; 0825++。
+- case 20: 无遮挡 (844/845/(v56=0856)==0) → `sub_801CBA4(arg0, 0, 0822, 0824, v56)` (NPC 归位) → 6; 0825++。
+- case 6: 等 0x800 → 9; case 9: `sub_8045B90` 退场, ret 1。尾 `sub_803F658`。
+
+**匹配要点** (全部复用 803272C 套路, 3 轮迭代到 0 代码差):
+1. case0 store 块用 b6ptr/zero2/b6val 载体三件套 (同 803272C; 此处目标形状恰好相同: addr → zero → pool → store)。
+2. case20 的 0856 读取: 单读保活载体 `(v56 = gUnk_03000856) == 0` + 调用传 v56 (同已匹配
+   sub_803586C 的 v56 模式) — 直接传 gUnk_03000856 会读两次且寄存器互换。
+3. case5 的 b4 (arg0[0x35] 槽号) 必须 u8 — u16 会让 case20 的 0856 地址/值寄存器对互换。
+4. case9 `ret = 1` 不是 2 (与 sub_8032D74 的 2 不同, 此函数语义 = 普通结束)。
+
+**permuter 70 = 池计分 floor (经验 29)**: 28 个 halfword 差全为池字, 代码 0 差。
+fncheck OK 564B, 全量 make + SHA1 绿。
+
+**产物**: src/event_hub.c 真 C; code_0.h `sub_80368FC()` → u32; functions.tsv 0→1。
+
+## sub_80052F8 (0x080052F8, map_view, 2x2 分块贴图重建) — ⏸ 2026-09-11 claude_1 挂起, src 已恢复 INCLUDE_ASM (仓库绿 787/1059)
+### 语义 (已完整还原)
+四层循环 (y,x = 0..31; i,j = 0..1) 逐 8 字节块重建 2x2 分块贴图:
+- a = gUnk_030047E8[y*32+x] (块属性, 每 x 重读); b = gUnk_03004690[a*4+i*2+j] (源块号);
+- 从 gUnk_0300482C[b*4] 拷 4 个 u16 到 gUnk_03004620 的 (y*512 + x*4 + i*256 + j*2) (dst[128] = 下一行)。
+- 调用方 src/anim_slot.c:597,602。agent1 的 5 天僵尸锁已接管; 其旧 base.c 有 volatile 洞察 (指针每块重读), 已吸收。
+
+### 状态
+- 归一化指令流 (idiff) 全对; **字节差 11 处、3 组**: 0x030047E8 / 0x03004690 / 0x03004620 的池常量载入被 GCC 合并成 `ldr rX,[pc] + ldr rX,[rX]`, 目标全部两步 (`ldr rA,[pc] + ldr rB,[rA]`, 地址/值分寄存器); 另 i 循环 preheader 中 `i*2` 的调度位 (目标 [j=0, i*256, i+1, i*2])。
+- 已试并排除: ptrAt 助手 (修好 47E8/4690 但 4620 修不动且扰动 preheader)、显式 u32 临时、语句重排、k 形态 (int/u16/idxMul/shl/位置)、`-g` (本函数 ±g 输出相同, 排除)。
+- **教训 (经验 230)**: 合入前 fncheck 校验的是 INCLUDE_ASM 产物 = 假绿; idiff 归一化寄存器掩盖分配差。字节判定用 `.scratch/claude_1/bytecheck.py <候选.c>`。
+- 候选: `.scratch/claude_1/Va_k_i2.c` (最优, 剩 4620 组 + preheader 序)、`p1.c`、`X11_p47E8.c` (仅剩 4690+4620)。套件 permuter/sub_80052F8/ 完好 (compile.sh 曾加 -g 实验, 对结果无影响)。
+- 给接手者: 三个池常量在目标里都两步, 但源码层面大概率没有显式临时 — 重点研究 482C 为何在所有候选里天然两步 (其值喂给跨语句存活的 src), 对 4620 复制该条件 (dst 也跨语句存活, 却合并了 — 差异在后面还有 4 次 store 使用); preheader 的 i*2 位置大概率由 LICM 扫描顺序决定, 试让 dst 语句先于 b/src 语句 (W8c 方向) 但保住强度削减累加器 (adds r4,#2)。
+
+## sub_8038C84 (0x08038C84, event_hub, 201 行) — ✅ 2026-09-11 zcode, 全量绿 788/1059
+### 语义
+8032548 家族 NPC 对话状态机第十个变体 (gUnk_03000820 十态同 8032548), 差异点:
+- case1: 无 kind 分支 (开场动画固定 0x3C7, 8032548 是 0x368/-0xF 按 arg0[0xBE]); arg1[0xBE]<=0xA 打 0x20。
+- case3: 对话帧超时判定改为 `arg0[0x28] > 0x39` (8032548 是 ==0x21/0x7C/0x90 三分发音效);
+  Sfx_Play(0x31,1,0) (8032548 第三参 1) → sub_8044514(0x28) → 5。
+- case5/8/9 与 8032548 相同 (0x1000 确认 → sub_804C3A4 → 086B=0xC → 8 → sub_803E58C → 9 →
+  无遮挡 (844/845/856==0) 时 sub_8045B90 退场, ret 1)。尾 sub_803F658。
+
+### 匹配要点
+1. **case1 的 `spr` 提载 + `b4 = 0x3C7` 是唯一非平凡卡点**: 直接 `sub_8020974(arg0+0xC, 0x3C7, ...)`
+   时 r1 的 pool load 排在 `adds r0/r0,#0xC` 前 (目标相反); 加 u8 *spr 中转载体后顺序翻转。
+   b4 必须在 case1 被真实赋值 (动画 id 走寄存器), 否则 r1/r2 物化顺序互换 (case0 07a/07c 两 halfword 差)。
+   case0 的 zero/zero2/b6ptr/b4 四件套则照抄 8032548 即可。
+2. **permuter 70 = 池计分 floor (经验 29)**: 8 个 IWRAM 全局池字全是 R_ARM_ABS32 重定位 vs target 硬码,
+   代码 0 差也压不到 0。定性走部分链接 bytecmp (abs.ld 施加符号) → diff=0;
+   自建只遮 R_ARM_THM_CALL 4 字节的归一化比较器比 mask 启发式可靠 (bl 检测 F000-F7FF+F800-FFFF 双字)。
+3. 两条独立 permuter 运行 (主套件 + nat 种子) 都收敛到同款 spr 提载形状 — 交叉验证候选成立。
+4. **code_0.h 原型是 `void sub_8038C84()`**: 合入后与 u32 定义冲突编译失败; 改 `u32 sub_8038C84();`
+   (K&R 无原型形态, 不给调用点加截断 — 无 src 调用者, 零风险)。
+
+**产物**: src/event_hub.c 真 C (带模块注释); code_0.h 返回类型修正; functions.tsv 0→1 + note。
+**套件**: permuter/sub_8038C84/ (base.c 已 promote 固化最优形态)。
+
+## sub_801B570 (0x0801B570, scene_obj_core, 143 行) — ✅ 2026-09-11 zcode-ll3, 全量绿 789/1059
+### 语义 (MOD-04 kind6 对象动画帧 DMA 构建)
+`Obj_FrameDispatch` (sub_801B8AC) case 6 每帧调用。f_18&0x200 直接返回; 否则逆序遍历
+`*(u16*)f_04` 计数: 每轮 `sub_801B8E8(f_04+offset, f_1C)` 查跳转项 → `f_00 + f_08[value]` 帧表
+→ 读 [n0, count] 后跳过 n0*4 个 u16 → 逐条目处理: 帧图块源 = EWRAM 0x0202B2C0 + (entry[2]<<22>>17)*2,
+目的 = OBJ VRAM 0x0600C000 + tile*0x20 (tile 从 1 起), 传输半字数 = `gUnk_08393A30[(entry[3]>>6) + (entry[1]>>6)*2] << 4`
+(高 2 位拼 4 行×4 列查尺寸表, 字节×32=DMA 字节量, 该查表值同时累加进 tile)。f_18&0x800 屏蔽 DMA 只累计 tile。
+
+### 匹配要点
+1. **接管过期锁**: opencode 2026-09-05 认领后 6 天未动, TSV note 显示 zcode-ll2 09-06 已接力留痕
+   (前人 best score 255; 本次发现其后还有 output-5-1 = 5 分, 在 output-* 目录截断时易看漏 — ls 全目录再下结论)。
+2. **分数 5 的残差全部是字面池重定位伪影 (补强经验 29/231)**: output-5-1 与目标逐指令形状已全对,
+   剩 5 分来自独立编译下 4 个池常量 (0x040000D4/0x08393A30/0x0202B2C0/0x0600C000/0xFFFF0000) 的
+   R_ARM_ABS32 vs target 硬码 + bl 槽位。**bytecmp (abs.ld 施加符号) = 唯一定性手段**, 本次以
+   "字节一致 (bl 槽位除外)" 直接合入, 未强压分数到 0 — 已写进 AGENTS.md 铁律 6 新表述。
+3. **abs.ld 符号要"近 Thumb 地址"复现 bl 占位编码**: target.o 里 `bl sub_801B8E8` 是 gas 占位
+   `f7ff fffe`; bytecmp 若给真地址 0x0801B8E8, ld 会插 16 字节 ARM 互工作 veneer 且 bl 编码随之改变
+   (296B vs 280B)。给 `sub_801B8E8 = 0x37` (自身地址+1, Thumb 位) 时 bl 槽位两侧字节同形, 差异只剩
+   槽位本体的 4 字节 + 尾部 8 字节 veneer 伪影; veneer 在 .text 尾部不影响主体 cmp。
+4. **DmaCopy16/DmaWait 标准宏 = 零汇编代价实证 (RULES_HARDWARE_IO §2.1)**: 裸 dmaRegs 块、
+   `DmaCopy16(3, src, dst, size<<5)`、`DmaSet(3, ..., DMA_ENABLE|...|((size)<<4))` 三种写法
+   bytecmp 输出逐字节相同 → 按规范选 DmaCopy16+DmaWait 合入。
+   ⚠ 候选/新文件 include "gba/macro.h" 不含 DMA_* 常量 (在 io.h), 要 include "gba/gba.h"。
+5. **`saved = entry` 指针复制是合法人类代码**: tile 累加用 DMA 前的 entry 指针读字节, 编译器
+   寄存器复制后与 `entry += 3` 前的寻址完全一致 (r4 = r2 复制), 非经验 18/113 的偷改数据流。
+
+### 产物
+src/scene_obj_core.c 真 C (DmaCopy16+DmaWait 写法); functions.tsv 0→1+note; MOD-04 文档补条目;
+EXPERIENCE 经验 233/234; AGENTS.md 铁律 6 改为"字节一致=唯一门槛, 分数只是参考"。
+**套件**: permuter/sub_801B570/ (base.c 已是 output-5-1 形态); 候选存档 .scratch/zcode-ll3/。
+
+## sub_801A3C4→ObjGfxLoad_Step / sub_801A5EC→ObjGfxLoad_Copy 改名 + Unk_801A5EC→ObjHead 结构体定名 (2026-09-11, gpnux-rename)
+
+**背景**: 用户断点停在 0x0801A3C4 (r0=0x03000254), 提供 GBA 内存 dump, 指出该函数及邻域"只有战斗才触发",
+现 C 文件命名 (scene_obj_dispatch/scene_obj_core) 有问题。
+
+### 战斗语境证据链 (调用图全闭环)
+- `AgbMain` 双主循环: `gMainLoopCallbacks[1] = BattleTask_Run` (战斗独立主循环, engine_core.c 注释+data_87E83F0.c 表)。
+- `BattleTask_Run` (0x080177AC) → `sub_801B964` (0x0801A3C4 两处调用) 与 → `sub_80184A8` → `sub_801A3C4`
+  (0x0801A3C4 内另一处), `sub_8018070` (战斗场景重建) 也走 80184A8。
+- 对象系统头部 (`sub_801B878/B8AC` 命令分发) 均只被战斗链 (8018070/80184A8/8049D58) 调用;
+  `Obj_Register`(0x08020B90) 调用点在 0x0804Axxx 战斗辅助区。MOD-04 旧注"地图 NPC/宝箱"不准确,
+  该 0xC8 对象池实为战斗对象池 (BattleTask_Run 开头清 0x03000240 战斗状态块、 ListNode_Init 0x03000318 行动链)。
+
+### 断点现场解码 (dump @0x03000254, 偏移 gUnk_03000240+0x14)
+f_00..14=0x0856B4xx ROM 指针 (脚本头/命令流), f_18=0x0C03 (kind=3 → case3 LZ77→0x02020E00),
+f_20=1 (装载总数), f_22=0 (当前片), f_24/26=0 (VRAM 槽/LZ77 基索引)。
+脚本头 0x0856B440: w0=0x04/w1=0x44 → 801A684 重算 +0x0..0xC。
+对象不在 0x02037028 池内 (池指针 0x03000250 就在实例前 4 字节), 是 IWRAM 独立实例 —
+证明 Unk_801A5EC 布局 = 池对象 0xC8 的前 0x30 字节公共头部, 也单独作战斗全局装载器状态块 (0x03000918=第二实例)。
+
+### 表大小修正
+`gUnk_087EBE00` (LZ77 块指针表) 实测 **1382 项** (linker.ld 旧注 "[9]" 有误), battle_anim 调用者用到 0x540 索引。
+
+### 改名落地 (rename_fn.sh 全链, 两次均 SHA1 绿)
+- sub_801A3C4 → **ObjGfxLoad_Step**: 按 kindFlags&0xF 分步把 gUnk_087EBE00[gfxBaseIdx+gfxPos] LZ77 解压到
+  VRAM OBJ 槽/WRAM 图形区, gfxPos++ 到 gfxTotal 后 sub_801A684 重载脚本并清 0x8000 (kind9 除外)。
+- sub_801A5EC → **ObjGfxLoad_Copy**: ObjHead 22 个字段逐字段复制 (无 bl 调用者, 疑经指针表, 语义=状态块复制)。
+- 文件: scene_obj_dispatch.c → **battle_gfx_load.c**, scene_obj_core.c → **battle_obj_core.c**
+  (git mv + linker.ld + functions.tsv module 列 89 行 + gen_debug_ld.py)。
+- 结构体: Unk_801A5EC → **ObjHead** (0x30 字节): cmdBase0/1(+0/4), jumpTable0/1(+8/C), scriptPtr(+0x10),
+  palBitsPtr(+0x14), kindFlags(+0x18), frameIdx(+0x1C), gfxTotal(+0x20), gfxPos(+0x22), vramBank(+0x24),
+  gfxBaseIdx(+0x26), palSlot(+0x29); f_1A/1E/28/2A..2F 未验证保留编号。
+- scene_obj_core.c 的 sub_801B570/B81C 引用点同步改用 ObjHead 新字段名; fncheck 5 函数全 OK。
+
+⚠ 未验证字段 (f_1A/1E/28/2A-2E) 与 ObjHead 高区 0x30..0xC7 的重叠视图需后续按 801A884/AD0C/B0B8 handler 逐个确认。
+
+## BattleTask_Run (0x080177AC, sio_link, 933 行) — 结构全解, 卡 global-alloc 墙 (2026-09-11, zcode-main)
+
+**结论: 未匹配 (挂起)**. 21-case 战斗主循环状态机, 结构 100% 还原 (助记符 97.4% = 674/692),
+剩 967/2880 字节差异 = GCC2 跨 case 寄存器 home 分配, 非结构问题. 最佳候选 `permuter/BattleTask_Run/base.c`.
+
+### 语义 (21 个 gUnk_03000240 状态)
+战斗主循环由 gMainLoopCallbacks[1] 驱动, 每帧读 `gUnk_03000240` 分派:
+- case0 初始化: DMA3 清对象池 0x02037028(0xC00 字节) → gObjPoolPtr=0x02037028; Sound_VSyncOn;
+  sub_8020F4C(ctx 0x03000248) + ctx[0x37]=0xAF/ctx[0x38]=0x14; gGstate330[0..5]=-1;
+  gUnk_080936A0 扫描 (数 0x128 个 0xFF) 存 gGstate340; state→1
+- case1 等 FlashFlag 0x4000 → BattleFx_DispOff → 状态+1; 或 gGstate324&8 清各对象 +0x24 的 0x200 位
+- case2 存 gRandCursor→gBattleRngSeed; sub_802151C 判定 → 状态3 或 5
+- case3 sub_8021700()==1 → 状态4
+- case4 对话阶段: DialogCtx field_C 6/7 忽略, 否则 sub_802192C → SetHead; 无对话则 Disp_Bg1Off → 状态5/0x14
+- case5 sub_80207B4 分派 0..4 → 状态 0xD/6/8/0x13; 末尾按 gGstate324&0x4000 清位
+- case6/7 战斗演出: sub_804AD60 → 7 → sub_8049C1C → 0x11
+- case8/9 sub_804ADF8, gGstate32E==0x3C → 0x13 否则 9; 9 等 gUnk_0300032C>0x31 → 0xA
+- case10 sub_8049DF8 返回 1→重置战斗(状态0), 2→System_ResetToLogo+回标题
+- case13/14 sub_804A148 → 0xE → sub_804A368==1 → 0xF
+- case15/16 sub_801FF40 取槽 → sub_802103C 应用; 16 读 ctx+0xB0 & 0xF0 ∈{0x40,0x50}
+- case17/18 sub_8048DA4 → 0x12; sub_8048FB8 → 0x13
+- case19 等 0x32 帧 → Bgm_FadeOut(0x14)+sub_8019AD0(0xA,0x110)+sub_80457AC → 0x15
+- case20 sub_80401AC()==1 → 按 gGstate324&0x1000 状态5/0x13, 清 0x2000
+- case21 收尾: Sound_GetFlags&4==0 → REG_DISPCNT|=0x80, 状态0, gGameState=6, gMainLoopMode=0,
+  gVBlankPipelineMode=0, Bgm_Stop, Sound_VSyncOff
+- 尾部(所有 case 共用): 遍历 12 个 0xC8 对象建 ListNode_InitKey/InsertSorted 到 0x03000318 行动链;
+  `!(*ctx+0xB0 & 0x400)` 时把 ctx 也挂链; state=sub_801D984(state); sub_80184A8(链表头.next, state)
+
+### 关键还原点 (可复用)
+1. **DMA 是通道 3 不是 0**: 目标 `ldr =0x040000D4` = DMA3SAD (经验 149). 用 `DmaFill16(3,0,0x02037028,0xC00)`
+   (control 0x81000600: 高16位 0x8100=DMA_ENABLE|DMA_SRC_FIXED, 低16位 0x0600=size/2=0xC00/2) + `DmaWait(3)`.
+   错用 ch0 编出 0x040000B0 全错.
+2. **-1 物化**: 目标 `movs r0,#1; negs r0,r0` (int -1). 用 `s16 tmp; tmp=-1; gGstate330[i]=tmp` 链式赋值
+   比裸 `= -1` (会被折进字面池 0xFFFF) 和 `u16 tmp` (池载) 都好; 6 次复用同一寄存器.
+3. **被调返回值按原型截断** (经验 90): `sub_80401AC` 目标 `bl; cmp r0,#1` 无 lsls 截断 →
+   code_0.h 原型须 `u32` 不能 `u8`; 改成 u8 会多 2 条 `lsls/lsrs #24`.
+4. **循环计数 u16 截断**: 目标 `adds r0,#1; lsls #0x10; lsrs r0,#0x10` → `i=(u16)(i+1)`, 且 `i/r5` 声明 u16.
+5. **0x03000248 (+0xB0/+0x37/+0x38) 是基址+偏移访存**: 目标 `ldr r0,=0x03000248; adds r0,#176`,
+   需经指针变量 (`u8 *p=(u8*)0x03000248; *(u16*)(p+0xB0)`) 而非裸 `0x030002F8` (会常量折叠成绝对地址).
+6. **ctx 基址复用**: case0 `sub_8020F4C(p); p[0x37]=..; p[0x38]=..` 用块作用域 `u8 *p` 让 r4 复用.
+
+### 新增符号 (linker.ld + iwram.h, 按地址序插)
+- `gObjPoolPtr` @0x03000244 (u8*, 战斗对象池指针, case0 存 0x02037028)
+- `gUnk_03000317` @0x03000317 (u8), `gUnk_0300032C` @0x0300032C (u16, 状态等待计数)
+
+### 被调函数原型修正 (code_0.h, 这些函数未匹配且仅本函数调用, 不影响他人字节)
+- `u8 sub_802151C(void*,void*)`, `u8 sub_802192C(void*,void*,u8*)`, `s8 sub_801FF40(u8)`,
+  `u8 sub_8049C1C(void*)`, `u8 sub_8049DF8(void*,void*)`, `u8 sub_804A368(void*)`,
+  `u8 sub_8048FB8(void)`, `u32 sub_80401AC(void)`
+
+### gUnk_03000248 结构体分析 (2026-09-11, 用户要求先分析结构)
+`0x03000248` = 单个 **0xC8 字节战斗对象** (池 0x02037028 的 IWRAM 独立实例, 与 0x03000310 恰差 0xC8)。
+定义已加入 `include/code_0.h` 作 `BattleObj`; 关键发现是**对象内置两个 ObjHead**(各 0x30 字节,
++0x0C 与 +0x3C, kindFlags 分别在 +0x24/+0x54) — 证据 code.s 0x080180F8+ `sub_8018070` 对同一对象
+先后 `sub_801B8AC(r4+0xC,r4[0x39])` 与 `sub_801B8AC(r4+0x3C,r4[0x69])`。字段映射:
+- +0x00 12B UnkNode 头 (key 由 +0x38 值填充) → BattleTask_Run 挂 0x03000318 行动链
+- +0x0C/+0x3C 两个 ObjHead (图形/脚本通道 A/B)
+- +0x37/+0x38 = headA.f_2B/f_2C = 精灵 (X,Y) 滑动起点 (sub_801B81C arg1/arg2 写入, 上限 0xB4)
+- +0xB0 state (bits0-3 kind; bits4-7 子态 0x10/0x20/0x60/0x400 不入链/0x2000 跳跃)
+- +0xBD sub_802103C 写, +0xBE 槽号, +0xBB/BC 辅助, +0xBF/C0 朝向
+**对匹配无帮助**: 用 `BattleObj*`/成员访问 (state/headA.f_2B) 替换裸偏移, bytecmp 仍 949 —
+GCC2 把常量基址折叠, 不产生目标的 `ldr =0x03000248; adds #176` 形状 (该形状需基址来自运行时指针,
+但函数级指针会让 prologue 劣化到 r9/r10, 实测 1623). 结构分析价值在语义文档, 不在字节。
+
+### 卡点 (global-alloc 墙) — 最终 949/2880 字节
+目标跨 case 的寄存器 home (r4/r5/r6 长存活承载 0x03000244/0x03000324/常量1 等) 由整个函数
+692 条指令的伪寄存器生存期决定, 局部改 C 写法无效. 已试且**无效**: 命名符号 vs 裸字面量 (经验130),
+ctx 函数级常驻 (r9/r10 prologue 劣化), flags 缓存/直读, case10 if-else/switch 变体, 循环拆分,
+case5 tail flags 缓存, **声明顺序 5 种排列、tmp 类型 s16/u16/s32、-1 的 neg/paren/链式赋值、
+case16 的 +0xB0 用指针/结构体/别名符号** —— 全部稳定在 949 (字节), 证明是 CFG 锁定的 global-alloc.
+
+### 方法论: permuter 分数在本函数不迁移 (重要)
+- permuter (自包含 base.c) base score = 4695, 与**已挂起套件 InvUi_Main 的 5870 同量级** —
+  这个口径下几千分是常态 (被池重定位支配), 不是坏掉.
+- 但 permuter 低分候选 (output-4220-1/4400-1/...) 用 **bytecmp 复核反而更差** (4400→1303 字节).
+  根因: permuter 编译自包含 TU, 符号解析与真实构建 (include 头文件) 不同 → 寄存器分配不同,
+  其梯度不指向我们的字节目标. 候选里唯一的实质手法 (`unsigned short new_var;` 插入) 在 include
+  构建下 bytecmp 仍 949, 不迁移.
+- 结论: **本函数压分须以 bytecmp 为唯一评分器** (脚本化: 对每个变体 `bytecmp.sh <fn> <cand> $(cat sym.ld)`),
+  permuter 只能当"是否已在 949 平台期"的旁证. 与经验 29/233/234 (分数≠字节) 一致.
+- 另: permuter 套件 compile.sh **不能带 `-g`** (本项目 Makefile 带 `-g`, 但 permuter 的 objdump 解析
+  含 debug 段 .o 会错乱); target.o 用 asm 汇编即可.
+判定手段: `scripts/bytecmp.sh BattleTask_Run permuter/BattleTask_Run/base.c <sym.ld 的 71 符号>`;
+sym.ld 用 ll.cfg + linker.ld RAM 地址锚定外部符号 (否则链接失败).
+
+### BattleTask_Run 最佳候选中继 (permuter/ 不入库, 候选全文内联)
+
+> 字节差 967/2880, 助记符 97.4% (674/692). 重新验证:
+> `mkdir -p permuter/BattleTask_Run && cp <下方>.c permuter/BattleTask_Run/base.c`
+> 再准备 target.o (asm 汇编) 与 sym.ld (70 符号锚定), 然后
+> `scripts/bytecmp.sh BattleTask_Run permuter/BattleTask_Run/base.c $(cat sym.ld)`.
+> sym.ld 生成: ll.cfg 的 thumb_func 行 (地址正则须 `0x[0-9a-fA-F]+`) + linker.ld 的 RAM 地址,
+> 覆盖: 全部被调函数符号 + gUnk_03000240/gObjPoolPtr/gGstate324/gBattleRngSeed/gUnk_0300032C/
+> gGstate32E/gGstate330/gGstate340/gUnk_03000317/gUnk_03000318/gGstate314/gUnk_03000316/
+> gRandCursor/gMainLoopMode/gGameState/gVBlankPipelineMode/gUnk_080936A0/gUnk_03000248.
+
+```c
+#include "gba/types.h"
+#include "gba/defines.h"
+#include "gba/macro.h"
+#include "gba/io.h"
+#include "iwram.h"
+#include "sound.h"
+
+extern u8 gUnk_080936A0[];
+extern void sub_80188BC(void);
+extern void sub_8017FA4(s8);
+extern void sub_804B288(void);
+extern void sub_8018A58(u8);
+extern void sub_8019AD0(u8, u16);
+extern void sub_801B964(void *);
+extern void sub_8020F4C(void *);
+extern void sub_801869C(void);
+extern void sub_8021064(u8);
+extern void sub_804ADE0(void);
+extern void sub_804448C(void);
+extern void sub_804DE20(void);
+extern void sub_8020F08(void);
+extern u8 sub_802151C(void *, void *);
+extern u8 sub_8021700(void);
+extern void sub_801933C(void);
+extern u8 DialogCtx_GetField_C(u8);
+extern u8 sub_802192C(void *, void *, u8 *);
+extern void DialogCtx_SetHead(u8, u8, u8);
+extern void Disp_Bg1Off(void);
+extern void sub_804442C(u8);
+extern u8 sub_80207B4(void *);
+extern void sub_804AD60(void);
+extern u8 sub_8049C1C(void *);
+extern void sub_804ADF8(void);
+extern u8 sub_8049DF8(void *, void *);
+extern void System_ResetToLogo(void);
+extern void sub_804A148(void);
+extern u8 sub_804A368(void *);
+extern s8 sub_801FF40(u8);
+extern void sub_802103C(u8 *, u8, u16);
+extern void sub_8048DA4(void);
+extern u8 sub_8048FB8(void);
+extern void sub_80457AC(void);
+extern u32 sub_80401AC(void);
+extern u16 Sound_GetFlags(void);
+extern void Bgm_Stop(void);
+extern void Sound_VSyncOff(void);
+extern void sub_801CF90(void *, u8);
+extern void sub_801FAB8(void *, void *);
+extern u8 sub_801D984(u8);
+extern void sub_80184A8(void *, u8);
+extern u16 FlashFlag_Get(void);
+extern void BattleFx_DispOff(void);
+extern void BattleFx_Stop(void);
+extern void DialogCtx_Clear3(void);
+extern void sub_804EEC4(void);
+extern void Bgm_FadeOut(u8);
+extern void ListNode_Init(UnkNode *);
+extern void ListNode_InitKey(UnkNode *, u8);
+extern void ListNode_InsertSorted(UnkNode *, UnkNode *);
+
+void BattleTask_Run(void)
+{
+    u8 state;
+    u16 r5;
+    u16 i;
+    u16 flags;
+    s16 tmp;
+    u16 cnt;
+    u8 ret;
+    u8 *obj;
+    u8 *ctxp;
+
+    sub_80188BC();
+    state = 0x7F;
+    ListNode_Init((UnkNode *)&gUnk_03000318);
+    switch (gUnk_03000240)
+    {
+    case 0:
+        Sound_VSyncOn();
+        DmaFill16(3, 0, (void *)0x02037028, 0xC00);
+        DmaWait(3);
+        gObjPoolPtr = (u8 *)0x02037028;
+        if (gGstate324 & 1)
+            sub_8017FA4((s8)gGstate32E);
+        sub_804B288();
+        BattleFx_Stop();
+        gBattleRngSeed = gRandCursor;
+        sub_8018A58(0);
+        sub_8019AD0(0xAU, 0x120U);
+        sub_801B964(gObjPoolPtr);
+        ctxp = (u8 *)0x03000248;
+        sub_8020F4C(ctxp);
+        ctxp[0x37] = 0xAF;
+        ctxp[0x38] = 0x14;
+        gUnk_03000317 = 0;
+        gGstate314 = 0;
+        sub_801869C();
+        sub_8021064(0U);
+        DialogCtx_Clear3();
+        sub_804ADE0();
+        if (gGstate324 & 1)
+            gGstate324 &= 0xFFFE;
+        tmp = 0xFFFF;
+        gGstate330[0] = tmp;
+        gGstate330[1] = tmp;
+        gGstate330[2] = tmp;
+        gGstate330[3] = tmp;
+        gGstate330[4] = tmp;
+        gGstate330[5] = tmp;
+        sub_804448C();
+        sub_804DE20();
+        i = 0;
+        r5 = 0;
+        while (r5 <= 0x128)
+        {
+            if (gUnk_080936A0[i] == 0xFF)
+            {
+                r5 = r5 + 1;
+            }
+            i = (u16)(i + 1);
+        }
+        gGstate340 = (u32)&gUnk_080936A0[i];
+        gUnk_03000240++;
+        gUnk_03000316 = 0xA;
+        break;
+    case 1:
+        if (FlashFlag_Get() & 0x4000)
+        {
+            BattleFx_DispOff();
+            sub_8020F08();
+            gUnk_03000240++;
+        }
+        else if (gGstate324 & 8)
+        {
+            for (i = 0; i <= 0xB; i++)
+            {
+                obj = gObjPoolPtr + 0xC8 * i;
+                if (obj[0xBE] != 0xFF)
+                    *(u16 *)(obj + 0x24) &= 0xFDFF;
+            }
+            gGstate324 &= 0xFFF7;
+            REG_DISPCNT &= 0xFF7F;
+        }
+        break;
+    case 2:
+        gBattleRngSeed = gRandCursor;
+        DialogCtx_Clear3();
+        if (gGstate324 & 2)
+            gGstate324 &= 0xFFFD;
+        if (sub_802151C(NULL, (void *)0x03000248) == 0)
+        {
+            gGstate324 |= 0x80;
+            gUnk_03000240 = 3;
+        }
+        else
+        {
+            gUnk_03000240 = 5;
+        }
+        break;
+    case 3:
+        if (sub_8021700() == 1)
+            gUnk_03000240 = 4;
+        break;
+    case 4:
+        sub_801933C();
+        if (DialogCtx_GetField_C(0) != 0 || DialogCtx_GetField_C(2) != 0)
+        {
+            if (DialogCtx_GetField_C(0) == 6)
+            {
+            }
+            else if (DialogCtx_GetField_C(0) == 7)
+            {
+            }
+            else if (sub_802192C(gObjPoolPtr, (void *)0x03000248, &state) != 0)
+            {
+                DialogCtx_SetHead(0, 4, 2);
+            }
+        }
+        else
+        {
+            Disp_Bg1Off();
+            if (!(gGstate324 & 0x2000))
+            {
+                gUnk_03000240 = 5;
+            }
+            else
+            {
+                sub_804442C(0);
+                gUnk_03000240 = 0x14;
+            }
+            DialogCtx_Clear3();
+            gGstate330[0] = tmp = -1;
+            gGstate330[1] = tmp;
+            gGstate330[2] = tmp;
+            gGstate330[3] = tmp;
+            gGstate330[4] = tmp;
+            gGstate330[5] = tmp;
+        }
+        break;
+    case 5:
+        switch (sub_80207B4(gObjPoolPtr))
+        {
+        case 0:
+            break;
+        case 1:
+            gUnk_03000240 = 0xD;
+            gGstate324 |= 2;
+            break;
+        case 2:
+            gUnk_03000240 = 6;
+            gGstate324 |= 4;
+            break;
+        case 3:
+            Bgm_FadeOut(0x14);
+            gUnk_03000240 = 8;
+            gGstate324 |= 4;
+            break;
+        case 4:
+            gUnk_03000240 = 0x13;
+            gUnk_0300032C = 0;
+            break;
+        }
+        {
+            u16 bit = 0x4000;
+            if ((gGstate324 & bit) && (gGstate314 & 0xF000) == 0x2000)
+                gGstate324 &= ~bit;
+        }
+        break;
+    case 6:
+        gGstate324 |= 0x40;
+        sub_804AD60();
+        gUnk_03000240 = 7;
+        break;
+    case 7:
+        if (sub_8049C1C(&state) != 0)
+        {
+            sub_804ADE0();
+            gUnk_03000240 = 0x11;
+        }
+        break;
+    case 8:
+        sub_804ADF8();
+        if (gGstate32E == 0x3C)
+        {
+            gUnk_03000240 = 0x13;
+            gUnk_0300032C = 0;
+        }
+        else
+        {
+            gUnk_03000240 = 9;
+        }
+        break;
+    case 9:
+        if (gUnk_0300032C <= 0x31)
+            gUnk_0300032C++;
+        else
+        {
+            gUnk_03000240 = 0xA;
+        }
+        break;
+    case 10:
+        switch (sub_8049DF8(gObjPoolPtr, (void *)0x03000248))
+        {
+        case 1:
+            gGstate324 |= 1;
+            REG_DISPCNT |= 0x80;
+            sub_804EEC4();
+            gUnk_03000240 = 0;
+            break;
+        case 2:
+            System_ResetToLogo();
+            gUnk_03000240 = 0;
+            gMainLoopMode = 0;
+            return;
+        }
+        break;
+    case 13:
+        sub_804A148();
+        gUnk_03000240 = 0xE;
+        break;
+    case 14:
+        if (sub_804A368(gObjPoolPtr) == 1)
+            gUnk_03000240 = 0xF;
+        break;
+    case 15:
+        if (gGstate324 & 2)
+        {
+            ret = sub_801FF40(0);
+            if ((s8)ret >= 0)
+            {
+                sub_802103C((u8 *)0x03000248, ret, 0);
+                gUnk_03000240 = 0x10;
+            }
+            else
+            {
+                gUnk_03000240 = 2;
+            }
+        }
+        else if (gGstate324 & 4)
+        {
+            ret = sub_801FF40(1);
+            if ((s8)ret >= 0)
+            {
+                sub_802103C((u8 *)0x03000248, ret, 0x200);
+                gUnk_03000240 = 0x10;
+            }
+            else
+            {
+                gUnk_03000240 = 0x13;
+                gUnk_0300032C = 0;
+            }
+        }
+        break;
+    case 16:
+    {
+        cnt = *(u16 *)(0x03000248 + 0xB0) & 0xF0;
+        if (cnt == 0x40 || cnt == 0x50)
+        {
+            if (gGstate324 & 2)
+            {
+                gUnk_03000240 = 2;
+            }
+            else if (gGstate324 & 4)
+            {
+                gUnk_0300032C = 0;
+                gUnk_03000240 = 0x13;
+            }
+        }
+        break;
+    }
+    case 17:
+        sub_8048DA4();
+        gUnk_03000240 = 0x12;
+        break;
+    case 18:
+        if (sub_8048FB8() != 0)
+        {
+            gUnk_0300032C = 0;
+            gUnk_03000240 = 0x13;
+        }
+        break;
+    case 19:
+        if (gUnk_0300032C <= 0x31)
+        {
+            gUnk_0300032C++;
+        }
+        else
+        {
+            Bgm_FadeOut(0x14);
+            gUnk_03000240 = 0x15;
+            sub_8019AD0(0xAU, 0x110U);
+            sub_80457AC();
+        }
+        break;
+    case 20:
+        if (sub_80401AC() == 1)
+        {
+            tmp = gGstate324 & 0x1000;
+            if (tmp != 0)
+                gUnk_03000240 = 5;
+            else
+            {
+                gUnk_0300032C = tmp;
+                sub_80457AC();
+                gUnk_03000240 = 0x13;
+            }
+            gGstate324 &= ~0x2000;
+        }
+        break;
+    case 21:
+        if (!(Sound_GetFlags() & 4))
+        {
+            REG_DISPCNT |= 0x80;
+            gUnk_03000240 = 0;
+            gGameState = 6;
+            gMainLoopMode = 0;
+            gVBlankPipelineMode = 0;
+            Bgm_Stop();
+            Sound_VSyncOff();
+        }
+        break;
+    }
+    i = 0;
+    do
+    {
+        obj = gObjPoolPtr + 0xC8 * i;
+        if (obj[0xBE] != 0xFF)
+        {
+            if (i <= 4 && !(gGstate324 & 0x10))
+                sub_801CF90(obj, i);
+            tmp = 0xC8 * i;
+            ListNode_InitKey((UnkNode *)(gObjPoolPtr + tmp), (gObjPoolPtr + tmp)[0x38]);
+            ListNode_InsertSorted((UnkNode *)&gUnk_03000318, (UnkNode *)(gObjPoolPtr + tmp));
+        }
+        i = (u16)(i + 1);
+    } while (i <= 0xB);
+    obj = (u8 *)0x03000248;
+    if (!(*(u16 *)(obj + 0xB0) & 0x400))
+    {
+        sub_801FAB8(obj, gObjPoolPtr);
+        ListNode_InitKey((UnkNode *)obj, 0);
+        ListNode_InsertSorted((UnkNode *)&gUnk_03000318, (UnkNode *)obj);
+    }
+    state = sub_801D984(state);
+    sub_80184A8((void *)gUnk_03000318.next, state);
+}
+```
+
+## 2026-09-11 claude-8018A58
+
+### ✅ sub_8018A58 (416B, 接管自 zcode-ll 挂起候选)
+战斗背景加载, 184 行 (见 TSV 语义全解)。三条关键修正把 53 diff 收敛到零:
+1. **gUnk_087ED394 步长 = 12B (3 指针), 非 16B/4 指针**: 反汇编索引算术
+   `lsls r0,#1; adds r4,r4,r0; lsls r4,#2` = idx×12, 与 ROM 数据交叉验证
+   (entry0 = 08598EA4/08608648/08609368, 若 16B 步长则 entry1 错位)。C 形式:
+   `gUnk_087ED394[idx].field_0/4/8` (struct 三字段), 比 `t[idx*3+n]` 下标式更贴目标
+   (后者让 gcc 每次独立算 idx*3+n, +4B)。
+2. **bldcnt 位组合实写 0x0400000C (GREENSWAP 地址), 不是 BLDCNT (0x04000050)**:
+   目标 `movs r0,#0x80; lsls r0,#0x13; strh r6; adds r0,#0xC; strh r7` = DISPCNT+共享
+   基址+0xC。用 `REG_BG2CNT = bldcnt` (io.h 恰为 REG_BASE+0xC) 达成同址共享基址形状;
+   语义上是原始代码的死写 (GREENSWAP 只认 bit0), 怀疑原 SDK 头 BLDCNT 曾误定位 0xC。
+   调试教训: 我最初"顺手改"成真 BLDCNT 语义 → 池里多出 0x0400000C… 反而错位。字节为准。
+3. **sub_8018E34 原型 u8→u32**: 目标调用点 `bl sub_8018E34` 后**无** `lsls/lsrs #24`
+   零扩展 → caller 按非 u8 接收。定义端 `ldrb r0,[r0]` 本身零扩展, 改 u32 返回后
+   定义端 116B 不变 (fncheck 双绿)。若不改: src 版 fncheck 变 420B (+4B), 且
+   sio_link .text +4B → linker.ld 0x61C784 钉扎点 "cannot move location counter
+   backwards" —— **链接器钉扎点是最灵敏的 +4 字节探测器**。
+其余: dispcnt/bldcnt = u32 未初始化局部 (落 r6/r7); 掩码链写自然常量 (~7,~0x10,~0x80;
+~0xC,~0x30,~0x40,~0x80), agbcc 自动折叠成 movs+negs / subs 链 —— **不要手抄折叠后的
+机器掩码** (我曾把 ~0xC/0x30/0x40 折成 ~0x10/0x34/0x10, 寄存器分配全歪); `s16 idx`
+会引入符号扩展 (+4B), 用 u32; gUnk_03000500 用 8 条独立赋值语句 (目标序 2,0,6,4,A,8,E,C);
+D8/E8 表用 REG_ADDR_BGxHOFS/VOFS 宏直接赋值 (gcc 自行组成 0x04000010+adds#4 链)。
+bytecmp 判定注: 本函数目标 .o 未链接保留 bl 占位 (f7ff fffe), 候选部分链接会为跨 4MB 的
+bl 生成 veneer (+80B 追加节) —— 排除 bl 对后主体 0x0..0x14C 零差异即算候选成立,
+真门槛由 fncheck (全 ROM) 定论。
+
+## 2026-09-11 gpnux — sub_800BFF8 可读性重构 (保字节)
+
+HP/MP/Lv 三位数字 tilemap 写入器 (menu_ui.c @0x0800BFF8, 116 行 asm)。原匹配版 C 是"编译器形状"
+(base16/count/d 等无语义命名, 减法除法无注释)。本次重构只动可读性: 逐参数块注释 + 减法除法/前导零
+抑制语义标注 + 原始 ROM 缺陷标注; 表达式结构、求值序、类型宽度、变量角色全部未动 (改表达式需重过
+permuter 回环, 收益为零——字节形状已锁定)。
+
+**语义结论** (三参数): value=0–999 数值 (负值时商下溢出乱码瓦片, 调用方恒传非负); dest=tilemap
+个位格地址, 向负方向写三格 (百/十/个); base=图块项基值 (调色板<<12|数字瓦片基号), 数字 d 表项 =
+base+0x25A+d, 空白 = base+0x27F。调用方 menu.c: Num_Draw16 恒 0xB000; Hud_DrawHp/Mp 满值传
+0xF000 (高亮调色板) 否则 0xB000。
+
+**原始 ROM 缺陷** (字节级匹配保真, 勿"修复"): 十位空白判定硬编码 `tiles[0]==0xB27F` (0xB000 基的
+空白瓦片) 而没跟 base 走 → base=0xF000 且数值形如 5/50 时百/十位空白判定失效, 渲染成 "005" 而非
+"  5"。若日后给函数起语义名 (如 Num_Draw3Digits), 在模块文档保留此 quirk。
+
+复验: fncheck OK (224B @0x0800BFF8), make+SHA1 全绿。
+
+## 2026-09-11 claude-arg0: sub_801A684 参数改型 u8* → ObjHead*
+
+应需求把 `sub_801A684` 第一参数从 `u8 *arg0` 改成 `ObjHead *arg0` (签名/头文件/调用点三处):
+1. **定义** (battle_gfx_load.c): 签名 `ObjHead *arg0` + 首行 `u8 *obj = (u8 *)arg0;` 别名,
+   函数体保留字节级验证过的裸偏移表达式 (只换变量名) —— 字节零风险, fncheck OK 110B。
+   `sub_801A6F4(arg0)` 直传 ObjHead* (未匹配 INCLUDE_ASM, 无原型检查, 指针 ABI 同)。
+2. **code_0.h** 原型 `void sub_801A684(u8 *)` → `(ObjHead *)`。
+3. **调用点** (3 处 bl): ObjGfxLoad_Step 内直传 (消 `incompatible pointer` 警告);
+   `sub_804AD60` (battle_anim.c, 已匹配) 调用点加 `(ObjHead *)obj` 强转 —— 该函数整体
+   是 u8* 操纵 BattleObj 旧风格, 只动这一处; 第三调用方 `sub_803F658` (event_hub, 未匹配,
+   code_0.h K&R 原型) 不受影响。
+复验: fncheck sub_801A684/ObjGfxLoad_Step/sub_804AD60/sub_8018A58 四绿, make + SHA1 通过。
+
+### 补充 (同日): sub_801A684 改为真·字段访问
+初版改型保留了 `u8 *obj = (u8 *)arg0` 别名 + 裸偏移 (担心字节回归)。按 review 重写:
+1. **函数体全字段访问**: `scriptPtr/cmdBase0/cmdBase1/jumpTable0/jumpTable1/f_1A/frameIdx/
+   f_1E/vramBank/f_2F/palSlot/f_28/kindFlags/palBitsPtr` —— 一次过 fncheck 110B,
+   字节与裸偏移版完全一致 (do-while(0) 与 zero8/zero16 顺序保持)。
+2. **sub_804AD60 (battle_anim.c)**: `ObjHead *obj = (ObjHead *)gUnk_03000918;` 声明,
+   `*(u16*)(obj+0x18)` → `obj->kindFlags`、`obj[0x2A]` → `obj->f_2A`,
+   `sub_801B81C((u8 *)obj, ...)` 反向强转 (原型就是 u8*)。fncheck 128B 绿。
+教训: "裸偏移保字节"是惯性 —— ObjHead 字段名与偏移一一对应且宽度正确时,
+agbcc 对 `head->field` 与 `*(uN*)(p+off)` 生成相同代码; **先试字段版再退别名版**。
+
+### sub_801B954/sub_801B95C 参数改型 void** → ObjHead* (同日)
+两函数原为 `void **ptr` + `*(ptr[N])` 指针数组视图, 实际语义: 参数 = ObjHead*
+(调用方传 `obj + 0xC` = headA / `obj + 0x3C` = headB), 取 `head->cmdBase0[2]` (u8,
+脚本类型字节) / `head->cmdBase1[2]` (u16)。改型:
+1. 定义改 `u8 sub_801B954(ObjHead *head) { return *(u8 *)(head->cmdBase0 + 2); }`,
+   `u16 sub_801B95C(ObjHead *head) { return *(u16 *)(head->cmdBase1 + 2); }` —— fncheck 双 6B 绿。
+2. 30 处调用点 `(void **)(X + 0xC/0x3C)` → `(ObjHead *)(X + 0xC/0x3C)` (event_hub 26,
+   obj_pool 2, cutscene_mgr 1, battle_obj_core 内部 1), battle_gfx_load 直传 `head`。
+   sed 批量时注意 `ObjSlot(0)` 含括号, 通用正则 `[^()]*` 漏配, 需单独补。
+3. ROM 全量一致 (fncheck --blame 8388608 B)。调色板加载链: sub_801A684 →
+   sub_801B954(head) 作为 sub_804C2FC 第三参数 (脚本类型字节决定装载方式)。
+
+## 2026-09-11 claude-arg0: ObjHead 指针字段改型 + 脚本头实证 (sub_801A684 分析)
+
+### 脚本头 (scriptPtr 指向) 的 ROM 实证
+`scriptPtr` 来自 `gUnk_08393B28[idx].field_0` (0x14B 战斗对象资源表)。dump 0x0856D650 等
+20 个脚本头:
+- `u16[0]` 全部 = 4 → cmdBase0 = scriptPtr + 4 (固定)
+- `u16[1]` (字节 +2) 可变 (0x14..0x224) → cmdBase1 = scriptPtr + u16[1]
+- **注意是 u16[1] 不是 u16[2]**: 目标 asm `ldrh r1,[r0,#2]` = +2 字节。我曾误写 data[2]
+  (u16* 第 2 项 = +4B), 编出 `ldrh [r0,#4]` → ROM 差 1 字节 (0x1A690: 81≠41)。
+- 条目 = **u16 对 (值, 帧号)**, 非固定 2 字节脚本: sub_801B8E8 以 4B 步进扫 (值,帧号) 对;
+  cmdBase1[0] = jumpTable1 项数 N; jumpTable0/1 紧随其后 (+4); 表值 = **字节偏移**。
+
+### ObjHead 改型 (code_0.h)
+| 字段 | 旧 | 新 | 依据 |
+|---|---|---|---|
+| scriptPtr | u32 | const u16 * | 半字头 [0]/[1] |
+| cmdBase0/1 | u32 | u16 * | 半字命令流, 消费方全部 (u16*) cast |
+| jumpTable0/1 | u32 | u16 * | u16 偏移表, 索引 ×2 |
+| palBitsPtr | u32 | const u8 * | sub_804C2FC DMA 源 (调色板数据) |
+
+### 两个语义坑 (都靠 fncheck/ROM 抓回)
+1. **jumpTable 值是字节偏移**: 改型后 `obj->cmdBase1 + offset` (u16* + u16) 被编译成
+   ×2 (lsls #1), 目标是直接加 → 写 `(u16 *)((u8 *)obj->cmdBase1 + offset)` 保字节语义。
+   sub_801B570 因此多 4B (主体多 2 条指令)。
+2. **u16* 索引的自动 ×2**: 同根因。
+
+### fncheck 假绿事故 (重要!)
+修完 data[1] 前, fncheck 报 sub_801A684 "OK 110B" 但 ROM 实际差 1 字节。根因:
+`build/src/scene_obj_dispatch.o / scene_obj_core.o` 是**重命名前残留的陈旧 .o**
+(源文件已改名 battle_gfx_load/battle_obj_core, Makefile 不再引用, 但 os.walk(BUILD)
+先扫到它们, 里面的旧版函数字节"碰巧"与 ROM 一致 → 假绿)。已删除; 这两个文件属
+编译产物, 非铁律 4 禁区。教训: fncheck 按文件名顺序取第一个含符号的 .o, 源文件
+改名/搬迁后必须清 build 残留。
+
+## 2026-09-11 claude-b0b8: sub_801B0B8 (600 行, 接管自 gpnux) — 转挂起
+
+战斗对象帧构建/装载分发 (语义全解见 TSV note)。参数确认 ObjHead* (用户要求, code_0.h
+原型 `u8 sub_801B0B8(u8*, u8)` 待合入时改)。语义链: 每 counter 逆序取 (cmdBase1 段 →
+sub_801B8E8 按帧号查 (值,帧号) 对 → cmdBase0 段头 [n0,count] → 跳过 n0*4 字节属性表 →
+count 轮 6 字节条目按 kindFlags&0xF 分 5 类 DMA 装载), slot = 0x030035C0 + arg1*8
+每轮 -8 步进; 尾段 (kindFlags&0x80F)==0x809 且 f_22>=f_20 时 DMA 合成调色帧并清 0x800。
+
+### 攻坚记录 (全部 bytecmp 定量, 符号锚定见 permuter/sub_801B0B8/compile.sh 环境)
+| 变体 | 字节差/总长 | 说明 |
+|---|---|---|
+| gpnux base.c | 1122/1232 | u32 影子 struct + next* 影子对 |
+| permuter 21735-15 | 1077/1240 | 分数最低, 结构未中 |
+| v2 (claude) | **1062/1136** | ObjHead 字段 + 每 case 开头推进, 无 next* |
+| v3 | 1113/1176 | u32 手动缩放视图 (方向错误, B570 语义已证 u16* 版本正确) |
+| v4 | 1094/1152 | B570 声明序 + DmaCopy16 宏 |
+| v5 | 1081/1160 | 位测试先行 + 显式 i+=1 (证伪"推进顺序"假设) |
+| 目标 | 0/1208 | — |
+
+### 结构性卡点 (需新洞察)
+1. **变量→寄存器/栈全局分配不匹配**: 目标 obj 存 [sp] (入口 `str r0,[sp]`), 7 个栈槽
+   (obj/count/unk8/keep/acc/slot/counter, sub sp,#0x1c); 候选全部把 obj 落寄存器
+   (r8-r10), sub sp,#16。agbcc 的溢出触发条件未复现 — 与局部声明序/数量/使用密度相关。
+2. **每 case 内联 9 条推进序列** (`adds r2,r4,#0; subs #8; str [sp,#0x14]; adds r3,#6;
+   mov sl; subs r6,#1; mov sb; adds r7,#1; mov r8`): 目标在每个 case 的位测试后重复;
+   r10/r9/r8 = nextCur/nextV6/nextI 三件套 → 目标 C **有 next* 变量** (与 gpnux base.c
+   的影子对假设一致), 但其 base.c 的 next* 形状未触发相同分配。
+3. 已证伪: v5 的"位测试先行 + 显式 i+=1"、v3 的 u32 手动缩放视图。
+
+### 后续攻坚建议
+- 对比 B570 (已绿) 的变量集合/声明序, 找 agbcc 溢出的判定边界 (B570 也是 8 高位寄存器
+  全用但无 obj 落栈)。
+- permuter 探索 next* 影子对的**声明位置** (函数顶部 vs case 内块) 与**类型** (u8 vs u32)。
+- 100% 可信终验 = make+SHA1; bytecmp 符号锚: gUnk_08393A30=0x08393A30,
+  gUnk_03000518=0x03000518, sub_801B8E8=0x0801B8E8, sub_801B790=0x0801B790,
+  __umodsi3=0x08000e30。
+
+
+## sub_8010770 (0x08010770, menu_ui, 道具/技能菜单"确认使用") — ✅ 2026-09-12 gpnux-10770 (520B 字节全等)
+### 语义
+`void sub_8010770(u8 arg0)`; 调用点: code.s 0x0800D47E 附近菜单确认逻辑 (传 1)。
+1. `n = 0`; `sub_8010300(gUnk_030001C3)` 返回 0 → `Sfx_Play(3,0,0)` 收尾(冷块)。
+2. `gUnk_030001C3 == 0x26`(传送) → 只置 `n = 1` 直接进尾部。
+3. 否则 `gUnk_030001B0 = 0x10`;
+   - `arg0 == 0`: `gUnk_030001C5 == 5`(全队回复类) → `i=0..4` 遍历 `gPartyMemberIds[i]`
+     (0xFF 终止; id>0 则 id--), `gPartyStats[id].hp += gUnk_030001C6` 并以 `max_hp` 截顶,
+     计数为 0 时直接 `hp = max_hp`; 逐项 `sub_8010624((u8)i, 2)`; `i>4` break; 之后 `Sfx_Play(0x17,1,0); n++`。
+     非 5 → `gMenuCursorStack[gMenuCursorGrp] = gMenuCursorSel; gMenuCursorSel = gMenuCursorStack[15];
+     if (gMenuCursorSel <= 3) gMenuCursorSel = 4;` + `sub_800E668(0xFF); Sfx_Play(1,0,0); return;`
+   - `arg0 != 0`: `id = gPartyMemberIds[gMenuCursorSel - 4]`(无 u8 强转! 加了会多 lsls/lsrs),
+     `hp < max_hp` 时同上加血 + `sub_8010624((u8)(gMenuCursorSel-4), 1)` + `Sfx_Play(0x17,1,0); n++`;
+     否则 `gUnk_030001C8 = 0x24; Sfx_Play(3,0,0)`。
+4. `if (n == 0) return;` → `gUnk_030001C3 == 0x3E` 清 `gPartyFollowFlags` bit7 并 `sub_800F128(0, gMenuCursorStack[gMenuCursorGrp])`;
+   否则 `id = gPartyMemberIds[(u8)(gMenuCursorStack[0]-1)]`, `id>0 → id--`, `gPartyStats[id].mp -= gUnk_030001C4`。
+
+### 命中路径 (结构 4 个硬杠杆, 少一个就差 2~10 字节)
+1. **外层冷块**: 必须写 `if (sub_8010300(...) != 0) { 主体 } else { Sfx_Play(3,0,0); }`。
+   写成 `if (... == 0) { Sfx_Play(3,0,0); return; }` 早退 → 冷块落函数头(0x16), ROM 是 `b 0x1f8` 落尾。
+2. **0x26 判定取反**: `if (gUnk_030001C3 != 0x26) { 大段 } else { n = 1; }`。
+   写 `== 0x26` 时 `n=1` 块被排到分支之前, 与 ROM 的 `_080108F0`(在 arg0 全部分支之后) 差 8 字节。
+3. **全队循环用 `while` + `break`**, 不要 `if (id != 0xFF) { do {...} while (id != 0xFF); }`:
+   后者 GCC2 生成"入口 b 到循环尾测试"的旋转形态(多 1 条 b + 测试块位置差), `while` 版逐字节一致。
+4. **flag 检查写 `if (n == 0) return;`(跳过块在后), 且 c5 分支写 `n++` 而不是 `n = 1`** —— 见经验 244。
+   c5 路径 n 已知为 0, `n++` 与 `n = 1` 都生成 `movs r6,#1`, 但 `n = 1` 会被 flow 判死删除,
+   导致 `b.n` 后多 2 字节 padding + 池倾倒点前移, 连环差 8 字节。
+
+### 差异排查工具 (本次自建, 放在 .scratch/gpnux-10770/)
+`d.py <cand.c>`: 编候选 → 两侧 objdump → difflib 按指令流对齐, 忽略 `<标签名>`, 分支目标按绝对偏移比较。
+比 asm-differ 强的地方: 目标 .o 的**内联字面池会被 objdump 反汇编成假指令 / 折叠成 `...`**,
+asm-differ 与早期 fncheck diff 都会被这些假行淹没; d.py 只对齐助记符+操作数, 池差异一眼可辨。
+`vtest.sh` 打印 `movs r6,#1` 出现次数与 .text 字节数作快速指纹 —— 本次靠它把 5 个结构变体筛到 1 个。
+`gen*.py` 是配套的变体批量生成器 (只改 base 的一个片段批量生成/编译/打分)。
+
+### 符号
+新登记 `gUnk_030001C3`(linker.ld 0x1C3 + iwram.h); 补齐 iwram.h 里 gUnk_030001C4/C5/C6 的 extern
+(linker.ld 早有、头文件漏登)。`gUnk_03002C44` 用已有别名 `gPartyFollowFlags`(同址, 语义一致: 清 bit7)。
+`code_0.h`: `sub_8010300` 原型 `void()` → `u8(u8)`(调用点 `lsls r0,r0,#0x18; cmp r0,#0` = u8 返回;
+唯一调用者就是本函数, 安全); `sub_8010770` 原型 `void()` → `void(u8)`。
+`sub_8010624()` / `sub_800F128()` 保持无原型声明即可(显式 `(u8)` 强转使调用点字节不受影响, 实测两种写法全等)。
+
+### 判定
+`python3 scripts/fncheck.py sub_8010770` → OK (520 bytes @0x08010770, 0 池重定位, 10 bl 槽忽略);
+`make` + `sha1sum -c ll.sha1` 全绿; permuter base score = 115 (仅池/bl 未重定位的假分)。
+
+## sub_80053B4 (map_view, 274 行) — ⏸ 攻坚中, 候选差 59 字节 (2026-09-11, claude-53b4; 链式研磨最终收敛 675 分/59 字节差, 多轮平台期)
+
+### 语义 (已完全解开)
+地图视图重绘: `gObjGraphicsSetId > 0xFC` 早退; 按 `gCameraDrawMode`(1..8 + default) 确定
+{srcX1, srcY1, srcX2, srcY2} 四个图块源坐标, 然后双层循环 (row 0..10 × col 0..15) 把两张地图的
+16×11 tile 区换成 gfx: `src1 = 0x02006000[(srcY2+row)*0x80 + srcX1 + col]` → gfx 0x02000000[tile*4]
+4 个 u16 写到 `0x02004000[row*64 + col*2 .. +33]`; `src2 = 0x0200E000[(srcY1+row)*0x80 + srcX2 + col]`
+→ 0x02002000[tile*4] → 0x02004800 同构。调用点: sprite_engine.c `sub_80053B4(gCameraPosX, gCameraPosY)`。
+符号全部已登记: gObjGraphicsSetId(0x0300467C)/gCameraDrawMode(0x0300460C)/gDrawCamEaseActive(0x03004680)/
+gDrawCamY(0x03004684)/gDrawCamX(0x030047C0)。参数 (u16 x, u16 y)(入口 lsrs 零扩展)。
+
+### 已破解的结构 (全部经 bytecmp 逐字节验证)
+1. **dst 偏移 = row*64 + col*2**(非直觉的 row*32!)—— 目的内层步距 128 字节, 0x02004000/0x02004800
+   各 2KB 缓冲, 每行只写前 64 字节。
+2. **src 读取必须内联 `tile * 4`**(声明 `u16 tile` 后 `[tile * 4]`); 写 `tile *= 4;` 语句会给 u16 tile
+   加截断对(lsls/lsrs), 直接崩形(480 字节)。dstOff 若声明为 u16 同理加截断; 必须内联索引或 s32。
+3. **各 case 块是"人类不一致"书写**—— case 4 与 case 7 语义相同但 ROM 没合并成共享块:
+   case 4 = `srcX2 = x>>4; srcY1 = ...; srcX1 = srcX2; srcY2 = y>>4;`(srcX2 先算, srcX1 拷贝),
+   case 7 = `srcX1 = x>>4; ...; srcX2 = srcX1;`(反向)。case 1/3/6/8/default 同 case 4 型,
+   case 2/5 同 case 7 型; case 5 的 srcY1 = srcY2 拷贝(`str r6,[sp,#4]`), case 2 顺序 srcX1,srcY2,srcX2,srcY1。
+   全部统一成同序会被 GCC 合并 case 块, 立即不匹配。
+4. **srcY1 必须溢出到 [sp+4]**(9 定义 + 1 使用, 帧槽 [sp]=rowNext/[sp+4]=srcY1)。
+   我方自然写法把它分到 r7 → 内层循环地址被迫走栈搬运, 差 100+ 字节。
+5. **default 块用 r4>>20/r1>>20**(入口 u16 参数规范化的 x<<16/y<<16 残值) —— 写 `x >> 4` 自然产生,
+   无需特殊处理; 但只有 srcX1 是"拷贝目标"(各 case 块中第一个 def 最晚的变量)时 ip 才会分给 srcX1
+   (REG_ALLOC_ORDER = 3,2,1,0,ip,lr,4,5,6,7,8,sl,sb; 全局分配按 QTY_CMP_PRI=floor_log2(refs)*refs/
+   size/life 排序, 同分按 qty 号)。
+
+### 当前最佳候选 (permuter/sub_80053B4/, 链式爬山 10325→1840→1330→1045→835→680)
+`.scratch/claude-53b4/best680.c` = 564 字节(与目标等长!), 仅差 59 字节, 全部在内层循环的
+{tile*8, dstoff, dst-addr} 三个临时量的 r1/r2/r3 角色分配 + 池常量组织(目标物化 0x02002002/04/06,
+候选物化 0x02004040/4840)。候选含 permuter 非人类伪影(new_var/new_var2/new_var3/new_var4 指针 +
+do-while(0) 屏障 + 死 dstOff 声明), **合入前必须人类化并复验**。指针类伪影反复出现暗示原代码
+可能真的用了基址指针变量(如 `u16 *gfx = 0x02000000`), 但函数级 gfx 指针实测反而崩形(516 字节)。
+
+### 工具与提示
+- 套件: permuter/sub_80053B4/(compile.sh/target.o 已建), base.c = 当前最优种子。
+- 链式爬山: 每轮 `cp output-<best>/source.c base.c && rm -rf output-* && permuter.py . -j 1`,
+  每轮约 7 分钟, 分数仍在稳定下降。
+- 逐指令对比: `scripts/fndiff.sh sub_80053B4 <候选.c>`; 字节定论: `scripts/bytecmp.sh sub_80053B4
+  <候选.c> "gObjGraphicsSetId = 0x0300467C;" "gCameraDrawMode = 0x0300460C;" "gDrawCamEaseActive =
+  0x03004680;" "gDrawCamY = 0x03004684;" "gDrawCamX = 0x030047C0;"`。
+- 关键机制注记: local-alloc 按 QTY_CMP_PRI(寿命) 而非 refs 排序、death-reuse 让连发临时量共用
+  同寄存器、regmove 的地址增量传播(+2/+0x3e bump vs 池物化)对寄存器角色敏感 —— 内层循环的
+  r1/r2/r3 角色由 {tile*8 建议槽 r1, dstoff 寿命, dst-addr 寿命} 的优先级竞争决定。
+
+## sub_8018070 (0x08018070, sio_link, 266 行切片) — ✅ 2026-09-12 nova (568B 字节全等, permuter base score 0)
+
+### 语义: 战斗场景 VBlank 流水线
+`VBlankIntr` 的 `gVBlankPipelineMode==2` 分支 (地图侧是 mode 1 `VBlank_UpdateGameScreen`)。
+调用链: `BgScrolls_WriteAll` → `sub_801889C`(战斗 FX 表) → `sub_804C184` →
+`!(gGstate324&0x10)` 时 `DmaCopy32(3, gUnk_020352C0, 0x06006800, 0x800)` →
+`sub_804B224(&gGstate324)` → `DialogCtx_Flush` → `gUnk_03000344 = 0x7F` →
+`ret = sub_8049D58(sub_8022458(0x7F))` → `sub_801B7B8`(清对象标志位图) →
+**逐对象帧分发** → 未冻结时 `ret = sub_801D214(gObjPoolPtr, ret)` →
+`sub_801B688(ret)` / `sub_801B920()` → `gUnk_03000344 = ret` →
+`DmaCopy32(3, gOamBuffer, OAM, 0x400)` → bit10(0x400) 待传图块 `sub_80527AC()<0` 才清位 →
+bit11(0x800) 图块装载 `BgTiles_LoadSet(0)` 后清位 →
+`DmaCopy32(3, (void*)0x0861A7E4, 0x060125C0, 0x2C0)` → `sub_8018928`。
+
+对象循环 (`gUnk_03000318` 行动链, `key<=0xFE` 且 `!(gGstate324&8)` 才续行):
+```
+kindA = obj->headA.kindFlags & 0xF;   kindB = obj->headB.kindFlags & 0xF;
+kindA==6 || kindB==6 || kindA==7 || kindB==7  ->  DmaCopy32(3, 0x020362C0, 0x06007800, 0x800) + DmaWait
+ret = sub_801B8AC(&obj->headA, obj->headA.f_2D);          // 恒调
+if (obj->state & 0x2000)                                   // 跳跃态
+    if (!(obj->headB.kindFlags & 0x800))                   // headB 未禁用 DMA
+        ret = sub_801B8AC(&obj->headB, obj->headB.f_2D);
+```
+实证了 MOD-04 的「双 ObjHead」推断 —— 同一对象两条通道各自独立分发, headB 只在跳跃态且未禁用 DMA 时参与。
+
+### 命中的 3 个硬杠杆 (逐个经 fndiff 定量)
+1. **循环必须写成 `node`(UnkNode*) + `obj`(BattleObj*) 双变量**。
+   单变量 `for (obj = ...; ...; obj = obj->node.next)` 版 fndiff **4880**;
+   改成 `node = gUnk_03000318.next; while (...) { obj = (BattleObj *)node; ...; node = node->next; }`
+   立刻降到 **2400**, 且循环体 233 条指令逐条对齐。
+   原因: 目标在循环头有 `adds r5, r4, #0`(r4=迭代器, r5=对象副本), 全程 `obj` 走 r5 / `node->next` 走 r4,
+   循环体里的 `adds r3,r5,#0xc` / `adds r2,r5,#0x39` / `adds r6,r5,#0xb0` 全以 r5 为基;
+   单变量版 GCC 只用一个寄存器, 这些 base 复制全部退化成以 r4 为基, 与目标的双基形态不合。
+2. **kind 判定必须内联成短路链, 不能预存 `kindA`/`kindB` 变量**。
+   预存变量的写法下 GCC 会把两次 `kindFlags & 0xF` 都提到第一次比较之前 (先算完 kindB 再比 kindA==6);
+   目标顺序是 `算 kindA → 比 6 → 算 kindB → 比 6 → kindA 比 7 → kindB 比 7`。
+   写成 `if ((obj->headA.kindFlags & 0xF) == 6 || (obj->headB.kindFlags & 0xF) == 6 || ... )` 后,
+   GCC 会在短路链内做 CSE (kindA 落 r2、kindB 落 r1, 后面两处 ==7 各自复用), 与目标逐条一致。
+   (与 EXPERIENCE 72「fall-through 与显式 return 布局不同」同源: 语义相同但**求值顺序**不同的 C 出不同码。)
+3. **4 处 DMA 全是 `DmaCopy32` + `DmaWait`** (不是 DmaCopy16!)。控制字 `0x8400_xxxx` =
+   `(DMA_ENABLE|DMA_32BIT)<<16 | count`(本工程 `DMA_START_NOW=0`, 故高位是 0x8400 而非 0xC400)。
+   形状 = `src/dst/ctl` 三次 `str` + **两次** `ldr` dummy 读 (一次来自 `DmaSetUnchecked` 的 `dmaRegs[2];`,
+   一次是 `DmaWait` 的 `while` 被 loop-inversion 提到循环外) + `0x80000000` 等待环
+   (`cmp r0,#0; bge` 前置测试 + 环内 `ands/cmp/bne`)。`sub_801B7B8` 里已有完全同形状样例可对照。
+
+### 分数陷阱: 2400 是字面池重定位假分 (EXPERIENCE 29)
+`extern` 全局符号在独立编译的候选 .o 里是未解析重定位, asm-differ 把池内容读成 0 → 与硬编码池值的
+target.o 逐条 mismatch。把 base.c 里的 extern 换成硬编码地址
+(`#define gGstate324 (*(u16 *)0x03000324)` 等) 后 **fndiff = 0**、permuter `base score = 0`。
+两种写法字节完全一致 (bytecmp 掩码 bl 槽后 0 差异), 故 **src 保留符号写法, permuter base.c 用硬编码版**。
+另注: `bytecmp.sh` 把 .text 链到 0 时, ROM 段函数符号距离 >4MB, ld 会在 .text 尾部插 interworking
+veneer (本例 568→808 字节), 导致 `cmp` 报 64 字节差异 —— 全是 bl 槽, 需掩码后判定 (工具见
+`.scratch/nova/bcmask.py`)。
+
+### 新登记 / 修正
+- `linker.ld` + `iwram.h`: 新增 `gUnk_03000344` (u8, 0x03000344, 位于 gGstate340 与 gDialogCtx 之间) —
+  入口置 0x7F 哨兵、出口写本帧返回值; 全 ROM 目前仅本函数读写。
+- `code_0.h` 原型修正 (四个函数**仅被本函数调用**, 已遍历全部 asm 确认无其它调用点):
+  | 函数 | 旧 | 新 |
+  |---|---|---|
+  | sub_801B688 | `void ()` | `void (u8)` — asm 体 `lsls r0,r0,#0x18` 收 u8; 体内另有 `[sp,#4]` 读, 实参可能不止 1 个 |
+  | sub_801D214 | `void ()` | `u8 (u8 *, u8)` — r0=gObjPoolPtr, r1=本帧结果 |
+  | sub_8022458 | `void ()` | `u8 (u8)` — 入参 0x7F |
+  | sub_8049D58 | `void ()` | `u8 (u8)` |
+
+### 判定
+`fncheck sub_8018070` OK (568 字节, 6 池重定位已施加, 16 bl 槽忽略); `touch src/*.c` 全量重编后
+`make` rc=0 + `sha1sum -c ll.sha1` 绿 (794/1059); `permuter.py -j 1 --stop-on-zero` 报 `base score = 0`。
+
+## 2026-09-11 zcode-engine: battle_engine 无卡点批次 (7 个认领, 5 匹配, 会话总结)
+
+目标 = battle_engine.c 未匹配无卡点 <500 行共 29 个, 逐个不开 subagent。实际完成:
+
+**✅ 匹配合入 (fncheck OK + 全量 SHA1 绿, 790→795):**
+- sub_8046480 (110B): 行动槽处理; stride=0xC8 写循环体内(LICM 提升位), 指针加法第1参在前/0xAB 处 (u32)cast 形式三种地址写法; code_0.h sub_8045328 void→u8。
+- sub_8046F0C (280B): 15 路 switch 取值器; case1-9 缩放 u16 指针 `*((u16*)obj+n)` 防 ldrh 位移折叠; 直接 return 使返回值落 r0; 无 default 直落 bx lr; 范围检查因 default 超条件分支射程(>254)自动变 bls+b 双分支。
+- sub_8045BF4 (268B): switch(0xBE) 写 obj[0x8A]; 勿加 if-return (switch 自带范围检查, default=函数尾)。
+- sub_8049C1C (316B): BGM 状态机; 0x03000918 用 ObjHead 视图 (数组+常量偏移会被树级折叠进池常量); case 自增用 <=(then臂); code_0.h void*→u8*。
+- sub_8048DA4 (360B): 复位函数; DmaCopy16+DmaWait; 新登记 iwram 0x949/0x954/0x95A/0x974[]/0x979/0x97A; gUnk_03000970 用块级 u32 extern 避开文件后方 Unk_03000970* 视图冲突。
+
+**⏸ 挂起 (语义/C 结构 100% 还原, 候选 base.c 已留 permuter/<fn>/):**
+- sub_8048690 (差 1 字节!): GCC2 jump-threading 深度差 (x<=0 路径 b.n 目标), permuter base score=10 (归一化后视为相等, 该字节不可见)。
+- sub_8046E18 / sub_8046558 / sub_8048310 / sub_80471AC / sub_8046CD4 / sub_8048458: 同族分配器三连坑 (store-flag 物化方向 / 参数 home 栈vs寄存器 / ref 序 home 级联), 详见 EXPERIENCE.md 经验 230。
+
+**事故**: functions.tsv 更新脚本 split('\t',5) 吞换行导致 8046480/8046558 两行合并, 已按 git 基线重建 (见 INCIDENTS.md)。
+**其余 <500 行无卡点目标** (80481B8/8049958/804753C/8047024/804519C/8047DC8/80472E8/8045D00/8047B1C/80492C0/804A148/8048FB8/8049DF8) 未及处理, 可用本文档同款流程。
+
+### 2026-09-12 zcode-16d24 接管 sub_8016D24 (0x08016D24) — 第二轮, 仍未合入 ⏸
+- 起点: TSV note 所述 61B 状态; 终态: **bytecmp 差 63B** (280B 全量) — 结构 100% 对齐, 剩纯寄存器 home/调度。
+- 本轮新破 (61B→36B 级别的 5 项, 全部以字节判定回环验证):
+  1. **0x4000 是错的, 目标常量 = 0x2000** (`movs r0,#0x80; lsls r0,r0,#6`): TSV 旧 note 的 0x4000 与调用方 sub_8017120 消费 `status & 0x2000` (联机会话错误标志) 互证。尾分支改回**单 return 三元** `? 0x2000|extra|status : status|extra`, 配 `siocnt.b.ID > 1u` 出 `bls`(低臂在前)。
+  2. **(a) 已破**: ID 提取用 **u32 容器位域视图** (union { u32 full; struct { u32 BaudRate:2; SI:1; SD:1; ID:2; Error:1; Enable:1; ...}; };) 的 `siocnt.b.ID` → 正确产出 `lsls r6,#0x1a; lsrs r0,#0x1e`。该 union 已写入 base.c, 建议登记为 SIOCNT 的正式别名类型 (SioCntWord)。
+  3. **si 形状**: 单语句 `si = siocnt.full & 4;` (掩码后一次 8 位截断), 不是两条语句。
+  4. **modeBits u16 常量变量**: `u16 modeBits = 0x88;` (switch 前赋值) 买到 case0 的 `adds r4,r6,#0` 拷贝形状。
+  5. **parentBit 提前装载**: `int parentBit = 0x80;` 在 counter++ 后、三元前装载, 臂内从变量取 → `movs rX,#0x80` 独立成条。
+- 经验 87 双用尝试记录 (全部字节判定): `tmp` 兼职 case1 布尔 (`tmp = unk_2 != 0`) 有正收益 (-26B, 已留在 base.c); `status` 兼职 case0 常量 8 无效; `extra` 兼职 RMW 量 257B 恶化; `extra = modeBits` 通道只有 **long long extra** 才有效 (u32 同形状反而 210B)。
+- ⚠ **long long 现象** (未采供, 用户禁止): `long long extra` + `extra = modeBits; mode &= extra;` = **36B**; 无 conduit = 38B; u32 同形 = 63/210B。8 字节宽度把 extra 的 qty pri ×2 (floor_log2(n_refs)*n_refs*size/life), 改变 block9/block16 的 local-alloc 排序 → mode 掩码/尾部 extra 的 home 全部归位。这是"改类型宽度买 home"的可复现案例, 但产码不可读, 弃用。
+- **剩余 63B 全图** (mine→target, 逐字节): `2a-2d` case0 头 `adds r4,r6,#0` 与 `movs r0,#0x88` 调度对调 (掩码 home r0 vs r2/r4); `68/6a` RMW `ands r1,r0;strb r1` vs `ands r0,r1;strb r0` (tmp home r1 vs r0, 字节 home r0 vs r1); `cd-ea` 尾三元臂 dest r1 vs r0 (parentBit home r1 vs r0) + 目标多一条 `adds r2,r0,#0` (status 算完后拷进 bits 的 home r2, 再继续 OR); `ec-f7` extra: 目标直接 `lsls r1,r0,#0xf` (extra home = r1, 复用已死的 gUnk 基址 home), 我的落在 r0→`adds r2,r0,#0` (home r2); `f9-10b` 尾臂级联。
+- 诊断: qtydump 的 block-9/16 表与目标逻辑一致, 差异发生在 global-alloc 层 (跨块 pseudo 165=gUnk 基址/87=status 等), qty 表看不到 (EXPERIENCE 88)。permuter 5 轮 (每轮 27k iter) 平台期 score 150-205。
+- 下一步抓手: ① 找到让 gUnk 基址 (global pseudo) 在尾部提前死亡 (c6 `adds r7,r1,#0` 之后) 的源形状 → extra 能复用 r1; ② case0 掩码 home r0 需要"switch 前出生的 u32 首个常量 pseudo"落 r0 — 可试把 modeBits 也用于 case1/2 (加无害引用提高 refs); ③ 若项目某处已有 "8字节标量" 的合法人类用例可参照。
+- 候选: permuter/sub_8016D24/base.c (63B, 人类可读, 结构全对); output-205-1 (38B, 含被禁 ll)。全量 280B 逐字节 diff 命令: bytecmp.sh sub_8016D24 base.c "gUnk_03004DF0 = 0x03004DF0;" "sub_8016E80 = 0x08016E80;"
+
+
+## sub_80104F8 (0x080104F8, menu_ui, 传送/出生参数装载) — ⏸ 2026-09-12 gpnux-104f8
+### 结论: 语义/结构 100% 还原, 卡在**一对寄存器 home 互换** (global-alloc 优先级墙)
+候选: `.scratch/gpnux-104f8/T4.c` (自包含, permuter base 已更新为此文件)。
+- 字节对比: `.text` 双方均 300B; `cmp -l` 52B 差异, **全部来自同一处**: 目标 `kind`→r6 / `tbl`→r5,
+  我 `kind`→r5 / `tbl`→r6。指令流 **(助记符+操作数) 逐条一致**, 池布局/池倾倒点/分支距离全对。
+- `fncheck`/字节门槛未过 → 未合入 src, 仓库保持绿。
+
+### 语义 (与旧 note 一致, 已复核)
+`kind = gScreenIdleIconIds[gScreenIdleIconCursor - 0xb + gMenuCursorSel];`
+0 → msg 0x27; 8 且 `EventFlags_Test(0x10D)==0` → msg 0x1a; 0x18 且 `EventFlags_Test(0xFF)!=0` → msg 0x1a
+(三条错误路共享 `strh + Sfx_Play(3,0,0) + return 0`)。
+否则在 `gUnk_080981EE` 6B/项表里线性找首字节 == kind, 把 6 字节拆入
+`gMapNpcSetId / gSpawnTileX / gSpawnTileY / gSpawnFacingDir / gMoveCmdSetId(u16) / gWarpAnimState=1`,
+再 `gUnk_03004D4C = 0x34; SwitchFlags_ClearRange();` (无实参! 有实参会多一条 movs) `return 1`。
+
+### 关键结构杠杆 (已全部命中, 记下来省后人时间)
+1. **表基址必须是 u32 整数而不是指针**: `u32 tbl = (u32)gUnk_080981EE;` 且访问写成
+   `*(u8 *)(i + tbl)` (索引在左)。用 `const u8 *tbl` + `tbl[i]` 时 C 前端会把 `i+tbl` 规范化成
+   `tbl+i`, expand_binop 得到 `(plus base index)` → 目标却是 `(index, base)` (目标 6 处 `adds rX, rY, r5`)。
+   **判据: 目标 `adds r0, r4, r5` (index 在前)** = 整数基址 + 索引写在左边的组合。
+2. **p5 的第二个字节要 `(u16)` 强转**: `(*(u8 *)((u16)(i + 1) + tbl) << 8)`。直接写 `i + 1 + tbl`
+   会被 fold 重新结合成 `((i+tbl)+1)` 并被 ARM 地址折叠成 `ldrb r0,[r0,#1]` (差 2 字节 + 连带池位移)。
+   `(u16)(i+1)` 的 CONVERT_EXPR 让 split_tree 拆不动 → 保住 `adds r0, r4, #1; adds r0, r0, r5`。
+3. **循环必须是 `do { if (*(u8*)(i+tbl) == kind) break; i = (u8)(i + 6); } while (1);`**。
+   写成 `while (...)`/`for(;;)` 会被 GCC 旋转成"入口跳测试"形态 (26 处 diff); do-while 版逐字节对。
+4. `SwitchFlags_ClearRange()` 无实参 (靠上一条 `movs r0,#0x34` 的残留 r0), 写 `(1)` 会多一条 `movs r0,#1`。
+
+### 卡点: global-alloc 优先级 (已用 `-dg` 转储定量)
+`tools/agbcc/bin/agbcc ... -dg` 会在 cwd 生成 `<name>.greg`, 内含:
+```
+Registers to be allocated in sorted order:
+Register 23, refs = 17, live_length = 64   <- i,   pri 10625 -> r4
+Register 22, refs =  6, live_length = 41   <- kind, pri 2926 -> r5
+Register 24, refs =  9, live_length = 104  <- tbl,  pri 2596 -> r6
+```
+`global.c allocno_compare`: `pri = floor_log2(n_refs) * n_refs / live_length * 10000 * size`;
+`flow.c:2457`: **`REG_N_REFS (regno) += loop_depth`** → 循环体内的引用按深度加权。
+本例 kind refs=6 = def(1)+cmp0(1)+cmp8(1)+cmp24(1)+**循环 cmp(2)**;
+tbl refs=9 = def(1)+**循环(2)**+p1..p4(4)+p5×2(2) ✓ 与 ROM 完全一致, 所以 refs 没有杠杆。
+要让 tbl 先分配: 需 `LL_t/LL_k < 27/12 = 2.25`, 现为 104/41 = 2.54。
+`live_length` = 寄存器活跃的指令条数, 只能靠"源结构改变 RTL 拷贝"来微调
+(实测: 把赋值内联进 `if ((kind = ...) == 0)` 可把 LL_k 41→43, 但还不够)。
+
+### 已穷举无效的杠杆 (全部保持 .text 300B/指令流一致后才算)
+- 声明顺序 12 种排列、`kind` 类型 (u8/u32/int/s8/const/volatile)、`tbl` 类型 (u32/int/u16/const/指针)、
+  死赋值 (`kind=kind`/`tbl=tbl`/`tbl|0`/`tbl+0`)、`if(!kind)`/`0==kind`、switch/else-if 链、语句顺序;
+- p5 表达式 30+ 变体 (加数顺序/括号/`|`/`u16` 临时变量/`(u32)gUnk_080981EE` 各位置);
+- 全队循环 4 种写法 × 表基址 2 种 (指针/整数) × p1..p5 直用 extern 与否 64 组合 (gen7 已扫);
+- permuter 90s (score 130→65, 但 score 65 的产物 diff 反而更多 14 行; 评分与字节不对应)。
+**判据: 任何"看起来能改 home"的写法都必须先过 `d.py` 的指令流 diff == 12 行才有效, 否则是改坏了代码。**
+
+### 下一步建议
+- 方向 A: 找一个能**延长 kind 活跃区间到 ~47 条** 或 **把 tbl 活跃区间压到 ≤92 条** 的源结构
+  (两者都必须是"最终字节不变"的 RTL 级拷贝差异)。可考虑: 早期检查写成 `goto` 共享块
+  (经验 107 的 flag 归约优先; goto 属铁律 4 禁项, 需谨慎)、或在指针 init 区插入会合并的拷贝。
+- 方向 B: 打 `global.c` 转储补丁 (经验 216 路径 a), 看目标 .greg 是否可得 (需原版 C 才能复现, 不可行)。
+- 方向 C: 换同类函数先做 (FAMILIES T6 组: sub_8010300 / sub_8010624 未匹配, 共享 gPartyStats 状态),
+  用它们的 home 结论反推本函数的源结构。
+
+### 工具 (本次自建, `.scratch/gpnux-104f8/`)
+`d.py <cand.c>` 指令流对齐 diff (忽略标签名, 池差异一眼可辨);
+`pri.sh <cand.c>` 编译 + `-dg` 转储 → 打印伪寄存器 refs/live_length + 寄存器 disposition;
+`qty.sh` / `jj.sh` / `cnt.sh` / `rtl.sh` 转储探针; `gen*.py` 变体批量生成+打分。
+⚠ `d.py` 的 diffs 计数在 **COMPILE FAIL 时会误报 0** (无 "!!" 行) —— 批量脚本必须显式检查 "COMPILE FAIL"
+(本次就被这个坑骗过一次: `for (i=0; tbl[i]!=kind; ...)` 用 u32 基址编译不过却报了 diffs=0)。
+
+## sub_8010300 (0x08010300, menu_ui, 157 行切片) — ⏸ 2026-09-12 nova 接管后推进到差 42 字节, 未匹配
+
+### 背景
+claude-300 于 2026-09-05 认领后停在「bytecmp 剩 80 字节」。2026-09-12 经确认其锁已 7 天无更新
+(note 空), 由 nova 接管 (原锁备份在 `.scratch/nova/sub_8010300.lock.bak`)。
+
+### 语义 (已 100% 确定, 与前人一致)
+道具使用入口 / `VBlankIntr` 无关的普通函数, 返回 0/1/2:
+- `itemId == 0` → `gUnk_030001C8 = 0x27`, 返回 0
+- `itemId == 0x3E` → 若 `!(gUnk_03002C44 & 0x80)` 则 `gUnk_030001C8 = 0x24`, 返回 0; 否则落到公共段
+- 其它 → `memberId = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)]`,
+  `charaId = memberId ? memberId - 1 : 0`, `power = ItemGetUsePower(memberId, itemId)`,
+  MP 检查后写 `gUnk_030001C4`; 为 0 则 `gUnk_030001C8 = 0x1d`, 返回 0
+- 公共段: `entry = &gSkillLearnTable[(itemId-1)*5]`, `gUnk_030001C5 = entry[1] & 0xF`,
+  `gUnk_030001C6 = entry[3]`
+- `itemId == 0x26` → `WarpTable_Check() != 0` 返回 1, 否则 `gUnk_030001C8 = 0x27` 返回 0
+- 否则扫前 5 个队员, 统计 `hp < max_hp` 的人数; 非 0 返回 2, 否则 `gUnk_030001C8 = 0x1c` 返回 0
+
+### 本轮推进 (掩码 bl 槽后的字节差: 101 → 66 → 42)
+判定用 `.scratch/nova/score300b.py`(编译 + objcopy .text + 掩码 bl 槽后逐字节比, 并打印 prologue
+push 列表) 与 `.scratch/nova/idiff.py`(指令流对齐 diff)。**不要用 fndiff 的分数做定量** ——
+extern 符号版有字面池重定位假分 (经验 29), permuter 自己的分数又与字节差不线性。
+
+1. **循环: hp 与 max_hp 必须各自取到局部 `u16`(关键突破, 101 → 66)**
+   直接写 `if (gPartyStats[id].hp < gPartyStats[id].max_hp)` 时, agbcc 每轮都从字面池重载
+   `0x03004AC0`; 目标却是把 stats 基址提到 r4、ids 基址提到 r5 复用。
+   写成 `u16 hp = gPartyStats[id].hp; u16 mh = gPartyStats[id].max_hp; if (hp < mh) count++;`
+   后基址即被提升。(permuter 独立跑出的 `new_var = 0x03004AC0` 是同一机制的另一种写法。)
+   只取其一 (`u16 hp = ...; if (hp < gPartyStats[id].max_hp)`) 无效, 仍 101。
+2. **MP 检查: 唯一剩余卡点**
+   目标 (0x62-0x80):
+   ```
+   ldrh r4, [r4, #4]   ; mp 复用 charaInfo 的 r4
+   cmp  r0, r4         ; 比的是 power, 且 power 留在 r0
+   bls.n 78            ; -> adds r1, r0, #0   (result = power)
+   movs r1, #0         ; result = 0
+   b.n 7a
+   [字面池 3 words]      ; 池正好在 b 之后断开
+   78: adds r1, r0, #0
+   7a: ldr r0, =gUnk_030001C4; strb r1; cmp r1, #0
+   ```
+   agbcc 对 `if (power > mp) result = 0; else result = power;` **一律**做 value-replacement,
+   把复制提到比较前并改用 result 比较:
+   `ldrh r1,[r4,#4]; adds r2,r0,#0; cmp r2,r1; bls; movs r2,#0`(少一条 `b`, 池也就不断开)。
+   已排除的写法 (全部 66~193, 无一命中): if/else、三元、先 `result = power` 再清零、
+   先 `result = 0` 再条件赋、`if (mp < power)`、`!(power <= mp)`、`u16 result`、
+   4 种局部变量声明顺序、`PlayerStats *st`/`PlayerStats *c` 指针、goto 形式、
+   分支内重复存储、`gUnk_030001C4 = result = (...) ? ... : ...`。
+   **唯一能保住分支形状的是在 else 分支读一个尚未赋值的变量作屏障**:
+   `else if (result) result = power; else result = power;` → 差 **42**, 且池在 `b` 后正确断开。
+   GCC 能证明两条路径赋同一值, 生成码不依赖未初始化值 (语义安全), 但 `result` 因此
+   「从函数入口即活跃」→ 被分配到 **r6** → `push {r4,r5,r6,lr}`, 而目标只 `push {r4,r5,lr}`。
+   对 barrier 变量做全扫描 (result/power/memberId/charaId/count/id/i/entry/charaInfo):
+   只有 `result` 能阻止 value-replacement, 其余全部回落到 67(即被提前复制的形状)。
+3. **0x34 处两个池常量的载入顺序**(次要): 目标是先 `ldr r1, =gPartyMemberIds` 再
+   `ldr r0, =gMenuCursorStack`(两条紧邻), 我的一律是先光标后基址(基址 `ldr` 被推到索引算完之后)。
+   试过指针变量(顺序对了但占用 r6 破坏栈帧)、`*(base + idx)` 指针算术(无效)、`idx` 先算到变量(无效)。
+
+### 产物
+- `permuter/sub_8010300/base.c` — 66, 干净人类码, 可继续迭代
+- `permuter/sub_8010300/base_barrier42_UB.c` — 42, **非人类码 (读未初始化 result), 禁止直接合入**,
+  文件头已写警告
+- 工具: `.scratch/nova/score300b.py`(批量打分 + push 列表)、`.scratch/nova/idiff.py`(指令流对齐 diff)、
+  `.scratch/nova/diffsem.py`(忽略格式化/常量内联的 C 语义 diff, 用来看 permuter 到底改了什么)
+- 前人候选备份: `permuter/sub_8010300/base_claude300.c.bak`
+
+### 下一步建议
+- 主攻 result 的寄存器归属: 需要一种既阻止 value-replacement、又不让 `result` 从入口活跃的写法;
+  或者接受 r6 版本后, 再想办法把别处的压力降下来让 r6 变回 r1(当前 r4/r5 被 itemId、charaInfo 占死)。
+- 可考虑 dump agbcc 的 RTL(`-dr`)看 value-replacement 具体发生在哪个 pass, 再决定用什么源码形状规避。
+- 若放弃字节匹配, 66 版语义与结构完全正确, 可作为「等价但未匹配」候选留档。
+
+### 补充 (2026-09-12 07:2x): RTL 级定位 —— 提升发生在 agbcc 的 `combine` pass, 且干净 C 无法绕开
+
+用最小复现 + `agbcc -da` 全 pass dump 对比, 结论如下 (复现文件 `.scratch/nova/rtl_*.c`,
+dump 在 `.scratch/nova/rtl/`, 追踪脚本 `.scratch/nova/trace_tA.py`):
+
+1. **`if (c) result = 0; else result = power;` 必被提升。**
+   初始 RTL (`h.i.rtl`) 还是自然展开: compare 在 insn 51, 两个分支赋值在 insn 55 / 61 (都在其后);
+   到 `h.i.combine` 时第一个赋值已经跑到 compare 之前。后续 pass 只是维持。
+   生成码形状 = `add r1,r0,#0; ldrh r4,[r4,#4]; cmp r1,r4; bls; mov r1,#0`(比较用的是 result)。
+2. **三元式产生的是另一种形状, 也不是目标。**
+   `result = (c) ? 0 : power;` / `gC4 = (c) ? 0 : power;` → `mov r1,#0; ldrh r4,[r4,#4]; cmp r0,r4;
+   b?? .L; add r1,r0,#0; .L: strb`(true 值预先物化, 无 `b` 跳过 else 臂)。
+   注意这一形状**比较用的确实是 power 且 mp 复用了 charaInfo 的 r4** —— 与目标一致的两点!
+   但缺 `b.n` 与独立 else 臂, 所以池不会在 `b` 后断开, 字面池布局仍对不上。
+3. **目标的形状 = 未被 combine 提升的自然 if/else 展开** (`cmp; bls else; then; b merge; else:; merge:`)。
+   唯一能让 combine 不提升的写法是让 else 分支存在两条赋值路径, 而 GCC 只有在
+   **条件读了尚未赋值的 result** 时才放弃折叠 (试了 memberId/charaId/count/id/i/entry/charaInfo/power
+   作屏障条件, 全部回落到被提升的形状 67; 只有 `else if (result)` 有效 → 42/33)。
+   代价是 `result` 因此「从函数入口即活跃」→ 被分到 r6/r7 → 多 push 一个寄存器, 目标只 push {r4,r5,lr}。
+4. `register` 修饰、`do{}while(0)` 包裹、`result` 声明顺序、`result` 为 u8/u16/int 均无影响 (全 66/67)。
+
+**结论**: 目标 MP 块的形状在 agbcc(GCC 2.9 thumb) 下无法由「干净 C」产生 ——
+`if/else` 必被 combine 提升, `?:` 必是预物化形。要字节一致只有两条路:
+(a) 找到一种让 combine 不提升、且不读未定义值的 C 形状 (尚未找到, 上面已穷举 ~40 种写法);
+(b) 接受等价但非字节的 66 版 (`permuter/sub_8010300/base.c`), 语义与结构已 100% 正确。
+后续若有人攻坚, 建议直接从 (a) 的「combine 为何传播这条拷贝」入手 (dump 见 `.scratch/nova/rtl/h.i.combine`),
+或者考虑该函数是否真的来自 `if/else` —— 也可能源码用了别的结构 (如带副作用的宏) 产生了这个形状。
+
+### 本轮最终状态
+- 干净人类码候选: `permuter/sub_8010300/base.c`, 掩码 bl 槽后字节差 **66** (与目标 308 字节等长)
+- 最接近候选: `base_barrier42_UB.c`(42) / permuter 爬到 33 —— 都依赖读未定义值, **禁止合入**
+- 未改 `src/` (铁律 6: 未字节一致不得合入); `make` + `sha1sum -c ll.sha1` 保持绿
+
+
+### sub_80104F8 二期 (2026-09-12 gpnux-104f8b): global-alloc 机制破案, 确认为真墙
+一期卡在 kind/tbl 一对 home 互换后, 二期深挖 GCC2 pass 流水线, 把"墙"从玄学变成定量结论:
+
+**机制破案 (详见经验 246)**
+1. `REG_LIVE_LENGTH/REG_N_REFS` 在 **cse2 之后的 flow(life_analysis)** 计算 (toplev.c:3006, 唯一一次),
+   之后被 regmove (move src/dst 间转移) 和 local-alloc 的 `update_equiv_regs` 修改
+   (`REG_EQUIV` note 持有者 `LL *= 2`)。计算 LL 的 RTL 是 cse2 后、combine 前 —— 与 -dj 转储差 ~40 条指令。
+2. **`.greg` dump 的 refs/LL 是 reload+life2 重算的装饰值**; global_alloc 的真实输入看 `.lreg` dump 头部。
+   本次两处数值恰好一致 (kind 6/41, i 17/64, tbl 9/104), 但机制不同。
+3. **池加载 → REG_EQUIV → LL×2**: CSE 给 `set reg (mem/u (symbol_ref/u "*.LCn"))` 加 REG_EQUIV(symbol),
+   update_equiv_regs 翻倍其 LL。数组变址加载 (kind) 永远拿不到 → kind=41 奇数, p1..p6/tbl/池临时全偶数。
+   tbl 的 raw=52, 翻倍=104 —— **指针/基址变量优先级天然腰斩**。
+4. **LIM 把循环用到的池加载钉死在预头**: tbl 的 def 落在 `i=0` 之后、其余池加载之前, 与源码顺序无关
+   (R1 重排实验: LL 不动)。
+5. **QI round-trip 杠杆 (+2 LL, asm 不变)**: `if ((x = 内存加载) == 0)` 的赋值表达式值被条件使用时,
+   GCC2 生成 QI 副本 + 零扩展两条指令 (x 活跃其间), 最终被 combine 删除。仅对内存加载 RHS 生效;
+   `(f = call) == 0` 无效 (call 结果已在寄存器), `(x = x)` 被前端折叠, `(k = (x = load))` 链式反而被 k 吸收。
+6. **指针变量是化妆品**: 删光 p1..p6 改直接符号存储 (V_NP.c), asm 逐字节不变。
+
+**定量结论**: 翻转需 `f2(rk)·rk/LLk > f2(rt)·rt/LLt`, 即 kind 侧 `12·LL_t < 27·LL_k`。
+最优形态 V_inline.c = (LL_k 43, LL_t 104): 1161 < 1248, 还差 8 分 —— 需 LL_k≥47 (再 +4) 或 LL_t≤96 (再 −8)。
+穷尽无效的: i/kind 类型 (u8/u32/int/u16/s8, I32 改坏 asm: u8 截断舞是**真指令** lsls/lsrs)、
+预头重排 (LIM 钉死)、p-def 前移、f/g flag 变量 (call RHS 无 round-trip)、自赋值、赋值链、
+switch/else-if、循环 4 形态、p5 30+ 变体、permuter 61 轮 (base score=130=0 errors, 它也确认仅剩 home 互换)。
+
+**结论**: asm 逐条钉死 → post-cse2 RTL 钉死 → LL 钉死, 每个自由度都验证过 —— 真墙。
+permuter/base.c 已更新为 V_inline (43)。后续若要再攻: 需要找到"源结构改变 post-cse2 RTL 但最终 asm
+不变"的**新**机制 (regmove 的 LL 迁移是唯一未深挖的 pass —— 若某源形态能触发 regmove 把 tbl 的 LL
+转给短命 temp, 即可翻转)。

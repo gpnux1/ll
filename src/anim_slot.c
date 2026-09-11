@@ -143,7 +143,64 @@ void AnimSlot_Step(s16 slot)
     }
 }
 // @ 0x08007ADC
-INCLUDE_ASM("asm/nonmatchings", sub_8007ADC);
+s32 sub_8007ADC(u16 arg0, u16 arg1)
+{
+    u16 i;
+    s16 sx;
+    s16 sy;
+    u8 *cells;
+    u8 count;
+    int mask;
+
+    for (i = 1; i <= 3; i++)
+    {
+        gZoneCheckTileXs[i] = gZoneCheckTileXs[i] | 0xFF;
+        gZoneCheckTileYs[i] = gZoneCheckTileYs[i] | 0xFF;
+    }
+
+    sx = arg0;
+    gZoneCheckTileXs[0] = sx >> 4;
+    sy = arg1;
+    gZoneCheckTileYs[0] = sy >> 4;
+
+    mask = 0xF;
+    if ((u16)sx & mask)
+    {
+        gZoneCheckTileXs[1] = (sx >> 4) + 1;
+        gZoneCheckTileYs[1] = sy >> 4;
+        if ((sy & mask) > 8)
+        {
+            gZoneCheckTileXs[2] = sx >> 4;
+            gZoneCheckTileYs[2] = (sy >> 4) + 1;
+            gZoneCheckTileXs[3] = (sx >> 4) + 1;
+            gZoneCheckTileYs[3] = (sy >> 4) + 1;
+        }
+    }
+    else if ((sy & mask) > 8)
+    {
+        gZoneCheckTileXs[2] = sx >> 4;
+        gZoneCheckTileYs[2] = (sy >> 4) + 1;
+    }
+
+    cells = (u8 *)*gMapZoneHeader;
+    count = *cells++;
+    while (count != 0)
+    {
+        for (i = 0; i <= 3; i++)
+        {
+            if (gZoneCheckTileXs[i] != 0xFF && gZoneCheckTileXs[i] == cells[0] && gZoneCheckTileYs[i] == cells[1])
+            {
+                gMapZoneType = cells[2];
+                gMapZoneEntryIdx = cells[3];
+                return 1;
+            }
+        }
+        cells += 4;
+        count--;
+    }
+
+    return 0;
+}
 /* 按 gMapZoneType 分发命中区域的触发动作 (记录表 = gMapZoneHeader[type+1], 记录下标 gMapZoneEntryIdx):
  * 0=换图: 装载点 5 字段 + state 3 + 清开关位图; 1=图内传送: 4 字段 + state 4;
  * 2=state 8 (byte 0x47BC/0x47E0); 3=开关未置则跑脚本(2B 记录)返回 1; 4=A 键+朝向门控跑脚本(4B 记录)返回 0;

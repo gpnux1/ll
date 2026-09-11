@@ -13,9 +13,10 @@ docs/reports/
 
 *.dump
 *.dump.dmp
+*.dmp
 gccdump*
-docs/
-docs/*.md
+# docs/
+# docs/*.md
 *.json
 Screenshots
 scripts
@@ -66,6 +67,7 @@ baserom.o
 .vscode/
 
 .zcode
-
+.workbuddy
+.Trash-0
 # agbcc -dl RTL 寄存器分配转储 (诊断产物, 不入库)
 gccdump.lreg

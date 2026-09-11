@@ -11,13 +11,223 @@
 #include "sound.h"
 
 // @ 0x0804473C
-INCLUDE_ASM("asm/nonmatchings", sub_804473C);
+u32 sub_804473C(u8 *arg0, u8 *arg1)
+{
+    u16 result;
+
+    if (arg0[0xBE] <= 0xA)
+    {
+        switch ((s8)arg0[0xBC])
+        {
+        case 0:
+            result = sub_8044A40(arg0, arg1);
+            break;
+        case 1:
+            switch (sub_8048764(arg0))
+            {
+            case 0:
+            case 1:
+            case 2:
+            case 38:
+            case 39:
+            case 40:
+            case 42:
+            case 48:
+            case 53:
+            case 55:
+            case 58:
+            case 59:
+                result = sub_8044A40(arg0, arg1);
+                break;
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+                result = 0;
+                break;
+            default:
+                result = sub_8044F4C(arg0, arg1);
+                break;
+            }
+            break;
+        case 2:
+            result = sub_8045098(arg0, arg1);
+            break;
+        }
+    }
+    else
+    {
+        result = sub_8044A40(arg0, arg1);
+    }
+
+    return result;
+}
 // @ 0x080448A8
-INCLUDE_ASM("asm/nonmatchings", sub_80448A8);
+// 战斗结果技能 HP 恢复写入 (gUnk_03000908): 按 (s8)obj[0xBC] 选 stats[0x2F] (case1: stats[0x30+obj[0xC2]])
+// 作技能 id, switch 分发到 sub_8044A40 (恢复量基准) 并对 12/34/38/41 加 0xF、14/37/40 加 0x1E。
+// do-while(0) 为调度屏障: 撑出 result→r1 / kind→r4 的 home (拆掉则二者互换, 头部 8 条全错)。
+typedef struct Stats_BattleView
+{
+    u8 pad[0x2F];
+    u8 unk2F;      /* 技能 id (默认槽) */
+    u8 unk30[1];   /* obj[0xC2] 索引的替代槽 (声明 [1], 实际长度由表定) */
+} Stats_BattleView;
+
+u32 sub_80448A8(u8 *arg0, u8 *arg1)
+{
+    u16 result;
+    Stats_BattleView *stats;
+    u8 kind;
+    s8 bc;
+
+    result = 0;
+    stats = *(Stats_BattleView **)(arg0 + 0x88);
+    kind = stats->unk2F;
+    bc = (s8)arg0[0xBC];
+    if (bc != 0)
+    {
+        if (bc == 1)
+        {
+            kind = stats->unk30[arg0[0xC2]];
+        }
+    }
+    do
+    {
+        switch (kind)
+        {
+        case 12:
+            result = sub_8044A40(arg0, arg1) + 0xF;
+            break;
+        case 14:
+            result = sub_8044A40(arg0, arg1) + 0x1E;
+            break;
+        case 34:
+            result = sub_8044A40(arg0, arg1) + 0xF;
+            break;
+        case 37:
+            result = sub_8044A40(arg0, arg1) + 0x1E;
+            break;
+        case 38:
+            result = sub_8044A40(arg0, arg1) + 0xF;
+            break;
+        case 40:
+            result = sub_8044A40(arg0, arg1) + 0x1E;
+            break;
+        case 41:
+            result = sub_8044A40(arg0, arg1) + 0xF;
+            break;
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 13:
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+        case 20:
+        case 21:
+        case 22:
+        case 23:
+        case 24:
+        case 25:
+        case 26:
+        case 27:
+        case 28:
+        case 29:
+        case 30:
+        case 31:
+        case 32:
+        case 33:
+        case 35:
+        case 36:
+        case 39:
+        case 42:
+        case 43:
+        case 44:
+        case 45:
+        case 46:
+        case 47:
+        case 48:
+        case 49:
+        case 50:
+        case 51:
+        case 52:
+        case 53:
+        case 54:
+            result = sub_8044A40(arg0, arg1);
+            break;
+        }
+    } while (0);
+    gUnk_03000908 = result;
+    return result;
+}
 // @ 0x08044A40
 INCLUDE_ASM("asm/nonmatchings", sub_8044A40);
 // @ 0x08044F4C
-INCLUDE_ASM("asm/nonmatchings", sub_8044F4C);
+u32 sub_8044F4C(u8 *arg0, u8 *arg1)
+{
+    u32 bit;
+    u16 mod;
+    u16 w9;
+    u16 v;
+    u16 dmg;
+    s16 t;
+
+    if ((bit = *(u16 *)(arg1 + 0xB0) & 0x1000) != 0)
+    {
+        *(u16 *)(arg1 + 0xB0) = *(u16 *)(arg1 + 0xB0) & 0xEFFF;
+        return 0;
+    }
+    if (*(u16 *)(arg1 + 0xB0) & 0x10)
+    {
+        *(u16 *)(arg1 + 0xB2) = bit;
+        return 0;
+    }
+    mod = ((u32 (*)(void))Rng_LcgNext)() % (sub_8047024(arg0, 8) / 10);
+    w9 = sub_8047024(arg1, 9);
+    v = sub_80472E8(arg0, sub_8048764(arg0), 0);
+    dmg = (sub_8047024(arg0, 8) + v * arg0[0xAA] + mod - w9) / 2;
+    switch (sub_8047D28(arg1, sub_8047DC8(arg0)))
+    {
+    case 1:
+        dmg = dmg * 2;
+        break;
+    case 2:
+        dmg = (s16)dmg / 2;
+        break;
+    case 0:
+        break;
+    }
+    if (*(u16 *)(arg0 + 0xB0) & 0x4000)
+    {
+        dmg = dmg * 2;
+        *(u16 *)(arg0 + 0xB0) = *(u16 *)(arg0 + 0xB0) & 0xBFFF;
+    }
+    if (sub_804E6DC(arg0, 0xC) >= 0)
+    {
+        t = dmg;
+        dmg = t + t / 10;
+    }
+    if ((s16)dmg < 0)
+    {
+        dmg = 0;
+    }
+    if ((s16)dmg > 999)
+    {
+        dmg = 999;
+    }
+    return dmg;
+}
 // @ 0x08045098
 INCLUDE_ASM("asm/nonmatchings", sub_8045098);
 // @ 0x0804519C
@@ -393,7 +603,59 @@ void sub_8045B90(u8 *obj, u8 index)
     *current = original;
 }
 // @ 0x08045BF4
-INCLUDE_ASM("asm/nonmatchings", sub_8045BF4);
+// 按 obj[0xBE] (形态/类别 0-10) 分派写 obj[0x8A] 字段; 各分支直写该字段, GCC2 尾合并成末尾一次 strb;
+// 0x91/0x92==0xCB/0xBF 判定 + 0x8D==0x15/0x3B/0x3C 细分; >10 落 default (无 default 分支直落函数尾)。
+void sub_8045BF4(u8 *obj)
+{
+    switch (obj[0xBE])
+    {
+    case 0:
+    case 1:
+        if (obj[0x8D] == 0x15)
+        {
+            if (obj[0x91] == 0xCB || obj[0x92] == 0xCB)
+                obj[0x8A] = 0x37;
+            else
+                obj[0x8A] = 0x30;
+        }
+        else
+            obj[0x8A] = 0x30;
+        break;
+    case 2:
+        obj[0x8A] = 0x31;
+        break;
+    case 3:
+        if (obj[0x91] == 0xBF || obj[0x92] == 0xBF)
+            obj[0x8A] = 0x38;
+        else
+            obj[0x8A] = 0x32;
+        break;
+    case 4:
+        if (obj[0x91] == 0xBF || obj[0x92] == 0xBF)
+            obj[0x8A] = 0x39;
+        else
+            obj[0x8A] = 0x33;
+        break;
+    case 5:
+        if (obj[0x8D] == 0x3B)
+            obj[0x8A] = 0x3A;
+        else
+            obj[0x8A] = 0x34;
+        break;
+    case 6:
+        if (obj[0x8D] == 0x3C)
+            obj[0x8A] = 0x3B;
+        else
+            obj[0x8A] = 0x35;
+        break;
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+        obj[0x8A] = 0xFF;
+        break;
+    }
+}
 // @ 0x08045D00
 INCLUDE_ASM("asm/nonmatchings", sub_8045D00);
 /* obj+0x6C 起是 0x21 字节的移动/上下文块 (MOD-04: +0x6C/6E = 移动坐标),
@@ -681,7 +943,47 @@ INCLUDE_ASM("asm/nonmatchings", sub_804621C);
 // @ 0x080462E4
 INCLUDE_ASM("asm/matchings", sub_80462E4); /* 函数清单修正: yaml=[1] 且 .s 已在 matchings/ (坑7) */
 // @ 0x08046480
-INCLUDE_ASM("asm/nonmatchings", sub_8046480);
+// 行动槽位处理: mode==0 时清空 buf[0..4], 否则清空 buf[0..6]; 用 sub_80462E4(arg0, local, 0x7F)
+// 收集槽号到 local[12], 逐个把 local[i] 写进 buf[i], 对满足 sub_8045328(arg0, 槽对象, 0x50)==1
+// 且槽对象 field_AB==3 且 Rng%100<=0x45 的槽调 sub_804612C(槽对象, 5, 0), 然后置 buf[i]|=0x10。
+u32 sub_8046480(u8 *arg0, u8 *buf, u8 mode)
+{
+    u8 local[12];
+    u8 i;
+    u8 count;
+    u8 *pool;
+    u32 stride;
+
+    if (mode == 0)
+    {
+        for (i = 0; i <= 4; i++)
+            buf[i] = 0;
+    }
+    else
+    {
+        for (i = 0; i <= 6; i++)
+            buf[i] = 0;
+    }
+    pool = (u8 *)GetObjPool();
+    count = sub_80462E4(arg0, local, 0x7F);
+    for (i = 0; i < count; i++)
+    {
+        stride = 0xC8;
+        buf[i] = local[i];
+        if ((u8)sub_8045328(arg0, pool + local[i] * stride, 0x50) == 1)
+        {
+            if (*(u8 *)(buf[i] * stride + (u32)pool + 0xAB) == 3)
+            {
+                if (((u32 (*)(void))Rng_LcgNext)() % 100 <= 0x45)
+                {
+                    sub_804612C(pool + buf[i] * stride, 5, 0);
+                }
+            }
+            buf[i] |= 0x10;
+        }
+    }
+    return count;
+}
 // @ 0x08046558
 INCLUDE_ASM("asm/nonmatchings", sub_8046558);
 // @ 0x0804666C
@@ -762,7 +1064,44 @@ INCLUDE_ASM("asm/nonmatchings", sub_8046CD4);
 // @ 0x08046E18
 INCLUDE_ASM("asm/nonmatchings", sub_8046E18);
 // @ 0x08046F0C
-INCLUDE_ASM("asm/nonmatchings", sub_8046F0C);
+// 对象属性取值器: 按 gUnk_030008F0 (battle stat 索引) 分派读取对象槽字段; case5-9 = 基础值+修正值
+// (0x74..0x7C 与 0x7E..0x86 成对相加截断 u16); 越界索引(>14)返回入口 r0 (无显式 return, GCC2 直落 bx lr)。
+u16 sub_8046F0C(u8 *obj)
+{
+    switch (gUnk_030008F0)
+    {
+    case 0:
+        return obj[0xAA];
+    case 1:
+        return *((u16 *)obj + 0x36);
+    case 2:
+        return *((u16 *)obj + 0x37);
+    case 3:
+        return *((u16 *)obj + 0x38);
+    case 4:
+        return *((u16 *)obj + 0x39);
+    case 5:
+        return *((u16 *)obj + 0x3A) + *((u16 *)obj + 0x3F);
+    case 6:
+        return *((u16 *)obj + 0x3B) + *((u16 *)obj + 0x40);
+    case 7:
+        return *((u16 *)obj + 0x3C) + *((u16 *)obj + 0x41);
+    case 8:
+        return *((u16 *)obj + 0x3D) + *((u16 *)obj + 0x42);
+    case 9:
+        return *((u16 *)obj + 0x3E) + *((u16 *)obj + 0x43);
+    case 10:
+        return obj[0xA9];
+    case 11:
+        return obj[0xBF];
+    case 12:
+        return obj[0xC0];
+    case 13:
+        return obj[0xAC] & 0xF;
+    case 14:
+        return obj[0xAC] >> 4;
+    }
+}
 // @ 0x08047024
 INCLUDE_ASM("asm/nonmatchings", sub_8047024);
 // @ 0x080471AC
@@ -1439,7 +1778,51 @@ u8 sub_8048D84(u8 *arg0, u8 *arg1)
     return 0;
 }
 // @ 0x08048DA4
-INCLUDE_ASM("asm/nonmatchings", sub_8048DA4);
+// 战斗音乐/对话框子系统复位: 清零 0x03000948-0x0300097D 全局区, DialogCtx_Clear3 + Bg0_InitClear,
+// sub_80196D4 重置 0x02035AC0 脚本上下文 (5 个栈参数), DMA3 拷 0x40 字节 (0x0861A7A4→0x0600B7C0) 后等待。
+void sub_8048DA4(void)
+{
+    u8 i;
+    extern u32 gUnk_03000970; /* 块级 u32 视图: 文件后方 2050 行处另有 Unk_03000970* 视图 (经验109 同址多视图), 本函数只写 0 */
+
+    gUnk_03000949 = 0;
+    gUnk_0300094A = 0;
+    gUnk_0300094B = 0;
+    gUnk_0300094C = 0;
+    gUnk_0300094D = 0;
+    *(u16 *)gUnk_03000950 = 0;
+    gUnk_03000954 = 0;
+    gUnk_03000956 = 0;
+    gUnk_03000958 = 0;
+    gUnk_0300095A = 0;
+    gUnk_03000968 = 0;
+    gUnk_03000969 = 0;
+    gUnk_0300096C = 0;
+    gUnk_03000970 = 0;
+    gUnk_03000979 = 0;
+    gUnk_0300097A = 0;
+    gUnk_0300097B = 0;
+    gUnk_0300097C = 0;
+    gUnk_0300097D = 0;
+    for (i = 0; i <= 4; i++)
+        gUnk_03000974[i] = 0;
+    for (i = 0; i <= 7; i++)
+        gUnk_03000960[i] = 0;
+    DialogCtx_Clear3();
+    Bg0_InitClear();
+    sub_80196D4(0, 0x02035AC0, 0xB, 2, 2, 1, 0, 0x1C, 4);
+    gUnk_03000949 = 0;
+    gUnk_03000910 = 0;
+    gUnk_03000948 = 1;
+    gUnk_03000956 = 0;
+    gUnk_03000958 = 0;
+    DmaCopy16(3, 0x0861A7A4, 0x0600B7C0, 0x40);
+    DmaWait(3);
+    gUnk_03000969 = 0;
+    gUnk_03000968 = 0;
+    gUnk_0300097B = 0;
+    gUnk_0300097C = 0;
+}
 // @ 0x08048F0C
 void sub_8048F0C(void)
 {
@@ -1487,8 +1870,56 @@ INCLUDE_ASM("asm/nonmatchings", sub_8048FB8);
 INCLUDE_ASM("asm/nonmatchings", sub_80492C0);
 // @ 0x080494F0
 INCLUDE_ASM("asm/nonmatchings", sub_80494F0);
+/* 数字翻牌显示: 把 arg1 (u16) 按 10000/1000/100/10 拆成 5 位存栈上数组 digits[0..4]。
+ * 引导循环跳过前导零 (首个非零位的下标); val==0 时不跳 (i 归 0 → 显示个位)。
+ * i 加上全局计数器 gUnk_0300094C (u8 回绕) 选位, 写 arg0[0]/arg0[0x20] 两行 tilemap
+ * (值 = digit*2 - 0x4EBC/-0x4EBB, 即 +0xFFFFB144/+0xFFFFB145), 计数器 ++。
+ * 返回: val==0 → 1; 已显示到最后一位之后 (i>3) → 1; 否则 0 (还有后续位)。
+ * ⚠ 除法通道: 第 1 次 (val/10000) 必须 unsigned (__udivsi3, val 强转 u32),
+ *   其余 3 次必须 signed (__divsi3, (int) 强转)。中间和必须写 val - (a + b + c) 括号全式
+ *   (非 val - a - b 链式), 否则 GCC 拆成多次 subs 且 CSE 复用 (经验 209 姊妹形)。 */
 // @ 0x080497B0
-INCLUDE_ASM("asm/nonmatchings", sub_80497B0);
+u32 sub_80497B0(u16 *arg0, u16 arg1)
+{
+    u16 digits[5];
+    s32 val;
+    u8 i;
+    u8 *counter;
+
+    val = arg1;
+    digits[0] = (u32)val / 10000;
+    digits[1] = (int)(val - digits[0] * 10000) / 1000;
+    digits[2] = (int)(val - (digits[0] * 10000 + digits[1] * 1000)) / 100;
+    digits[3] = (int)(val - (digits[0] * 10000 + digits[1] * 1000 + digits[2] * 100)) / 10;
+    digits[4] = val - (digits[0] * 10000 + digits[1] * 1000 + digits[2] * 100 + digits[3] * 10);
+
+    i = 0;
+    if (digits[0] == 0)
+    {
+        do
+        {
+            i++;
+            if (i > 4)
+                break;
+        } while (digits[i] == 0);
+    }
+
+    if (i > 4 && val == 0)
+        i = 0;
+
+    i = i + gUnk_0300094C;
+    i = (u8)i;
+    counter = &gUnk_0300094C;
+    arg0[0] = digits[i] * 2 - 0x4EBC;
+    arg0[0x20] = digits[i] * 2 - 0x4EBB;
+    (*counter)++;
+
+    if (val == 0)
+        return 1;
+    if (i <= 3)
+        return 0;
+    return 1;
+}
 
 INCLUDE_ASM("asm/matchings", sub_80498E0);
 
@@ -1526,7 +1957,77 @@ INCLUDE_ASM("asm/nonmatchings", sub_8049AD8);
 // @ 0x08049B70
 INCLUDE_ASM("asm/nonmatchings", sub_8049B70);
 // @ 0x08049C1C
-INCLUDE_ASM("asm/nonmatchings", sub_8049C1C);
+// BGM 演出状态机: 按 gUnk_03000910 分派 (0=开场曲判定+FadeIn, 1/3=滑动计数(sub_801768C 插值写
+// gUnk_03000918.f_2B, 计满进下一态), 2=等待计数, 4=完成返回1); case1/3 的自增走 <= 在 then 臂。
+// 尾部: gUnk_03000918.f_2D = 入参槽号, arg0[0] = sub_801A884(gUnk_03000918, 槽号, &local)。
+u8 sub_8049C1C(u8 *arg0)
+{
+    u8 result;
+    u8 b;
+    u8 local2;
+
+    result = 0;
+    b = arg0[0];
+    switch (gUnk_03000910)
+    {
+    case 0:
+        if ((((ObjHead *)gUnk_03000918)->kindFlags & 0x800) == 0)
+        {
+            gUnk_03000910 = 1;
+            if (sub_80187B4() & 0x20)
+            {
+                Bgm_Play(0x37, 0);
+            }
+            else
+            {
+                Bgm_Play(0x36, 0);
+            }
+            Bgm_FadeIn(0xa);
+        }
+        break;
+    case 1:
+        ((ObjHead *)gUnk_03000918)->f_2B = sub_801768C(0xF0, -0x78, 0x14, gUnk_03000911, 2);
+        if (gUnk_03000911 <= 0x13)
+        {
+            gUnk_03000911++;
+        }
+        else
+        {
+            gUnk_03000911 = 0;
+            gUnk_03000910 = 2;
+        }
+        break;
+    case 2:
+        if (gUnk_03000911 <= 0x31)
+        {
+            gUnk_03000911++;
+        }
+        else
+        {
+            gUnk_03000911 = 0;
+            gUnk_03000910 = 3;
+        }
+        break;
+    case 3:
+        ((ObjHead *)gUnk_03000918)->f_2B = sub_801768C(0x78, -0x78, 8, gUnk_03000911, 1);
+        if (gUnk_03000911 <= 7)
+        {
+            gUnk_03000911++;
+        }
+        else
+        {
+            gUnk_03000911 = 0;
+            gUnk_03000910 = 4;
+        }
+        break;
+    case 4:
+        result = 1;
+        break;
+    }
+    ((ObjHead *)gUnk_03000918)->f_2D = b;
+    arg0[0] = sub_801A884(gUnk_03000918, b, &local2);
+    return result;
+}
 // @ 0x08049D58
 INCLUDE_ASM("asm/nonmatchings", sub_8049D58);
 // @ 0x08049DF8
@@ -1622,7 +2123,30 @@ void sub_804AC60(void)
     }
 }
 // @ 0x0804ACC0
-INCLUDE_ASM("asm/nonmatchings", sub_804ACC0);
+u16 *sub_804ACC0(u8 arg0)
+{
+    u32 count = 0;
+    u32 i = 0;
+    u32 local;
+    u16 *base;
+    u8 arg = arg0;
+    u16 *table = (u16 *)0x0839B462;
+
+    if (i < arg)
+    {
+        base = table;
+        do
+        {
+            if (base[i] == 0xF00)
+                count = (u16)(count + 1);
+            i = (u16)(i + 1);
+        } while (count < arg);
+    }
+    sub_8050434((u16 *)((u32)i * 2 + (u32)table), 0x6F1E);
+    if ((u16)TileDma_GetCtx(&local) != 0)
+        sub_80187C0(0x400);
+    return (u16 *)((u32)i * 2 + (u32)table);
+}
 // @ 0x0804AD24
 void sub_804AD24(u8 *arg0)
 {

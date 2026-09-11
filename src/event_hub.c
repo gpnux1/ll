@@ -11,9 +11,200 @@
 
 
 // @ 0x08032548
-INCLUDE_ASM("asm/nonmatchings", sub_8032548);
+// NPC 对话状态机 (gUnk_03000820: 0=开始 1=移动 2=等待 3=按键 5=选择 8=收尾 9=结束):
+// case0 存 NPC 位置 (0x03000828/29) 并初始化; case1 播放对话开场动画 (0x368/0x359 按 arg0[0xBE]);
+// case3 按键 0x21/0x7C/0x90 分发音效/推进; case5 处理选择确认; case9 无遮挡时结束对话返回 1。
+// 注: case0 的 b4/zero 双零变量与 case1 的 keys/b4 写法是字节匹配必需的调度形状 (见 progress.md)。
+u32 sub_8032548(u8 *arg0, u8 *arg1)
+{
+    u32 ret;
+    u16 b4;
+    int keys;
+    u32 zero;
+    u16 *b6ptr;
+    u32 zero2;
+
+    ret = 0;
+    switch (gUnk_03000820)
+    {
+    case 0:
+        gUnk_03000828 = arg0[0xBF];
+        gUnk_03000829 = arg0[0xC0];
+        gUnk_03000825 = 0;
+        sub_80444A4(arg0);
+        sub_803F5B4(arg0);
+        zero = 0;
+        zero2 = 0;
+        b6ptr = (u16 *)((u8 *)arg0 + 0xB6);
+        b4 = zero2;
+        *b6ptr = zero2;
+        *(u16 *)((u8 *)arg0 + 0xB4) = b4;
+        gUnk_03000820 = 1;
+        gUnk_0300086B = zero;
+        break;
+    case 1:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+        {
+            keys = arg0[0xBE];
+            b4 = 0x368;
+            if (keys == 0)
+            {
+                b4 = b4 - 0xF;
+            }
+            sub_8020974(arg0 + 0xC, b4, 0x1B4, 0xD, 2);
+            if (arg1[0xBE] <= 0xA)
+            {
+                keys = *(u16 *)(arg0 + 0x24) | 0x20;
+                *(u16 *)(arg0 + 0x24) = keys;
+            }
+            gUnk_03000820 = 2;
+        }
+        break;
+    case 2:
+        if (*(u16 *)(arg0 + 0x24) & 0x800)
+        {
+            break;
+        }
+        gUnk_03000820 = 3;
+        break;
+    case 3:
+        if (*(u16 *)(arg0 + 0x28) == 0x21)
+        {
+            Sfx_Play(0x31, 1, 1);
+            sub_8044514(0x5E);
+            break;
+        }
+        if (*(u16 *)(arg0 + 0x28) == 0x7C)
+        {
+            Sfx_StopTrack(1);
+            break;
+        }
+        if (*(u16 *)(arg0 + 0x28) != 0x90)
+        {
+            break;
+        }
+        sub_8044514(0x28);
+        gUnk_03000820 = 5;
+        break;
+    case 5:
+        if (*(u16 *)(arg0 + 0x24) & 0x1000)
+        {
+            sub_804C3A4(arg0[0x35], (u8)sub_801B954((ObjHead *)(arg0 + 0xC)));
+            gUnk_0300086B = 0xC;
+            gUnk_03000820 = 8;
+        }
+        break;
+    case 8:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+        {
+            gUnk_03000820 = 9;
+        }
+        break;
+    case 9:
+        if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && gUnk_03000856 == 0)
+        {
+            sub_8045B90(arg0, arg0[0xA1]);
+            ret = 1;
+        }
+        break;
+    }
+    sub_803F658(arg0);
+    return ret;
+}
 // @ 0x0803272C
-INCLUDE_ASM("asm/nonmatchings", sub_803272C);
+// NPC 对话状态机变体 (战斗型对话, gUnk_03000820 同 8032548 十态):
+// case0 存位+初始化; case1 sub_803ED34 到位检查+开场动画 (b4=0x36B/-0xF) + 写 0x35E 到 [0xB6];
+// case2 等 0x800 后 Sfx+窗口设置 (sub_804BF14 9 参); case3 gUnk_03000825<=3 时 sub_804C728;
+// case5 确认 (0x1000) → sub_804C3A4; case8/9 收尾同 8032548。尾 sub_803F658。
+// 注: kind/flagval/b6val 独立载体变量与 case1 三次 def 拆分是字节匹配必需 (见 progress.md)。
+u32 sub_803272C(u8 *arg0, u8 *arg1)
+{
+    u32 ret;
+    u16 b4;
+    u16 kind;
+    int keys;
+    u16 flags;
+    u16 flagval;
+    u16 zero2;
+    u16 *b6ptr;
+    u16 b6val;
+
+    ret = 0;
+    sub_80187E8();
+    switch (gUnk_03000820)
+    {
+    case 0:
+        gUnk_03000828 = arg0[0xBF];
+        gUnk_03000829 = arg0[0xC0];
+        gUnk_03000825 = 0;
+        sub_80444A4(arg0);
+        sub_803F5B4(arg0);
+        gUnk_03000820 = 1;
+        gUnk_0300086B = 0;
+        break;
+    case 1:
+        if (sub_803ED34(arg0, arg1, 0) == 1)
+        {
+            kind = arg0[0xBE];
+            b4 = 0x36B;
+            if (kind == 0)
+                b4 = b4 - 0xF;
+            sub_8020974(arg0 + 0xC, b4, 0x1B4, 0xD, 2);
+            b6ptr = (u16 *)((u8 *)arg0 + 0xB6);
+            zero2 = 0;
+            b6val = 0x35E;
+            *b6ptr = b6val;
+            *(u16 *)((u8 *)arg0 + 0xB4) = zero2;
+            if (arg1[0xBE] <= 0xA)
+            {
+                keys = *(u16 *)(arg0 + 0x24);
+                flagval = 0x20;
+                keys = keys | flagval;
+                *(u16 *)(arg0 + 0x24) = keys;
+            }
+            gUnk_03000820 = 2;
+        }
+        break;
+    case 2:
+        flags = *(u16 *)(arg0 + 0x24) & 0x800;
+        if (flags != 0)
+            break;
+        Sfx_Play(0x4F, 1, 0);
+        sub_8044514(0x28);
+        sub_804BF14(0, 3, 7, 0xE, 0x1C, 4, 4, -1, 2);
+        gUnk_03000825 = 0;
+        gUnk_03000820 = 3;
+        break;
+    case 3:
+        if (gUnk_03000825 > 3)
+            break;
+        sub_804C728(0, 3, 0x10);
+        gUnk_03000820 = 5;
+        break;
+    case 5:
+        flags = *(u16 *)(arg0 + 0x24) & 0x1000;
+        if (flags == 0)
+            break;
+        flags = arg0[0x35];
+        sub_804C3A4(flags, (u8)sub_801B954((ObjHead *)(arg0 + 0xC)));
+        gUnk_0300086B = 0xC;
+        gUnk_03000820 = 8;
+        break;
+    case 8:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+            gUnk_03000820 = 9;
+        break;
+    case 9:
+        if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && gUnk_03000856 == 0)
+        {
+            sub_8045B90(arg0, arg0[0xA1]);
+            ret = 1;
+        }
+        break;
+    }
+    sub_803F658(arg0);
+    return ret;
+}
 // @ 0x08032948
 INCLUDE_ASM("asm/nonmatchings", sub_8032948);
 // @ 0x08032D74
@@ -86,7 +277,7 @@ u32 sub_8034440(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -138,7 +329,7 @@ u32 sub_8034440(u8 *arg)
     case 5:
         if (!(*(u16 *)&arg[0x24] & 0x1000))
             break;
-        sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+        sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
         keys = *(u16 *)&arg[0x24] & 0xEFFF;
         zero = 0;
         *(u16 *)&arg[0x24] = keys;
@@ -191,7 +382,7 @@ u32 sub_80345AC(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -243,7 +434,7 @@ u32 sub_8034718(u8 *arg, u8 *arg1)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -299,7 +490,7 @@ u32 sub_80348A8(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -329,7 +520,7 @@ u32 sub_80348A8(u8 *arg)
         case 26:
             if (!(*(u16 *)&arg[0x54] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x65], sub_801B954((void **)(arg + 0x3C)));
+            sub_804C3A4(arg[0x65], sub_801B954((ObjHead *)(arg + 0x3C)));
             sub_8020CC4(arg, 0x3C, 0x73, 0x1B4, 0xE, 0x380, 0x114);
             gUnk_03000825 = 0;
             gUnk_03000820 = 0x1B;
@@ -359,7 +550,7 @@ u32 sub_80348A8(u8 *arg)
         case 29:
             if (!(*(u16 *)&arg[0x54] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x65], sub_801B954((void **)(arg + 0x3C)));
+            sub_804C3A4(arg[0x65], sub_801B954((ObjHead *)(arg + 0x3C)));
             keys = *(u16 *)&arg[0xB0] & 0xDFFF;
             *(u16 *)&arg[0xB0] = keys;
             gUnk_03000820 = 9;
@@ -404,7 +595,7 @@ u32 sub_8034BFC(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -461,7 +652,7 @@ u32 sub_8034D94(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
@@ -519,7 +710,7 @@ u32 sub_8034F00(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xD, 2);
@@ -595,7 +786,7 @@ u32 sub_8035130(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xD, 2);
@@ -675,7 +866,7 @@ u32 sub_803586C(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
@@ -762,7 +953,7 @@ u32 sub_8035B04(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
@@ -849,7 +1040,7 @@ u32 sub_8035D9C(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
@@ -936,7 +1127,7 @@ u32 sub_8036034(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
@@ -1023,7 +1214,7 @@ u32 sub_80362CC(u8 *arg)
         case 5:
             if (!(*(u16 *)&arg[0x24] & 0x1000))
                 break;
-            sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+            sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
             sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
@@ -1076,7 +1267,97 @@ u32 sub_80362CC(u8 *arg)
 // @ 0x08036564
 INCLUDE_ASM("asm/nonmatchings", sub_8036564);
 // @ 0x080368FC
-INCLUDE_ASM("asm/nonmatchings", sub_80368FC);
+// NPC 剧情对话状态机变体 (单参数, gUnk_03000820 二十一态 0-0x14):
+// case0 存 NPC 位置 (0824/0822) + 初始化 + 写 0x3A9 到 [0xB6]; case1 开场动画 0x3A5;
+// case2 等 0x800 → Sfx 0xA5 → 5; case5 确认 0x1000 → sub_804C3A4 + 清 0x1000 + 动画 0x3A6
+// (第 5 参 0x102) → 0x12; case18 等 0x800 + 清 0x100 → sub_8044514(0x32) → 0x13;
+// case19 sub_80471AC()==0 → Sfx 0x64 → 0x14; case20 无遮挡 → sub_801CBA4 归位 (v56 载体) → 6;
+// case6 等 0x800 → 9; case9 sub_8045B90 退场 + ret 1。case19/20 共享 0825++。
+// 注: 载体变量 (b6ptr/zero2/b6val/v56) 与 sub_803ED34/u8 原型同 803272C 家族套路。
+u32 sub_80368FC(u8 *arg0)
+{
+    u32 ret;
+    u8 b4;
+    int keys;
+    u16 flags;
+    u8 v56;
+    u16 *b6ptr;
+    u16 b6val;
+    u16 zero2;
+
+    ret = 0;
+    switch (gUnk_03000820)
+    {
+    case 0:
+        gUnk_03000824 = arg0[0x35];
+        gUnk_03000822 = *(u16 *)(arg0 + 0x2A);
+        sub_80444A4(arg0);
+        sub_803F5B4(arg0);
+        gUnk_03000820 = 1;
+        b6ptr = (u16 *)((u8 *)arg0 + 0xB6);
+        zero2 = 0;
+        b6val = 0x3A9;
+        *b6ptr = b6val;
+        *(u16 *)((u8 *)arg0 + 0xB4) = zero2;
+        break;
+    case 1:
+        sub_8020974(arg0 + 0xC, 0x3A5, 0x1B4, 0xD, 2);
+        gUnk_03000820 = 2;
+        break;
+    case 2:
+        if (*(u16 *)(arg0 + 0x24) & 0x800)
+            break;
+        Sfx_Play(0xA5, 1, 0);
+        gUnk_03000820 = 5;
+        break;
+    case 5:
+        if (!(*(u16 *)(arg0 + 0x24) & 0x1000))
+            break;
+        b4 = arg0[0x35];
+        keys = sub_801B954((ObjHead *)(arg0 + 0xC));
+        sub_804C3A4(b4, (u8)keys);
+        flags = *(u16 *)(arg0 + 0x24) & 0xEFFF;
+        *(u16 *)(arg0 + 0x24) = flags;
+        sub_8020974(arg0 + 0xC, 0x3A6, 0x1B4, 0xD, 0x102);
+        gUnk_03000820 = 0x12;
+        break;
+    case 18:
+        if (*(u16 *)(arg0 + 0x24) & 0x800)
+            break;
+        flags = *(u16 *)(arg0 + 0x24) & 0xFEFF;
+        *(u16 *)(arg0 + 0x24) = flags;
+        sub_8044514(0x32);
+        gUnk_03000820 = 0x13;
+        break;
+    case 19:
+        if (sub_80471AC() == 0)
+        {
+            Sfx_Play(0x64, 1, 0);
+            gUnk_03000820 = 0x14;
+        }
+        gUnk_03000825 += 1;
+        break;
+    case 20:
+        if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
+        {
+            sub_801CBA4(arg0, 0, gUnk_03000822, gUnk_03000824, v56);
+            gUnk_03000820 = 6;
+        }
+        gUnk_03000825 += 1;
+        break;
+    case 6:
+        if (*(u16 *)(arg0 + 0x24) & 0x800)
+            break;
+        gUnk_03000820 = 9;
+        break;
+    case 9:
+        sub_8045B90(arg0, arg0[0xA1]);
+        ret = 1;
+        break;
+    }
+    sub_803F658(arg0);
+    return ret;
+}
 // @ 0x08036B30
 INCLUDE_ASM("asm/nonmatchings", sub_8036B30);
 // @ 0x08036EA4
@@ -1116,7 +1397,7 @@ u32 sub_8037E14(u8 *obj)
     case 20:
         if (!(*(u16 *)&obj[0x24] & 0x1000))
             break;
-        sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+        sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
         *(u16 *)&obj[0x24] &= 0xEFFF;
         sub_8020974(obj + 0xC, 0x3BA, 0x1B4, 0xC, 2);
         gUnk_03000820 = 0x15;
@@ -1170,7 +1451,7 @@ u32 sub_8037FE8(u8 *obj)
     case 20:
         if (!(*(u16 *)&obj[0x24] & 0x1000))
             break;
-        sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+        sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
         *(u16 *)&obj[0x24] &= 0xEFFF;
         sub_8020974(obj + 0xC, 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
@@ -1224,7 +1505,7 @@ u32 sub_80381BC(u8 *obj)
     case 20:
         if (!(*(u16 *)&obj[0x24] & 0x1000))
             break;
-        sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+        sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
         *(u16 *)&obj[0x24] &= 0xEFFF;
         sub_8020974(obj + 0xC, 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
@@ -1278,7 +1559,7 @@ u32 sub_8038390(u8 *obj)
     case 20:
         if (!(*(u16 *)&obj[0x24] & 0x1000))
             break;
-        sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+        sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
         *(u16 *)&obj[0x24] &= 0xEFFF;
         sub_8020974(obj + 0xC, 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
@@ -1333,7 +1614,7 @@ u32 sub_8038568(u8 *arg, u8 *arg1)
     case 20:
         if (!(*(u16 *)&arg[0x24] & 0x1000))
             break;
-        sub_804C3A4(arg[0x35], sub_801B954((void **)(arg + 0xC)));
+        sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
         *(u16 *)&arg[0x24] &= 0xEFFF;
         sub_8020974(arg + 0xC, 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
@@ -1388,7 +1669,7 @@ u32 sub_803874C(u8 *obj)
     case 20:
         if (!(*(u16 *)&obj[0x24] & 0x1000))
             break;
-        sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+        sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
         *(u16 *)&obj[0x24] &= 0xEFFF;
         sub_8020974(obj + 0xC, 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
@@ -1418,7 +1699,96 @@ u32 sub_803874C(u8 *obj)
 // @ 0x08038920
 INCLUDE_ASM("asm/nonmatchings", sub_8038920);
 // @ 0x08038C84
-INCLUDE_ASM("asm/nonmatchings", sub_8038C84);
+// NPC 对话状态机变体 (gUnk_03000820 十态同 8032548; 开场动画固定 0x3C7):
+// case0 存 NPC 位置 (0x03000828/29) 并清 [0xB4]/[0xB6]; case1 sub_803E58C 到位检查+
+// 开场动画 0x3C7, arg1[0xBE]<=0xA 时打 0x20 标记; case2 等 0x800 后进 case3;
+// case3 arg0[0x28]>0x39 (对话帧超时) 发音效并等 0x28 帧; case5 确认 (0x1000) →
+// sub_804C3A4 + gUnk_0300086B=0xC; case8/9 收尾同 8032548 (无遮挡时结束返回 1)。
+// 注: case1 的 spr 提载与 b4=0x3C7 (动画 id 走寄存器) 是字节匹配必需的调度形状;
+// case0 的 zero/zero2/b6ptr/b4 拆分同 8032548 (见 progress.md)。
+u32 sub_8038C84(u8 *arg0, u8 *arg1)
+{
+    u32 ret;
+    u16 keys;
+    u32 zero;
+    u32 zero2;
+    u16 *b6ptr;
+    u8 *spr;
+    u16 b4;
+
+    ret = 0;
+    switch (gUnk_03000820)
+    {
+    case 0:
+        gUnk_03000828 = arg0[0xBF];
+        gUnk_03000829 = arg0[0xC0];
+        gUnk_03000825 = 0;
+        sub_80444A4(arg0);
+        sub_803F5B4(arg0);
+        zero = 0;
+        zero2 = 0;
+        b6ptr = (u16 *)((u8 *)arg0 + 0xB6);
+        b4 = zero2;
+        *b6ptr = zero2;
+        *(u16 *)((u8 *)arg0 + 0xB4) = b4;
+        gUnk_03000820 = 1;
+        gUnk_0300086B = zero;
+        break;
+    case 1:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+        {
+            spr = arg0 + 0xC;
+            b4 = 0x3C7;
+            sub_8020974(spr, b4, 0x1B4, 0xD, 2);
+            if (arg1[0xBE] <= 0xA)
+            {
+                keys = *(u16 *)(arg0 + 0x24) | 0x20;
+                *(u16 *)(arg0 + 0x24) = keys;
+            }
+            gUnk_03000820 = 2;
+        }
+        break;
+    case 2:
+        if (*(u16 *)(arg0 + 0x24) & 0x800)
+        {
+            break;
+        }
+        gUnk_03000820 = 3;
+        break;
+    case 3:
+        if (*(u16 *)(arg0 + 0x28) <= 0x39)
+        {
+            break;
+        }
+        Sfx_Play(0x31, 1, 0);
+        sub_8044514(0x28);
+        gUnk_03000820 = 5;
+        break;
+    case 5:
+        if (*(u16 *)(arg0 + 0x24) & 0x1000)
+        {
+            sub_804C3A4(arg0[0x35], (u8)sub_801B954((ObjHead *)(arg0 + 0xC)));
+            gUnk_0300086B = 0xC;
+            gUnk_03000820 = 8;
+        }
+        break;
+    case 8:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+        {
+            gUnk_03000820 = 9;
+        }
+        break;
+    case 9:
+        if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && gUnk_03000856 == 0)
+        {
+            sub_8045B90(arg0, arg0[0xA1]);
+            ret = 1;
+        }
+        break;
+    }
+    sub_803F658(arg0);
+    return ret;
+}
 // @ 0x08038E44
 INCLUDE_ASM("asm/nonmatchings", sub_8038E44);
 // @ 0x08039024

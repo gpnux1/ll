@@ -88,7 +88,7 @@ u8 sub_8042200(u8 *obj)
         case 2:
             if (*(u16 *)(obj + 0x24) & 0x1000)
             {
-                sub_804C3A4(obj[0x35], sub_801B954((void **)(obj + 0xC)));
+                sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
                 *(u16 *)(obj + 0x24) &= 0xEFFF;
                 sub_80207DC(obj, obj[0xBF], obj[0xC0], gUnk_03000822, gUnk_03000824);
                 gUnk_03000820 = 9;

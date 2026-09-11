@@ -252,7 +252,67 @@ void PartyUi_InitEntities(u8 mode)
     }
 }
 // @ 0x0800BFF8
-INCLUDE_ASM("asm/nonmatchings", sub_800BFF8);
+//
+// 三位十进制数字写入器 (0–999): 把 value 渲染成 3 个 BG 图块项, 右对齐, 前导零抑制
+// (个位必显示; 百/十位为前导零时写空白瓦片)。写入方向朝 dest 的负方向:
+//   tiles[0]=百位 写 dest-2, tiles[1]=十位 写 dest-1, tiles[2]=个位 写 dest。
+//
+// value: 要显示的数值 (调用方只传 HP/MP/Lv, 恒非负; 负值时商下溢会拼出空白前一格的乱码瓦片)
+// dest:  tilemap 缓冲 (0x02005800, 行距 32) 中【个位】格子的地址
+// base:  图块项基值 = (调色板<<12) | 数字瓦片基号; 数字 d 的表项 = base+0x25A+d,
+//        空白瓦片 = base+0x27F。HP/MP 满值时调用方传 0xF000 换高亮调色板, 否则 0xB000。
+//
+// ⚠ 原始 ROM 缺陷 (字节级匹配保真): 十位空白判定硬编码 tiles[0]==0xB27F 而没跟 base 走,
+//   base=0xF000 且数值形如 5/50 时百/十位空白判定失效, 渲染成 "005" 而非 "  5"。
+void sub_800BFF8(s16 value, u16 *dest, u32 base)
+{
+    u16 tiles[3];
+    u16 base16;
+    u16 count;
+    u16 *d;
+
+    base16 = base;
+    if (value == 0)
+    {
+        tiles[0] = base16 + 0x27F;             // 空白
+        tiles[1] = base16 + 0x27F;             // 空白
+        tiles[2] = base16 + 0x27F - 0x25;      // 空白-0x25 = '0'
+        *dest = tiles[2];
+        dest--;
+    }
+    else
+    {
+        count = 0;
+        d = dest - 1;
+        while (value >= 0)                     // 减法除法: value / 100 → count (百位)
+        {
+            value -= 100;
+            count++;
+        }
+        value += 100;                          // 回退最后一次多减的 100 → 余数
+        count--;
+        if (count == 0)
+            count = 0x25;                      // 百位为 0 → 空白瓦片 (表中 0x25A+0x25 处)
+        tiles[0] = base16 + (0x25A + count);
+        count = 0;
+        while (value >= 0)                     // 减法除法: value / 10 → count (十位)
+        {
+            value -= 10;
+            count++;
+        }
+        value += 10;                           // 余数 = 个位
+        count--;
+        if (count == 0 && tiles[0] == 0xB27F)  // ⚠ 硬编码 0xB27F (=0xB000 基的空白): base=0xF000 时失效
+            count = 0x25;                      // 十位为 0 且百位空白 → 十位也空白 (前导零抑制)
+        tiles[1] = (u16)(base16 + 0x25A) + count;
+        tiles[2] = (u16)(base16 + 0x25A) + value;
+        *dest = tiles[2];
+        dest = d;
+    }
+    *dest = tiles[1];
+    dest--;
+    *dest = tiles[0];
+}
 
 // @ 0x0800C0D8
 void BattleIntro_Setup(void)
@@ -619,7 +679,71 @@ INCLUDE_ASM("asm/nonmatchings", sub_800EC54);
 // @ 0x0800F128
 INCLUDE_ASM("asm/nonmatchings", sub_800F128);
 // @ 0x0800F3AC
-INCLUDE_ASM("asm/nonmatchings", sub_800F3AC);
+/* 屏幕空闲时地点图标列绘制 (主菜单待机画面):
+ *   1. ClearBuffer 清 0x02005986 的 24x10 瓦片缓冲 (0xB001 填充, 行距 0x40);
+ *   2. 遍历 gScreenIdleIconIds[i + 游标] (i=0..4, 0=无图标跳过);
+ *      调色板: 选中项 (gMenuCursorSel-11 == i) = 13 否则 11;
+ *      特殊图标再改写: 图标 8 且 EventFlags_Test(0x10D)==0 → 12,
+ *                      图标 0x18 且 EventFlags_Test(0xFF)!=0 → 12;
+ *   3. off = i*0x80 + 0x180: 写 0xB190 到 0x02005810+off, 0xB191 到 0x02005850+off
+ *      (图标框瓦片), 再 Msg_DrawPoolSegment(0x02005812+off, 图标ID, 调色板) + Text_PutGlyph(0xC9, 11)。
+ * 匹配要点 (逐字节验证):
+ *   - off 用 u32 两步赋值 (off = i<<7; off += 0x180) 防 GCC 合并移位 (lsls #23 形态);
+ *   - tileOff/iconId 用 int 局部 (声明序: ptr,tileOff,i,iconId,segIdx) 支配 ClearBuffer
+ *     展开 w→r7 / 0xB001→r1 的 global-alloc home;
+ *   - tileOff = 0x190 单独成句, 使 *ptr = base + tileOff 走 add r1,r8 (防 ORR 重写);
+ *   - segIdx = iconId 放在 tile2 存储之后: 阻断 0x02005812 = 0x02005850-0x3E 的 CSE,
+ *     且让 iconId 拷贝 (adds r1,r4,#0) 落到 strh 之后 (与目标调度一致)。
+ *   (EXPERIENCE 87 变体: 一个 int 临时变量同时买到拷贝指令位置与伪寄存器生死边界) */
+void sub_800F3AC(void)
+{
+    u16 *ptr;
+    int tileOff;
+    u8 i;
+    int iconId;
+    u8 segIdx;
+    u16 base;
+    u16 tile2;
+
+    ClearBuffer((u16 *)0x02005986, 0x18, 0xA);
+
+    i = 0;
+    base = 0xB000;
+    tile2 = 0xB191;
+
+    for (; i < 5; i++)
+    {
+        u8 item = gScreenIdleIconIds[i + gScreenIdleIconCursor];
+        iconId = item;
+        if (iconId != 0)
+        {
+            u32 palette = ((gMenuCursorSel - 11) == i) ? 13 : 11;
+            u32 off;
+
+            switch (iconId)
+            {
+                case 8:
+                    if (EventFlags_Test(0x10D) == 0)
+                        palette = 12;
+                    break;
+                case 0x18:
+                    if (EventFlags_Test(0xFF) != 0)
+                        palette = 12;
+                    break;
+            }
+
+            off = i << 7;
+            off += 0x180;
+            tileOff = 0x190;
+            ptr = (u16 *)(0x02005810 + off);
+            *ptr = base + tileOff;
+            ptr = (u16 *)(0x02005850 + off);
+            *ptr = tile2;
+            segIdx = iconId;
+            Text_PutGlyph(Msg_DrawPoolSegment((u16 *)(0x02005812 + off), segIdx, palette), 0xC9, 11);
+        }
+    }
+}
 
 extern u8 gUnk_03000199;
 extern u8 gUnk_030001A0[];
@@ -857,9 +981,196 @@ u8 sub_800FA24(void)
 // @ 0x0800FB2C
 INCLUDE_ASM("asm/nonmatchings", sub_800FB2C);
 // @ 0x0800FDEC
-INCLUDE_ASM("asm/nonmatchings", sub_800FDEC);
+void sub_800FDEC(void)
+{
+    u8 id;
+    u8 mask;
+    u8 type;
+    u8 i;
+    u8 cnt;
+    const EnemyCharaStat *e;
+
+    gUnk_030001B9 = 0xFF;
+    gUnk_030001BA = 0xFF;
+
+    id = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)];
+    if (id > 8)
+        return;
+
+    if (id != 0)
+        id--;
+
+    mask = 1 << id;
+
+    type = gMenuCursorStack[gMenuCursorGrp];
+    if (type == 5)
+        type = 4;
+
+    i = gItemUseCtx[0];
+    if (gUnk_030001B1 != 0)
+    {
+        i--;
+        if (i != 0xFF)
+        {
+            cnt = 0;
+            while (i != 0)
+            {
+                e = &gCharaBaseData[i];
+                if ((e->resistFlags & mask) != 0
+                 && (e->formRace & 0xF) == type
+                 && gInventory[i] != 0)
+                {
+                    gUnk_030001B9 = i;
+                    cnt++;
+                }
+                i--;
+                if (cnt != 0)
+                    break;
+            }
+        }
+        if (cnt == 0)
+            gUnk_030001B9 = cnt;
+    }
+
+    i = gItemUseCtx[4];
+    if (i == 0 || i == 0xFF)
+        return;
+
+    i++;
+    cnt = 0;
+
+    while (i <= 0xFD)
+    {
+        e = &gCharaBaseData[i];
+        if ((e->resistFlags & mask) != 0
+         && (e->formRace & 0xF) == type
+         && gInventory[i] != 0)
+        {
+            gUnk_030001BA = i;
+            cnt++;
+        }
+        i++;
+        if (cnt != 0)
+            break;
+    }
+}
 // @ 0x0800FF10
-INCLUDE_ASM("asm/nonmatchings", sub_800FF10);
+/* 装备更换预览: arg0=道具/装备 id (0xFF=不换, 仅刷新), arg1=装备槽 (0..5),
+ * arg2=队伍成员索引 (gPartyStats 下标)。流程:
+ *   1) 临时把新 id 写入该成员的装备槽 (先存旧值);
+ *   2) 调 Stats_RebuildEquipBonuses 重算 gEquipBonus* 全局;
+ *   3) 恢复旧值;
+ *   4) 把"基础加成 + 该件装备加成"与角色当前装备加成比较,
+ *      按 0xC=升 / 0xD=降 写入 gStatArrowIds[] (相等则保持 0xB)。 */
+void sub_800FF10(u8 arg0, u8 arg1, u8 arg2)
+{
+    PlayerStats *ps;
+    u8 prev;
+
+    ps = &gPartyStats[arg2];
+
+    if (arg0 == 0xFF)
+    {
+        gEquipBonusAtkBase = ps->equip_atc;
+        gEquipBonusDef2 = ps->equip_def;
+        gEquipBonusAgl = ps->equip_agl;
+        gEquipBonusMen = ps->equip_men;
+        gEquipBonusRes = ps->equip_res;
+        gEquipBonusNoa = ps->equip_noa;
+        gEquipBonusLuc = ps->equip_luc;
+        return;
+    }
+
+    switch (arg1)
+    {
+    case 0:
+        prev = ps->equip_slot1;
+        ps->equip_slot1 = arg0;
+        break;
+    case 1:
+        prev = ps->equip_slot2;
+        ps->equip_slot2 = arg0;
+        break;
+    case 2:
+        prev = ps->equip_slot3;
+        ps->equip_slot3 = arg0;
+        break;
+    case 3:
+        prev = ps->equip_slot4;
+        ps->equip_slot4 = arg0;
+        break;
+    case 4:
+        prev = ps->equip_slot5;
+        ps->equip_slot5 = arg0;
+        break;
+    case 5:
+        prev = ps->equip_slot6;
+        ps->equip_slot6 = arg0;
+        break;
+    }
+
+    Stats_RebuildEquipBonuses(gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)]);
+
+    switch (arg1)
+    {
+    case 0:
+        ps->equip_slot1 = prev;
+        break;
+    case 1:
+        ps->equip_slot2 = prev;
+        break;
+    case 2:
+        ps->equip_slot3 = prev;
+        break;
+    case 3:
+        ps->equip_slot4 = prev;
+        break;
+    case 4:
+        ps->equip_slot5 = prev;
+        break;
+    case 5:
+        ps->equip_slot6 = prev;
+        break;
+    }
+
+    gEquipBonusAtkBase += gEquipBonusAtk;
+    gEquipBonusDef2 += gEquipBonusDef;
+
+    if (ps->equip_atc > gEquipBonusAtkBase)
+        gStatArrowIds[0] = 0xC;
+    else if (ps->equip_atc < gEquipBonusAtkBase)
+        gStatArrowIds[0] = 0xD;
+
+    if (ps->equip_def > gEquipBonusDef2)
+        gStatArrowIds[1] = 0xC;
+    else if (ps->equip_def < gEquipBonusDef2)
+        gStatArrowIds[1] = 0xD;
+
+    if (ps->equip_agl > gEquipBonusAgl)
+        gStatArrowIds[2] = 0xC;
+    else if (ps->equip_agl < gEquipBonusAgl)
+        gStatArrowIds[2] = 0xD;
+
+    if (ps->equip_men > gEquipBonusMen)
+        gStatArrowIds[3] = 0xC;
+    else if (ps->equip_men < gEquipBonusMen)
+        gStatArrowIds[3] = 0xD;
+
+    if (ps->equip_res > gEquipBonusRes)
+        gStatArrowIds[4] = 0xC;
+    else if (ps->equip_res < gEquipBonusRes)
+        gStatArrowIds[4] = 0xD;
+
+    if (ps->equip_noa > gEquipBonusNoa)
+        gStatArrowIds[6] = 0xC;
+    else if (ps->equip_noa < gEquipBonusNoa)
+        gStatArrowIds[6] = 0xD;
+
+    if (ps->equip_luc > gEquipBonusLuc)
+        gStatArrowIds[5] = 0xC;
+    else if (ps->equip_luc < gEquipBonusLuc)
+        gStatArrowIds[5] = 0xD;
+}
 // @ 0x08010170
 INCLUDE_ASM("asm/nonmatchings", sub_8010170);
 // @ 0x0801026C
@@ -959,7 +1270,114 @@ INCLUDE_ASM("asm/nonmatchings", sub_80104F8);
 // @ 0x08010624
 INCLUDE_ASM("asm/nonmatchings", sub_8010624);
 // @ 0x08010770
-INCLUDE_ASM("asm/nonmatchings", sub_8010770);
+/* 道具/技能菜单的"确认使用"处理 (被 sub_800B374 附近的菜单确认逻辑调用)。
+ * arg0 = 0: 对全队执行 (回复类道具, gUnk_030001C5==5 时走全队 hp 恢复循环,
+ *            否则保存游标并返回上一层菜单 sub_800E668(0xFF));
+ * arg0 != 0: 对单个成员执行。
+ * 尾部对 gUnk_030001C3==0x3E (无角色) 清 gPartyFollowFlags 的 bit7,
+ * 否则按消耗量 gUnk_030001C4 扣减该成员的 mp。 */
+void sub_8010770(u8 arg0)
+{
+    u8 n;
+    u16 i;
+    u8 id;
+
+    n = 0;
+    if (sub_8010300(gUnk_030001C3) != 0)
+    {
+        if (gUnk_030001C3 != 0x26)
+        {
+            gUnk_030001B0 = 0x10;
+            if (arg0 == 0)
+            {
+                if (gUnk_030001C5 == 5)
+                {
+                    i = 0;
+                    id = gPartyMemberIds[0];
+                    while (id != 0xFF)
+                    {
+                        if (id != 0)
+                            id--;
+                        if (gUnk_030001C6 != 0)
+                        {
+                            gPartyStats[id].hp += gUnk_030001C6;
+                            if (gPartyStats[id].hp > gPartyStats[id].max_hp)
+                                gPartyStats[id].hp = gPartyStats[id].max_hp;
+                        }
+                        else
+                        {
+                            gPartyStats[id].hp = gPartyStats[id].max_hp;
+                        }
+                        sub_8010624((u8)i, 2);
+                        i = (u16)(i + 1);
+                        if (i > 4)
+                            break;
+                        id = gPartyMemberIds[i];
+                    }
+                    Sfx_Play(0x17, 1, 0);
+                    n++;
+                }
+                else
+                {
+                    gMenuCursorStack[gMenuCursorGrp] = gMenuCursorSel;
+                    gMenuCursorSel = gMenuCursorStack[15];
+                    if (gMenuCursorSel <= 3)
+                        gMenuCursorSel = 4;
+                    sub_800E668(0xFF);
+                    Sfx_Play(1, 0, 0);
+                    return;
+                }
+            }
+            else
+            {
+                id = gPartyMemberIds[gMenuCursorSel - 4];
+                if (id != 0)
+                    id--;
+                if (gPartyStats[id].hp < gPartyStats[id].max_hp)
+                {
+                    if (gUnk_030001C6 != 0)
+                    {
+                        gPartyStats[id].hp += gUnk_030001C6;
+                        if (gPartyStats[id].hp > gPartyStats[id].max_hp)
+                            gPartyStats[id].hp = gPartyStats[id].max_hp;
+                    }
+                    else
+                    {
+                        gPartyStats[id].hp = gPartyStats[id].max_hp;
+                    }
+                    sub_8010624((u8)(gMenuCursorSel - 4), 1);
+                    Sfx_Play(0x17, 1, 0);
+                    n++;
+                }
+                else
+                {
+                    gUnk_030001C8 = 0x24;
+                    Sfx_Play(3, 0, 0);
+                }
+            }
+        }
+        else
+        {
+            n = 1;
+        }
+        if (n == 0)
+            return;
+        if (gUnk_030001C3 == 0x3E)
+        {
+            gPartyFollowFlags &= 0x7F;
+            sub_800F128(0, gMenuCursorStack[gMenuCursorGrp]);
+            return;
+        }
+        id = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)];
+        if (id != 0)
+            id--;
+        gPartyStats[id].mp -= gUnk_030001C4;
+    }
+    else
+    {
+        Sfx_Play(3, 0, 0);
+    }
+}
 
 extern const u8 gScreenIdleIconPageMap[];
 

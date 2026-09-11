@@ -9,80 +9,6 @@
 #include "save.h"
 #include "sound.h"
 
-// @ 0x0801A5EC
-void sub_801A5EC(Unk_801A5EC *dst, Unk_801A5EC *src)
-{
-    dst->f_00 = src->f_00;
-    dst->f_04 = src->f_04;
-    dst->f_08 = src->f_08;
-    dst->f_0C = src->f_0C;
-    dst->f_18 = src->f_18;
-    dst->f_28 = src->f_28;
-    dst->f_1A = src->f_1A;
-    dst->f_1C = src->f_1C;
-    dst->f_1E = src->f_1E;
-    dst->f_29 = src->f_29;
-    dst->f_2A = src->f_2A;
-    dst->f_2B = src->f_2B;
-    dst->f_2C = src->f_2C;
-    dst->f_2D = src->f_2D;
-    dst->f_2E = src->f_2E;
-    dst->f_10 = src->f_10;
-    dst->f_14 = src->f_14;
-    dst->f_20 = src->f_20;
-    dst->f_22 = src->f_22;
-    dst->f_24 = src->f_24;
-    dst->f_2F = src->f_2F;
-    dst->f_26 = src->f_26;
-}
-// @ 0x0801A684
-void sub_801A684(u8 *arg0)
-{
-    u32 data;
-    u32 off0;
-    u32 off1;
-    u16 type;
-    u32 ptr14;
-    u8 b29;
-    u8 zero8;
-    u16 zero16;
-    u8 copied;
-
-    do
-    {
-        data = *(u32 *)(arg0 + 0x10);
-        off0 = data + *(u16 *)data;
-        *(u32 *)(arg0 + 0) = off0;
-        off1 = data + *(u16 *)(data + 2);
-        *(u32 *)(arg0 + 4) = off1;
-        *(u32 *)(arg0 + 8) = off0 + 4;
-        *(u32 *)(arg0 + 0xC) = off1 + 4;
-
-        // Keep GCC2's byte zero ahead of the independent halfword zero.
-        zero8 = off0 & ~off0;
-        zero16 = 0;
-        *(u16 *)(arg0 + 0x1A) = zero16;
-        *(u16 *)(arg0 + 0x1C) = zero16;
-        *(u16 *)(arg0 + 0x1E) = *(u16 *)(arg0 + 0x24);
-        copied = *(u8 *)(arg0 + 0x2F);
-        *(u8 *)(arg0 + 0x29) = copied;
-        *(u8 *)(arg0 + 0x28) = zero8;
-    } while (0);
-
-    type = (*(u16 *)(arg0 + 0x18) & 0xF) - 6;
-    if (type <= 2)
-    {
-        sub_801A6F4(arg0);
-    }
-    else
-    {
-        ptr14 = *(u32 *)(arg0 + 0x14);
-        b29 = *(u8 *)(arg0 + 0x29);
-        sub_804C2FC(ptr14, b29, sub_801B954((void **)arg0));
-    }
-}
-// @ 0x0801A6F4
-INCLUDE_ASM("asm/nonmatchings", sub_801A6F4);
 // @ 0x0801A884
 INCLUDE_ASM("asm/nonmatchings", sub_801A884);
 // @ 0x0801AD0C
@@ -92,8 +18,56 @@ INCLUDE_ASM("asm/nonmatchings", sub_801B0B8);
 
 
 // @ 0x0801B570
-// extern const u8 gUnk_08393A30[];
-INCLUDE_ASM("asm/nonmatchings", sub_801B570);
+void sub_801B570(u8 *arg0)
+{
+    ObjHead *obj = (ObjHead *)arg0;
+    u16 *p;
+    u16 *entry;
+    u16 n0;
+    u16 value;
+    u16 offset;
+    u16 count;
+    u16 i;
+    s16 counter;
+    u8 tile;
+
+    if (obj->kindFlags & 0x200)
+    {
+        return;
+    }
+
+    tile = 1;
+    counter = obj->cmdBase1[0] - 1;
+    while (counter >= 0)
+    {
+        offset = obj->jumpTable1[counter];
+        p = sub_801B8E8((u16 *)((u8 *)obj->cmdBase1 + offset), obj->frameIdx);
+        value = *p;
+        entry = (u16 *)((u8 *)obj->cmdBase0 + obj->jumpTable0[value]);
+        n0 = *entry;
+        entry++;
+        count = *entry;
+        entry++;
+        entry += n0 * 4;
+
+        for (i = 0; i < count; i++)
+        {
+            u16 *saved = entry;
+            if (!(obj->kindFlags & 0x800))
+            {
+                DmaCopy16(3,
+                          (void *)(0x0202B2C0 + ((((u32)entry[2]) << 22) >> 17)),
+                          (void *)(0x0600C000 + (tile << 5)),
+                          gUnk_08393A30[(((u8 *)entry)[3] >> 6) + ((((u8 *)entry)[1] >> 6) << 2)] << 5);
+                DmaWait(3);
+                tile += gUnk_08393A30[(((u8 *)saved)[3] >> 6) + ((((u8 *)saved)[1] >> 6) << 2)];
+            }
+            entry += 3;
+        }
+
+        counter--;
+    }
+}
 // @ 0x0801B688
 INCLUDE_ASM("asm/matchings", sub_801B688);
 
@@ -273,15 +247,14 @@ void sub_801B920(void)
     // } while (i < 32);
 }
 // @ 0x0801B954
-u8 sub_801B954(void **ptr)
+u8 sub_801B954(ObjHead *head)
 {
-    return *((u8 *)(*ptr + 2));
+    return ((u8 *)head->cmdBase0)[2];
 }
 // @ 0x0801B95C
-u16 sub_801B95C(void **ptr)
+u16 sub_801B95C(ObjHead *head)
 {
-    void *p = *(ptr + 1); // ptr偏移4字节（一个指针大小），等价于ptr[1]
-    return *(u16 *)((u8 *)p + 2);
+    return head->cmdBase1[1];
 }
 // @ 0x0801B964
 INCLUDE_ASM("asm/nonmatchings", sub_801B964);
@@ -872,7 +845,72 @@ void sub_801DF90(u8 *arg0, u8 *arg1)
     }
 }
 // @ 0x0801E040
-INCLUDE_ASM("asm/nonmatchings", sub_801E040);
+u8 sub_801E040(void)
+{
+    u8 ret = 0;
+    if (gUnk_03000715 < gUnk_03000714)
+    {
+        u8 *obj = gUnk_030006F8[gUnk_03000715];
+        u8 *st = obj + 0xBE;
+        if (*st <= 0xA)
+        {
+            sub_801DC20(obj, 0);
+            if (*st <= 0xA)
+                sub_801CBA4(obj, 3, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+        }
+        else if (*st <= 0x70)
+        {
+            sub_801D12C(obj, 0);
+            if (*st <= 0xA)
+                sub_801CBA4(obj, 2, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            else if (*st <= 0x70)
+                sub_801CA08(obj, 1, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            else if ((u8)(*st - 0x71) <= 0x8D)
+                sub_801CE80(obj, 2, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            gUnk_03000630--;
+            {
+                u16 newval = 4 | *(u16 *)(obj + 0xB0);
+                *(u16 *)(obj + 0xB0) = newval;
+            }
+            sub_8045F94(obj, 8);
+        }
+        else
+        {
+            sub_801D12C(obj, 0);
+            if (*st <= 0xA)
+                sub_801CBA4(obj, 2, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            else if (*st <= 0x70)
+                sub_801CA08(obj, 1, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            else if ((u8)(*st - 0x71) <= 0x8D)
+                sub_801CE80(obj, 2, *(u16 *)(obj + 0x2A), obj[0x35], ret);
+            gUnk_03000630--;
+            {
+                u16 newval = 4 | *(u16 *)(obj + 0xB0);
+                *(u16 *)(obj + 0xB0) = newval;
+            }
+            sub_8045F94(obj, 8);
+        }
+        gUnk_03000715++;
+    }
+    else
+    {
+        if (gUnk_03000714 != 0)
+        {
+            u8 s = gUnk_030006F8[0][0xBE];
+            if (s <= 0xA)
+                ret = 1;
+            else if (s <= 0x70)
+                ret = 2;
+            else
+            {
+                sub_8044414();
+                ret = 3;
+            }
+        }
+        gUnk_03000715 = 0;
+    }
+    return ret;
+}
 // @ 0x0801E1D8
 INCLUDE_ASM("asm/nonmatchings", sub_801E1D8);
 // @ 0x0801E30C
@@ -965,7 +1003,7 @@ void sub_801EE6C(u8 *ptr)
         v = ptr[0x35];
     }
 
-    b = sub_801B954((void **)(ptr + 0xC));
+    b = sub_801B954((ObjHead *)(ptr + 0xC));
     sub_804B7B0(v, b);
 
     if (*(u16 *)&ptr[0x24] & 0x8000)

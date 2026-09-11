@@ -2,7 +2,7 @@
 
 > 项目: 《Lunar Legend (Japan)》GBA ROM 全量反编译。终验 = `make` 后 `sha1sum -c ll.sha1` 通过 (ROM 逐字节一致)。
 > 本文件 = 怎么干活; 深度经验 (102 条规律/坑/失败存档) 在 `docs/EXPERIENCE.md`, 索引见文末 §9。
-> ⚠ **匹配流程是铁律 6 (permuter 先到分数 0 才许动 src), 违反视为事故**。
+> ⚠ **匹配流程是铁律 6 (候选须字节级完全一致才许动 src; permuter 分数只是参考), 违反视为事故**。
 
 ## 0. 铁律 (多 agent 并行, 违反 = 事故)
 
@@ -15,15 +15,15 @@
 4. **禁止**: `cp x.bak x` 整体回退共享文件; `rm -rf .scratch` (用 `.scratch/<agent>/`);
    goto / 固定寄存器 / 内联汇编凑匹配; 给普通 RAM 加 volatile; 手改 `code.s` 和 `asm/{matchings,nonmatchings}/` (全是生成物)。
  5. **开工先 `make` 看尾部有没有报错** (不要只 `sha1sum -c` — 编译失败时 ll.gba 是旧产物, 会误报绿)。
- 6. **匹配必须先过 permuter 到分数 0, 未匹配前禁止改 `src/*.c`** — 流程 = 铁律, 不许跳过:
+ 6. **匹配的唯一门槛 = 字节级完全一致 (`bytecmp.sh`/`fncheck.py`), permuter 分数只是参考, 未匹配前禁止改 `src/*.c`** — 流程 = 铁律, 不许跳过:
     1. `make ctx` + m2c 把 `asm/nonmatchings/<fn>.s` 转成 C 草稿;
     2. **先建 permuter 草稿**: `scripts/mkpermuter.py <fn>` 生成 base.c (不合入 src);
     3. 自己读反汇编+草稿,**人工分析/优化 C** (类型、访问、调度、语义), 改 base.c;
-    4. `permuter.py` 跑分 → **分数=0 才算候选成立** (分数≠0 继续改/重跑);
+    4. `bytecmp.sh` 字节判定 → **字节完全一致才算候选成立** (分数≠0 只说明还有寄存器/池差异, 继续改; 分数≠0 且字节已一致 = 假分, 以字节为准);
     5. permuter 抛出的代码**可能不可读/有界外索引/偷改数据流** (经验 18/113), 必须**人工修正为人类代码**;
-    6. 修正后**再次跑分, 分数仍=0** 才算真正匹配 (改人类代码可能改变字节, 必须复验);
+    6. 修正后**必须复验字节仍完全一致** (改人类代码可能改变字节; 分数复跑仅作参考, 不作门槛);
     7. 全部 OK 才允许合入 `src/<module>.c` 替换 INCLUDE_ASM, 再走 §2 的 fncheck/make/sha1。
-    违反: 直接改 src 靠 make 试错, 分数从未到 0 → 视为事故, 回退且不留痕。
+    违反: 直接改 src 靠 make 试错, 字节从未对上 → 视为事故, 回退且不留痕。
  7. **完工必留痕** — 经验没写进文档 = 没做完 (commit message / 聊天不算)。每个 agent 匹配过程中踩的坑、
    发现的规律、遇到的问题, 按下面归位:
 
@@ -80,7 +80,7 @@ scripts/claim.sh sub_XXXXXX                     # 1. 认领
 #    查符号: 池常量在 iwram.h/ewram.h+linker.ld? bl 目标在 code_0.h 有原型? 缺的先补 (§7)
 scripts/fndiff.sh sub_XXXXXX                    # 3. 逐指令形状回环 (候选在 permuter/<fn>/base.c)
 scripts/bytecmp.sh sub_XXXXXX <候选.c> "sym = 0x...;"...   # 4. 候选级字节判定 (score 会假高, 以它为准)
-# 5. 合入 (仅在铁律 6 分数=0 后): 真 C 替换 src/<module>.c 的 INCLUDE_ASM 行; 原型按反汇编证据写全 (⚠ 别顺手改已有原型签名!)
+# 5. 合入 (仅在铁律 6 字节完全一致后): 真 C 替换 src/<module>.c 的 INCLUDE_ASM 行; 原型按反汇编证据写全 (⚠ 别顺手改已有原型签名!)
 #         同步: functions.tsv 该行 status 0->1 + 写 note; 新全局登记 iwram.h + linker.ld (§7)
 python3 scripts/gen_asm.py                      # 6. 增量重建 asm/ (内容不变不 touch)
 python3 scripts/fncheck.py sub_XXXXXX           # 7. 字节定论
@@ -90,10 +90,12 @@ timeout 900 make 2>&1 | tail -3 && sha1sum -c ll.sha1   # 8. 全量终验
 scripts/claim.sh --release sub_XXXXXX           # 10. 释放; 按铁律 6 留痕: TSV status+note / progress / EXPERIENCE / INCIDENTS / modules
 ```
 
-## 2b. permuter 用法 (匹配必经压分工具, 铁律 6 的主战场)
+## 2b. permuter 用法 (参考性压分/探索工具, 铁律 6 的辅助)
 
-按铁律 6, 任何函数在动 `src/*.c` 前, 都必须在 permuter 里把分数压到 0。这是验证候选的**唯一门槛**,
-不是可选的"压分/探索器"。m2c 出来的 C 只当草稿种子, 后面的分析/优化/修正都在 `permuter/<fn>/base.c` 里做。
+permuter 是**探索/压分工具, 分数只是参考**: 撞调度槽位、home 互换时有用 (实测 sub_8014084 → 经验 87)。
+**候选成立的唯一门槛 = 字节级完全一致** (`bytecmp.sh` 候选级 / `fncheck.py` 合入后), 分数≠0 但字节已对齐
+同样算匹配 (常见于独立编译下字面池重定位产生的假分, 见 progress.md sub_801B570)。
+m2c 出来的 C 只当草稿种子, 后面的分析/优化/修正都在 `permuter/<fn>/base.c` 里做。
 
 四件套目录 `permuter/<fn>/` (缺 `target.o`/`compile.sh` 时 fndiff.sh 会自动生成):
 
@@ -111,11 +113,11 @@ cd permuter/<fn> && timeout 280 ../../.venv/bin/python ../../tools/decomp-permut
 - 自己分析/优化 base.c (类型、访问、调度、语义), 再跑分。permuter 只探索**语句顺序/括号放置**,
   适合"调度槽位"与"home 互换"类卡点 (实测 sub_8014084 → 经验 87; sub_8007ADC 2685→27B 平台期)。
   **结构/表达式问题它救不了**, 卡 30 分钟就 `scripts/claim.sh --note "具体卡点"` 转挂起换目标。
-- 中奖输出 `output-<score>-<n>/source.c`; **分数低 ≠ 对 / 分数=0 也不可直接合入**:
+- 中奖输出 `output-<score>-<n>/source.c`; **分数低 ≠ 对 / 字节一致才可合入**:
   ① 经验 18/113 可能偷改数据流/有界外索引, 人工核对每条访存并**修正为人类可读代码**;
-  ② 修正后**再跑分, 仍=0** 才算真正匹配 (改人类代码可能改变字节, 必须复验);
+  ② 修正后**复验字节仍完全一致** 才算真正匹配 (改人类代码可能改变字节, 必须复验);
   ③ 复验通过才 `scripts/fndiff.sh --promote <fn> <winner>.c` 固化, 然后才许按 §2 合入 src。
-  全程字节定性以 `bytecmp.sh` / `fncheck.py` 为准 (score 会假高)。
+  全程字节定性以 `bytecmp.sh` / `fncheck.py` 为准 (score 会假高, 也可能永不归零 — 字节已一致就别死磕分数)。
 - 挂起函数的最优候选写进 TSV note。套件回收: 只删 [tsv status=1 + src 真 C + 无人认领] 的。
 
 ## 3. 硬约束 (ROM 布局相关, 不可违反)
