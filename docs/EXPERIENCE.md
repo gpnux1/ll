@@ -2766,3 +2766,22 @@ grep '^Register ' gccdump.lreg; grep '^;; Register .* in' gccdump.lreg; rm -f gc
        还差 8 分 = LL_k 差 4 条 (47) 或 LL_t 差 8 条 (96)。**permuter 61 轮 + 20+ 结构变体全部无效** ——
        asm 钉死 → RTL 钉死 → LL 钉死, 属于真正的墙; 挂起, permuter base.c 已换成 LL_k=43 的最优形态。
      关联: 经验 244 (优先级公式/判据式), 87/104 (home 与声明), 100 (flag 归约)。
+
+247. **单基本块内"被减数"的寄存器 home 可以靠人工内存 home 载体区分, 但自然 C 做不到 —— 判别是否该继续穷举**（案例 `sub_8045A10` / 0x08045A10）。
+     目标尾部要求被减数 amount 与 sext 后的另一操作数处在**不同 home** 并由一条 copy 相连:
+     `lsrs r4,r4,#1; adds r1,r4,#0; lsls/asrs r6; subs r0,r0,r1`。
+     自然写 `if ((s16)obj[0x70] - amount < 0)` 时两者在同槽直接相减, 那条 `adds r1,r4,#0` 恒不出现。
+     实测能让它出现的手段只有**迫使 amount 走内存 home**:
+     ```c
+     u64 limit;              /* 或局部 struct { u64 w; } s; / union */
+     limit = 1;              /* 先占一次 (作为第三次实参的常量 1) */
+     ...
+     limit = amount;
+     d = (s16)original - limit;   /* 读回 → 独立 home → copy */
+     ```
+     用 `u64/聚合体`(而非 `u32/int`)是关键: 宽到放不进寄存器对时 global-alloc 才给内存 home;
+     `u32` 仍会被寄存器分配吸收。**此形态字节一致, 但属凑形, 不应作为最终源码合入** (铁律 6.5)。
+     **判据**: 若"只差一条 `adds rX,rY,#0` / 只差几处 home"且穷举 10^4 量级自然变体 + permuter 多 base
+     都无效, 大概率是**单块内两个操作数无法分离**的 home tiebreak, 不要再穷举表达式 —— 先找"该值是否
+     本应来自内存"(对象字段/数组元素/跨块 phi), 而不是制造人工 home。
+     关联: 经验 87 (变量兼职两值制造伪寄存器生死边界)、88 (跨块 home 归 global-alloc)、244 (优先级判据)。

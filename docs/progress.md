@@ -7716,3 +7716,43 @@ switch/else-if、循环 4 形态、p5 30+ 变体、permuter 61 轮 (base score=1
 permuter/base.c 已更新为 V_inline (43)。后续若要再攻: 需要找到"源结构改变 post-cse2 RTL 但最终 asm
 不变"的**新**机制 (regmove 的 LL 迁移是唯一未深挖的 pass —— 若某源形态能触发 regmove 把 tbl 的 LL
 转给短命 temp, 即可翻转)。
+
+## sub_8045A10 (0x08045A10) — MATCH-45A10-20260912-a: 单块内被减数 home tiebreak (2026-09-12)
+
+**目标**: `u8 sub_8045A10(u8 *obj, u8 index)`, 100 字节。语义 = 把 `obj[0x70]`(s16) 与"经两次
+`sub_804E76C(obj,3,1/2)` 调整的技能值 amount"相减, 差 < 0 返 0 否则返 1。
+
+**E2 锚点**: 前 32 条指令 (push..`lsrs r4,r4,#1`) 与**已匹配** `sub_8048934`(0x08048934) 逐条相同 ——
+两者是同一 `gUnk_08093418`(行宽 5, 取 `[id*5+4]`) + 两次 `sub_804E76C` 调整的同构家族, 仅尾部消费不同:
+- sub_8048934: 直接 `return amount;`
+- sub_8045B90(已匹配): `current(obj+0x70) -= amount; if ((s16)current<0) current=0; *current=...`
+- sub_8045A10(本函数, 未匹配): `if ((s16)obj[0x70] - amount < 0) return 0; return 1;`
+
+**唯一卡点 (尾部 0x08045A56 起 4 条)**:
+```
+32: lsrs r4, r4, #1          (amount >>= 1)
+33: adds r1, r4, #0          <- 把 amount 拷到第二个伪寄存器
+34: lsls r0, r6, #0x10       (sext obj[0x70])
+35: asrs r0, r0, #0x10
+36: subs r0, r0, r1
+37: lsls r0, r0, #0x10       (结果截回 s16)
+38: cmp  r0, #0
+39: blt  <ret0>
+```
+即: 相减时被减数(amount)在一个**独立 home** 里, 与 sext 后的 obj[0x70] 由一条 copy 相连。
+自然 C (`(s16)original - amount`) 会让 amount 与 sext 结果直接同槽相减 → 第 33 条恒不出现。
+
+**证据/方法**: 自建 `bc2.sh` 把候选与 target.o 施加**同一 abs.ld** 后再逐字节 cmp, 消除跨对象 BL
+(到 0x0804E76C 超 ±4MB) 触发的 veneer 假差; 该方法用已匹配 sub_8048934 的抽取真 C 验证为 OK(96B)。
+项目自带 `bytecmp.sh` 对 target.o 不做同环境链接, 本函数会报 8 字节假差 —— 判定时须用 bc2.sh。
+
+**穷举 (>10k 变体, 全排除)**: 比较式/强转 40+ 形态; 中转变量 9 种类型 × 3 赋值时机 × 6 赋值形式;
+`>>=` vs `= >> 1` vs `/2`; 双臂 if/else phi (实测**确实**产出 `adds r1,r4,#0`, 但移位落 r1 且多一条
+`b`, 见 be4); 变量兼职(经验 87, 单汇合块不成立); register 存储类; 声明顺序; `-O2` vs `-O2 -g`;
+permuter >4 万次迭代 (5 个不同 base)。
+
+**结论**: 纯 global-alloc home tiebreak (经验 87/88 型)。全 ROM 中"`adds r1,rN,#0` 后紧接
+`subs r0,r0,r1`"只出现 2 处 (本函数 + Chara_GetDrawX, 后者机制不同)。字节完全一致仅能靠**人工内存 home
+载体**达成 (局部 `struct{u64 w;} s;` / union / `u64 limit` 取址), 属凑形, 按铁律 6.5 未合入。
+自然最优候选只差那 1 条 copy (`cand_natural_nearest.c`) 或 46 条全对仅 4 条 home 差 (`cand_natural_m4.c`)。
+交接: `docs/handoffs/MATCH-45A10-20260912-a.md`。
