@@ -16,7 +16,7 @@ void sub_8020D50(void *arg0, u8 arg1)
     u16 newval;
     if (*(u8 *)((u8 *)arg0 + 0xBE) > 0xA)
         return;
-    *(u8 *)((u32)arg0 + 0xA3) = sub_804BBDC(sub_801D19C(arg0, arg1), 1, 0x1F, 0x1F, 0x1F, 0x10, 0, 3);
+    *(u8 *)((u32)arg0 + 0xA3) = sub_804BBDC(sub_801D19C((BattleObj *)arg0, arg1), 1, 0x1F, 0x1F, 0x1F, 0x10, 0, 3);
     newval = 0x80 | *(u16 *)((u32)arg0 + 0xB0);
     *(u16 *)((u32)arg0 + 0xB0) = newval;
 }
@@ -29,7 +29,7 @@ void sub_8020DA0(void *arg0, u8 arg1)
     reg = (u16 *)((u32)arg0 + 0xB0);
     if (!(*reg & 0x80))
         return;
-    sub_804BD54(sub_801D19C(arg0, arg1), 1);
+    sub_804BD54(sub_801D19C((BattleObj *)arg0, arg1), 1);
     *reg = 0xFF7F & *reg;
 }
 // @ 0x08020DE4
@@ -173,7 +173,7 @@ void sub_8020F4C(Unk_8020F4C *arg0)
     gUnk_03000620 = 0;
     gUnk_03000622 = 0;
     gUnk_03000624 = 0;
-    sub_801FA10(arg0, 0x31);
+    sub_801FA10((BattleObj *)arg0, 0x31);
 }
 // @ 0x08020FB8
 void sub_8020FB8(void *arg0, u16 arg1, u16 arg2, u16 arg3, u8 arg4)
@@ -240,7 +240,7 @@ void sub_80210C0(void *arg0, u8 arg1)
 {
     u16 newval;
     Unk_0839B2A4 *tbl = gUnk_0839B2A4;
-    sub_801B81C((u8 *)arg0 + 0x3C, *(u8 *)((u8 *)arg0 + 0xBF), *(u8 *)((u8 *)arg0 + 0xC0), 0xDA << 1, 0xE, tbl[0].field_0,
+    sub_801B81C((ObjHead *)((u8 *)arg0 + 0x3C), *(u8 *)((u8 *)arg0 + 0xBF), *(u8 *)((u8 *)arg0 + 0xC0), 0xDA << 1, 0xE, tbl[0].field_0,
                 tbl[0].field_4 + (arg1 << 5), (u16)(0x541 + tbl[0].field_8), tbl[0].field_A, 2);
     *(u8 *)((u8 *)arg0 + 0x66) = 3;
     newval = 0x2000 | *(u16 *)((u8 *)arg0 + 0xB0);
@@ -328,7 +328,7 @@ u8 sub_8021700(void)
         switch (gUnk_03000813)
         {
             case 0:
-                sub_80207DC(obj, obj->field_BF, obj->field_C0, obj->field_2A, obj->field_35);
+                sub_80207DC((BattleObj *)obj, obj->field_BF, obj->field_C0, obj->field_2A, obj->field_35);
                 gUnk_03000813 = 1;
                 break;
             case 1:

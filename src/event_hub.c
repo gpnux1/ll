@@ -51,7 +51,7 @@ u32 sub_8032548(u8 *arg0, u8 *arg1)
             {
                 b4 = b4 - 0xF;
             }
-            sub_8020974(arg0 + 0xC, b4, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg0 + 0xC), b4, 0x1B4, 0xD, 2);
             if (arg1[0xBE] <= 0xA)
             {
                 keys = *(u16 *)(arg0 + 0x24) | 0x20;
@@ -149,7 +149,7 @@ u32 sub_803272C(u8 *arg0, u8 *arg1)
             b4 = 0x36B;
             if (kind == 0)
                 b4 = b4 - 0xF;
-            sub_8020974(arg0 + 0xC, b4, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg0 + 0xC), b4, 0x1B4, 0xD, 2);
             b6ptr = (u16 *)((u8 *)arg0 + 0xB6);
             zero2 = 0;
             b6val = 0x35E;
@@ -226,7 +226,7 @@ u8 sub_8032D74(u8 *obj)
                 gUnk_03000820 = 0x14;
             break;
         case 20:
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -265,7 +265,7 @@ u32 sub_8034440(u8 *arg)
             gUnk_03000822 = *(u16 *)&arg[0x2A];
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -281,7 +281,7 @@ u32 sub_8034440(u8 *arg)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -317,7 +317,7 @@ u32 sub_8034440(u8 *arg)
         gUnk_03000822 = *(u16 *)&arg[0x2A];
         break;
     case 1:
-        sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+        sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
         gUnk_03000820 = 2;
         break;
     case 2:
@@ -333,7 +333,7 @@ u32 sub_8034440(u8 *arg)
         keys = *(u16 *)&arg[0x24] & 0xEFFF;
         zero = 0;
         *(u16 *)&arg[0x24] = keys;
-        sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+        sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
         gUnk_03000820 = 6;
         break;
     case 6:
@@ -370,7 +370,7 @@ u32 sub_80345AC(u8 *arg)
             gUnk_03000822 = *(u16 *)&arg[0x2A];
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -386,7 +386,7 @@ u32 sub_80345AC(u8 *arg)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -422,7 +422,7 @@ u32 sub_8034718(u8 *arg, u8 *arg1)
             gUnk_03000820 = 1;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -438,7 +438,7 @@ u32 sub_8034718(u8 *arg, u8 *arg1)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -478,7 +478,7 @@ u32 sub_80348A8(u8 *arg)
             gUnk_0300083C = sub_80489E8((u8 *)pool, gUnk_03000830, 1, 0x7F);
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -494,7 +494,7 @@ u32 sub_80348A8(u8 *arg)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -583,7 +583,7 @@ u32 sub_8034BFC(u8 *arg)
             gUnk_03000822 = *(u16 *)&arg[0x2A];
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -599,7 +599,7 @@ u32 sub_8034BFC(u8 *arg)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -640,7 +640,7 @@ u32 sub_8034D94(u8 *arg)
             gUnk_03000822 = *(u16 *)&arg[0x2A];
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x386, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x386, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -656,7 +656,7 @@ u32 sub_8034D94(u8 *arg)
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             zero = 0;
             *(u16 *)&arg[0x24] = keys;
-            sub_801CBA4(arg, zero, gUnk_03000822, gUnk_03000824, zero);
+            sub_801CBA4((BattleObj *)arg, zero, gUnk_03000822, gUnk_03000824, zero);
             gUnk_03000820 = 6;
             break;
         case 6:
@@ -698,7 +698,7 @@ u32 sub_8034F00(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -713,7 +713,7 @@ u32 sub_8034F00(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xD, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -733,7 +733,7 @@ u32 sub_8034F00(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -774,7 +774,7 @@ u32 sub_8035130(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xD, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -789,7 +789,7 @@ u32 sub_8035130(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xD, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xD, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -809,7 +809,7 @@ u32 sub_8035130(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -854,7 +854,7 @@ u32 sub_803586C(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xC, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -869,7 +869,7 @@ u32 sub_803586C(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xC, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -889,7 +889,7 @@ u32 sub_803586C(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -941,7 +941,7 @@ u32 sub_8035B04(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xC, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -956,7 +956,7 @@ u32 sub_8035B04(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xC, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -976,7 +976,7 @@ u32 sub_8035B04(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -1028,7 +1028,7 @@ u32 sub_8035D9C(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xC, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -1043,7 +1043,7 @@ u32 sub_8035D9C(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xC, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -1063,7 +1063,7 @@ u32 sub_8035D9C(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -1115,7 +1115,7 @@ u32 sub_8036034(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xC, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -1130,7 +1130,7 @@ u32 sub_8036034(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xC, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -1150,7 +1150,7 @@ u32 sub_8036034(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -1202,7 +1202,7 @@ u32 sub_80362CC(u8 *arg)
             gUnk_03000825 = zero;
             break;
         case 1:
-            sub_8020974(arg + 0xC, 0x387, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x387, 0x1B4, 0xC, 2);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -1217,7 +1217,7 @@ u32 sub_80362CC(u8 *arg)
             sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
             keys = *(u16 *)&arg[0x24] & 0xEFFF;
             *(u16 *)&arg[0x24] = keys;
-            sub_8020974(arg + 0xC, 0x388, 0x1B4, 0xC, 2);
+            sub_8020974((ObjHead *)(arg + 0xC), 0x388, 0x1B4, 0xC, 2);
             gUnk_03000820 = 0x12;
             break;
         case 18:
@@ -1237,7 +1237,7 @@ u32 sub_80362CC(u8 *arg)
         case 20:
             if (gUnk_03000844 == 0 && gUnk_03000845 == 0 && (v56 = gUnk_03000856) == 0)
             {
-                sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, v56);
+                sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, v56);
                 gUnk_03000820 = 6;
             }
             gUnk_03000825 += 1;
@@ -1301,7 +1301,7 @@ u32 sub_80368FC(u8 *arg0)
         *(u16 *)((u8 *)arg0 + 0xB4) = zero2;
         break;
     case 1:
-        sub_8020974(arg0 + 0xC, 0x3A5, 0x1B4, 0xD, 2);
+        sub_8020974((ObjHead *)(arg0 + 0xC), 0x3A5, 0x1B4, 0xD, 2);
         gUnk_03000820 = 2;
         break;
     case 2:
@@ -1318,7 +1318,7 @@ u32 sub_80368FC(u8 *arg0)
         sub_804C3A4(b4, (u8)keys);
         flags = *(u16 *)(arg0 + 0x24) & 0xEFFF;
         *(u16 *)(arg0 + 0x24) = flags;
-        sub_8020974(arg0 + 0xC, 0x3A6, 0x1B4, 0xD, 0x102);
+        sub_8020974((ObjHead *)(arg0 + 0xC), 0x3A6, 0x1B4, 0xD, 0x102);
         gUnk_03000820 = 0x12;
         break;
     case 18:
@@ -1409,7 +1409,7 @@ u32 sub_8037E14(u8 *obj)
     case 22:
         if (sub_801EEE4(obj, GetObjPool(), 0, 0, 0x3C) == 1)
         {
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1463,7 +1463,7 @@ u32 sub_8037FE8(u8 *obj)
     case 22:
         if (sub_801EEE4(obj, GetObjPool(), 1, 0, 0x28) == 1)
         {
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1517,7 +1517,7 @@ u32 sub_80381BC(u8 *obj)
     case 22:
         if (sub_801EEE4(obj, GetObjPool(), 1, 0xC, 0x1E) == 1)
         {
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1571,7 +1571,7 @@ u32 sub_8038390(u8 *obj)
     case 22:
         if (sub_801EEE4(obj, GetObjPool(), 0, 0, 0x3E7) == 1)
         {
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1602,7 +1602,7 @@ u32 sub_8038568(u8 *arg, u8 *arg1)
         gUnk_03000822 = *(u16 *)(arg + 0x2A);
         break;
     case 18:
-        sub_8020974(arg + 0xC, 0x3B9, 0x1B4, 0xD, 2);
+        sub_8020974((ObjHead *)(arg + 0xC), 0x3B9, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x13;
         break;
     case 19:
@@ -1616,7 +1616,7 @@ u32 sub_8038568(u8 *arg, u8 *arg1)
             break;
         sub_804C3A4(arg[0x35], sub_801B954((ObjHead *)(arg + 0xC)));
         *(u16 *)&arg[0x24] &= 0xEFFF;
-        sub_8020974(arg + 0xC, 0x3BA, 0x1B4, 0xD, 2);
+        sub_8020974((ObjHead *)(arg + 0xC), 0x3BA, 0x1B4, 0xD, 2);
         gUnk_03000820 = 0x15;
         break;
     case 21:
@@ -1627,7 +1627,7 @@ u32 sub_8038568(u8 *arg, u8 *arg1)
         t1 = *(u16 *)(arg1 + 0x6E) / 3;
         if (sub_801EEE4(arg, GetObjPool(), 0, 0xA, t1) == 1)
         {
-            sub_801CBA4(arg, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)arg, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1681,7 +1681,7 @@ u32 sub_803874C(u8 *obj)
     case 22:
         if (sub_801EEE4(obj, GetObjPool(), 0, 0xB, 0x1E) == 1)
         {
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 0x17;
         }
         break;
@@ -1812,7 +1812,7 @@ u8 sub_80392C0(u8 *obj)
                 gUnk_03000820 = 0x14;
             break;
         case 20:
-            sub_801CBA4(obj, 0, gUnk_03000822, gUnk_03000824, 0);
+            sub_801CBA4((BattleObj *)obj, 0, gUnk_03000822, gUnk_03000824, 0);
             gUnk_03000820 = 6;
             break;
         case 6:

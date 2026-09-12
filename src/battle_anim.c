@@ -25,7 +25,7 @@ void sub_804AD60(void)
     u8 zero;
     u16 flags;
 
-    sub_801B81C((u8 *)obj, 0xF0, 0x50, 0xDA * 2, 0xE, gUnk_08619A60, gUnk_08619430, 0xA8 * 8, 1, 0x402);
+    sub_801B81C(obj, 0xF0, 0x50, 0xDA * 2, 0xE, gUnk_08619A60, gUnk_08619430, 0xA8 * 8, 1, 0x402);
     ObjGfxLoad_Step(obj);
     flags = 0xF7FF & obj->kindFlags;
     zero = 0;

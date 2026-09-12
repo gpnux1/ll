@@ -475,18 +475,18 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	battle_obj_core	0x0801e040	202	sub_801E040	✅ 2026-09-10 opencode-1: 场景对象逐帧步进器(cursor 03000715<count 03000714); obj[0xBE]状态分派(≤0xA→DC20+CBA4, ≤0x70→D12C+inner-dispatch, >0x70→同); newval=4|read写回0xB0(经验5/78: 命名临时变量+CONST在左避combine-swap破RMW寄存器home); permuter score=40(全pool/bl重定位,指令0差); fncheck OK 408B
 0	thumb	battle_obj_core	0x0801e1d8	151	sub_801E1D8	⏸ 2026-09-10 main801E1D8: v4 候选已过 permuter/score=5175 且 fndiff 前 34B 逐指令全对 (pool=r7/ret=sl); 剩 i/stride home 互换(r9↔r8, 目标 i=r8/stride=sb) + queue-flag 线程化; 候选存 .scratch/main801E1D8/v4.c; 详见 progress.md
 0	thumb	battle_obj_core	0x0801e30c	237	sub_801E30C	
-0	thumb	battle_obj_core	0x0801e4d4	232	sub_801E4D4	
-0	thumb	battle_obj_core	0x0801e690	230	sub_801E690	
+1	thumb	battle_obj_core	0x0801e4d4	232	sub_801E4D4	✅ 2026-09-12 gpnux: 死代码(ROM无BL/无指针引用); arg0[0xBC]选表gUnk_08393B28→field_10模式0/1; 模式0=arg1单体[0x6C]-=[0xB2]下溢清零, 模式1=i*0xC8成员循环(5/7档); 回绕置flags并经Inl_QueuePushObj(=sub_8020B90语义,static inline复现内联)入队; 关键=①v用switch(expr)防寄存器分裂(r3直落) ②case1用s32 t两语句防u16中间截断+保h先展开 ③limit用三元式保load先于init ④回绕if(diff<=0)在前; fncheck OK 442B
+1	thumb	battle_obj_core	0x0801e690	230	sub_801E690	✅ 2026-09-12 agent-e690(gpnux): 死代码; 同801E4D4扣减引擎, dispatch改为 0→*(u16*)(animPtr+2), 1→*(u16*)(animPtr+8+f_C2*2) (与已匹配sub_801DF90 dispatch字节同构); 主体/尾部=E4D4同款(switch-expr派发/三元limit/Inl_QueuePushObj/while(++i)); bytecmp OK 440B
 0	thumb	battle_obj_core	0x0801e848	273	sub_801E848	
 0	thumb	battle_obj_core	0x0801ea70	246	sub_801EA70	
-1	thumb	battle_obj_core	0x0801ec3c	130	sub_801EC3C	✅ 2026-09-06 zcode-ll2: 关键=①arg1分派用switch(表体外置) ②单一共享return(result保home r1→0x20提升到顶→push r4自然出现) ③case体按源顺序排放(case7在case8前!) ④result=x*8的u8赋值合并lsls#27/lsrs#24 ⑤注册gUnk_08393A3C/A40符号; fncheck OK 260B(20池重定位含17项跳转表)
-0	thumb	battle_obj_core	0x0801ed40	144	sub_801ED40	
-1	thumb	battle_obj_core	0x0801ee6c	61	sub_801EE6C	✅ 2026-09-02 opencode: 战斗单位指针字段分支读gUnk_03000744或[0x35]; 调用sub_801B954(&ptr[0xC])+sub_804B7B0(v,u8); 清理bit15; BE==0x77时sub_804B834(...,-11需s32)另5参; fncheck OK
+1	thumb	battle_obj_core	0x0801ec3c	130	sub_801EC3C	✅ 2026-09-06 zcode-ll2: 关键=①arg1分派用switch(表体外置) ②单一共享return(result保home r1→0x20提升到顶→push r4自然出现) ③case体按源顺序排放(case7在case8前!) ④result=x*8的u8赋值合并lsls#27/lsrs#24 ⑤注册gUnk_08393A3C/A40符号; fncheck OK 260B(20池重定位含17项跳转表); 2026-09-12 签名升为 (BattleObj*): slot/animPtr 结构体化, bytecmp OK 260B 全等, fncheck OK
+1	thumb	battle_obj_core	0x0801ed40	144	sub_801ED40	白色tint启动: color未初始化RMW白化(高8位残留)|3分支mode2/3 sub_804B654|gUnk_03000765=palSlot+1|slot_AB==4取gUnk_03000744|成功写f_2F+kindFlags bit15|bytecmp 32B=8bl槽伪差
+1	thumb	battle_obj_core	0x0801ee6c	61	sub_801EE6C	✅ 2026-09-02 opencode: 战斗单位指针字段分支读gUnk_03000744或[0x35]; 调用sub_801B954(&ptr[0xC])+sub_804B7B0(v,u8); 清理bit15; BE==0x77时sub_804B834(...,-11需s32)另5参; fncheck OK; 2026-09-12 签名升为 (BattleObj*): slot/f_AB/headA.palSlot/kindFlags 结构体化, bytecmp 12B=3bl槽伪差 + fncheck OK
 0	thumb	battle_obj_core	0x0801eee4	628	sub_801EEE4	
 0	thumb	battle_obj_core	0x0801f3fc	411	sub_801F3FC	
 0	thumb	battle_obj_core	0x0801f76c	104	sub_801F76C	⏸ permuter score 2070(不可达0); 语义全解(arg0[0xbc]状态机: ==1查0xa1/0x99表, ==2直接返1); 差异全为GCC2指令选择: ① 分支极性(beq vs bne) ② S-bit(adds/movs/lsls vs add/mov/lsl) ③ 寄存器分配(r2/r3 vs r1/r2); 最佳C见permuter output-2070-1
 0	thumb	battle_obj_core	0x0801f884	209	sub_801F884	
-1	thumb	battle_obj_core	0x0801fa10	78	sub_801FA10	✅ 2026-09-06 zcode-ll2: val低4位替换+switch(1/2)调B81C传ROM表; 关键=z=0变量跨case活(r5)且val&0xFFF0与|=拆写; code_0.h K&R空参原型升全原型(u8形参C89默认提升, 调用点均常量零字节影响); permuter score 0; fncheck OK 168B
+1	thumb	battle_obj_core	0x0801fa10	78	sub_801FA10	✅ 2026-09-06 zcode-ll2: val低4位替换+switch(1/2)调B81C传ROM表; 关键=z=0变量跨case活(r5)且val&0xFFF0与|=拆写; code_0.h K&R空参原型升全原型(u8形参C89默认提升, 调用点均常量零字节影响); permuter score 0; fncheck OK 168B; 2026-09-12 签名升为 (BattleObj*): state/headA(f_2B/f_2C) 结构体化, bytecmp 8B=2bl槽伪差, fncheck OK
 0	thumb	battle_obj_core	0x0801fab8	491	sub_801FAB8	
 1	thumb	battle_obj_core	0x0801febc	58	sub_801FEBC	✅ 2026-09-03 opencode: 场景对象滑动参数组设置 (同sub_8020FB8族); 两条RMW拆写→zero提前入r3; p=&field_B0后p-=0x79内嵌进读表达式→subs在ldr后; gUnk_03000620=(dh=0xB4-*p)链式赋值→diff落r1; fncheck OK 132B 1 bl槽; 全ROM SHA1绿
 0	thumb	battle_obj_core	0x0801ff40	216	sub_801FF40	
@@ -830,7 +830,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	battle_engine	0x0804abd0	19	sub_804ABD0	✅ 2026-09-02 opencode: 填 gUnk_02035B04 u16[i]与[i+0x20]=0xB001, i=0..0x19; 新登记 EWRAM 0x02035B04; for(i<=0x19) bottom-test bls; fncheck OK 40B
 1	thumb	battle_engine	0x0804abf8	50	sub_804ABF8	✅ 2026-09-02 gpnux: tile动画帧写入; 关键=off拆局部变量 + arg1*18/counter*2两个局部(第二次读复用base, 否则add顺序差); 表gUnk_0862D574[u8*, index arg1*18+counter*2], GBA tilemap值data*2-0x5000/-0x4FFF; fncheck OK 104B
 1	thumb	battle_engine	0x0804ac60	42	sub_804AC60	
-1	thumb	battle_engine	0x0804acc0	50	sub_804ACC0	✅ 2026-09-10 gpnux: 字节全等(fncheck待验). do-while+守卫; arg0须u8+本地`u8 arg=arg0`声在table前→lsrs r2先于ldr r6; 返回/call须整数加法形式`(u16*)((u32)i*2+(u32)table)`→adds r4,r0,r6(经验2/77: 指针加法不可控序, 纯整数才可控); 尾部TileDma_GetCtx+80187C0同804AC60
+1	thumb	battle_engine	0x0804acc0	50	sub_804ACC0	✅ 2026-09-12 claude-0912: fncheck OK+全量sha1绿, 接管gpnux遗留合入并改用extern u16 gUnk_0839B462[](linker.ld:74, 与字面量字节等价, 池重定位bytecmp验证). 用户候选读索引有误: ASM按i非count读(gUnk_0839B462[count]首项非0xF00会死循环). 自然风格实证排除: u16计数器8种排列全错分配(count→r2/arg→r0+拷贝, 目标count→r3/arg→r2), permuter从455压到70平台(条件内嵌u8赋值分配对但lsrs提前, 9000迭代无解=结构性墙); 尾部&table[i]→adds r4,r6,r0基址在前, 仅整数加法形式可控序(经验2/77再证). permuter用字面量勿用extern(asm-differ对.word池字按未重定位值比对, extern永不到0); .venv/bin/python+toml/pycparser已装. 详见handoff MATCH-ACC0-20260912-a
 1	thumb	battle_engine	0x0804ad24	23	sub_804AD24	
 1	thumb	battle_anim	0x0804ad54	6	sub_804AD54	
 1	thumb	battle_anim	0x0804ad60	53	sub_804AD60	

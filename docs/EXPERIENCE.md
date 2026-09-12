@@ -2785,3 +2785,20 @@ grep '^Register ' gccdump.lreg; grep '^;; Register .* in' gccdump.lreg; rm -f gc
      都无效, 大概率是**单块内两个操作数无法分离**的 home tiebreak, 不要再穷举表达式 —— 先找"该值是否
      本应来自内存"(对象字段/数组元素/跨块 phi), 而不是制造人工 home。
      关联: 经验 87 (变量兼职两值制造伪寄存器生死边界)、88 (跨块 home 归 global-alloc)、244 (优先级判据)。
+248. **⭐⭐ `mem |= CONST` / `mem = CONST|mem` 打不中 "常量先拷贝进累加器再 orr" 的目标形状; 命名中间变量是唯一自然解** (2026-09-12, 案例 `sub_801ED40` 尾块)。
+  - 目标形状: `ldrh r1,mem; movs r2,#0x80; lsls r2,r2,#8; adds r0,r2,#0; orrs r0,r1; strh r0,mem` —— ORR 结果在**独立 home** (r0), 0x8000 经 r2 物化后**拷贝**进累加器。
+  - `x |= 0x8000` 与 `x = 0x8000 | x` 都输出 `ldrh r0` 在前 + 常量拷贝进 r1 (acc = x 的寄存器, 常量所在寄存器被拷贝) —— 差 2 字节且方向相反。GCC 对可交换 OR 做操作数规范化 (REG > MEM > CONST), 源码常量写在前无效。
+  - **正解**: `u16 flags; flags = 0x8000 | obj->headA.kindFlags; obj->headA.kindFlags = flags;` —— 结果伪寄存器 (flags) 获得独立 home ⇒ `adds r0,r2,#0` (op0 拷入结果 home) + `orrs r0,r1`。
+  - 同族: 分支内三目 `v = c ? a : b` 产出 `beq` 出跳; if/else 产出 `bne` 出跳 —— 与目标的分支极性对齐必须逐个核对 (同函数实测)。
+  - 配套: caller 侧 u8 返回截断 (经验 238) 在此处是**必需**的: `u8 ret` + `if ((s8)ret >= 0)` 才有 lsls/lsrs 截断 + 无 asrs 的符号测试; s32 返回少一条 lsrs。
+  - 关联: 经验 233 (bl 锚定), 235 (s16 tmp 链式 -1 同为"命名变量定 home"族), 238 (caller u8 扩展)。
+
+- **经验 (2026-09-12, gpnux): 判定"某源码造型是否字节匹配所必需"必须强制重编对照。**
+  背景: sub_801FEBC 结构体化 (void* → BattleObj*) 后, 保留了 `p = &arg0->state; *(u8*)(p-0x79)`
+  和 `*(u8*)((u8*)arg0+0x38)` 两处裸指针造型, 误判为"匹配必需"。A/B/C 三变体
+  (raw 造型 / 仅 0x38 改字段 / 全字段 `arg0->headA.f_2B/f_2C`) 在 `rm -f <obj> && make` 下
+  产出**完全相同**的 132 字节 ⇒ 裸造型不需要, 已清理。
+  坑: 直接 `make build/src/x.o` (不删 .o) 会因时间戳粒度/并行构建给出**假绿或假红**,
+  本次同一变体两次结果不一致 (B 先 OK 后 FAIL 再 OK)。凡 A/B 变体对比, 必须
+  `rm -f <obj> && make <obj>`; 两者一致时以"能读懂的写法"为准, 不要为不存在的形状约束
+  留裸指针。配套: 单函数交付门槛仍是 fncheck/bytecmp。

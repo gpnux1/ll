@@ -500,78 +500,92 @@ typedef struct BattleObj
     UnkNode node;                          /* +0x00 key/prev/next (key 由 +0x38 值填充) */
     ObjHead headA;                         /* +0x0C 主头 (sub_801B81C(obj+0xC), 801B8AC(obj+0xC)) */
     ObjHead headB;                         /* +0x3C 次头 (sub_801B81C(obj+0x3C), 801B8AC(obj+0x3C)) */
-    u8 pad_6C[0xB0 - 0x6C];                /* +0x6C..+0xAF 坐标/移动/精灵区 (未逐一验证) */
+    u16 f_6C;                              /* +0x6C 剩余计数值 ((s16) 比较, 每帧扣 f_B2, 扣空登记 030006F8 池) */
+    u16 f_6E;                              /* +0x6E (sub_801D12C/D19C 与 f_6C 判等) */
+    u8 pad_70[0x88 - 0x70];                /* +0x70..+0x87 未验证 */
+    u8 *animPtr;                           /* +0x88 动画/图形数据块指针 ([+2]/[+8+idx*2]/[+0x1A]/[+0x20] 为 u16 索引入口; 多处 *(u8**) 消费) */
+    u8 pad_8C[0xA2 - 0x8C];                /* +0x8C..+0xA1 未验证 */
+    u8 f_A2;                               /* +0xA2 子状态 (sub_801D12C 写入) */
+    u8 pad_A3[0xAB - 0xA3];                /* +0xA3..+0xAA 未验证 */
+    u8 f_AB;                               /* +0xAB tint 分流: ==4 时取 gUnk_03000744 (sub_801ED40/sub_801EE6C) */
+    u8 pad_AC[0xB0 - 0xAC];                /* +0xAC..+0xAF 未验证 */
     u16 state;                             /* +0xB0 bits0-3=kind, bits4-7=子态(0x10/0x20/0x60), 0x400=不入链, 0x2000=跳跃 */
-    u8 pad_B2[0xBB - 0xB2];                /* +0xB2 步长等 */
+    u16 f_B2;                              /* +0xB2 扣减步长 ((s16) 读; 原注释"步长等") */
+    u16 f_B4;                              /* +0xB4 (sub_801CE80/event_hub 写入) */
+    u16 f_B6;                              /* +0xB6 (sub_801CE80 写入) */
+    u8 pad_B8[0xBB - 0xB8];                /* +0xB8..+0xBA 未验证 */
     u8 f_BB;                               /* +0xBB 辅助 */
     u8 f_BC;                               /* +0xBC 辅助 */
     u8 f_BD;                               /* +0xBD (sub_802103C 写入 arg1) */
     u8 slot;                               /* +0xBE 槽号 (≤0xB; 0xFF=空) */
     u8 f_BF;                               /* +0xBF 朝向/参数 */
     u8 f_C0;                               /* +0xC0 朝向/参数 */
-    u8 pad_C1[0xC8 - 0xC1];                /* +0xC1..+0xC7 事件值等 (未逐一验证) */
+    u8 pad_C1;                             /* +0xC1 */
+    u8 f_C2;                               /* +0xC2 动画副索引 (animPtr+8+idx*2 选表项; sub_801E690/sub_801E848) */
+    u8 f_C3;                               /* +0xC3 (sub_802093C 写入) */
+    u8 pad_C4[0xC8 - 0xC4];                /* +0xC4..+0xC7 事件值等 (未逐一验证) */
 } BattleObj;
 
 void ObjGfxLoad_Copy(ObjHead *, ObjHead *);
 void sub_801A684(ObjHead *);
 void sub_801A6F4();
-u8 sub_801A884(u8 *, u8, u8 *);
-void sub_801AD0C(u8 *);
-u8 sub_801B0B8(u8 *, u8);
-void sub_801B570(u8 *);
+u8 sub_801A884(ObjHead *, u8, u8 *);
+void sub_801AD0C(ObjHead *);
+u8 sub_801B0B8(ObjHead *, u8);
+void sub_801B570(ObjHead *);
 void sub_801B688(u8); // 唯一调用点 sub_8018070: r0 = 本帧 u8 结果 (asm 体内还读 [sp,#4], 实参可能不止 1 个)
 void sub_801B760(u16);
 u8 sub_801B790(u16);
 void sub_801B7B8();
-void sub_801B81C(u8 *, u8, u8, u16, u8, u32, u32, u16, u16, u16);
-u8 sub_801B878(u8 *, u8, u8 *);
-u8 sub_801B8AC(u8 *, u8);
+void sub_801B81C(ObjHead *, u8, u8, u16, u8, u32, u32, u16, u16, u16);
+u8 sub_801B878(ObjHead *, u8, u8 *);
+u8 sub_801B8AC(ObjHead *, u8);
 u16 *sub_801B8E8(u16 *, u16);
-u16 *sub_801B8FC(u8 *, u8, u16);
+u16 *sub_801B8FC(ObjHead *, u8, u16);
 void sub_801B920();
 u8 sub_801B954(ObjHead *head);
 u16 sub_801B95C(ObjHead *head);
 void sub_801B964();
 u8 sub_801BE34(void *);
 u8 sub_801C484(void *);
-void sub_801CA08();
-void sub_801CBA4();
-void sub_801CE80(u8 *, u8, u16, u8, u8);
+void sub_801CA08(BattleObj *, u8, u16, u8, u8);
+void sub_801CBA4(BattleObj *, u8, u16, u8, u8);
+void sub_801CE80(BattleObj *, u8, u16, u8, u8);
 void sub_801CF90();
-void sub_801D12C(u8 *, u8);
-u16 sub_801D19C(u8 *, u8);
+void sub_801D12C(BattleObj *, u8);
+u16 sub_801D19C(BattleObj *, u8);
 u8 sub_801D214(u8 *, u8); // 唯一调用点 sub_8018070: (gObjPoolPtr, 本帧结果) -> u8
 u8 sub_801D378(u8 *, u8);
 void sub_801D468();
-void sub_801D568();
+void sub_801D568(BattleObj *);
 void sub_801D710();
 u8 sub_801D984(u8); // OAM 缓冲自绘: 按 0x0300068C 循环把 0x03000670[i] 逐字段写入 gOamBuffer[r6] (r6 递减), 返回递减后的槽号
 u32 sub_801DAA0(); // PollSceneTimer: 场景计时状态机 (0x0300068E 0..0x22++), 走完→重置+返回1
-void sub_801DB3C(u8 *, u8, u16);
-void sub_801DC20(u8 *, u8);
-void sub_801DD04(u8 *, u8, u16);
-void sub_801DDB0(u8 *, u8);
+void sub_801DB3C(BattleObj *, u8, u16);
+void sub_801DC20(BattleObj *, u8);
+void sub_801DD04(BattleObj *, u8, u16);
+void sub_801DDB0(BattleObj *, u8);
 void sub_801DE44(); // ResetSceneObjects: 重置 3 个标志 + 7 项表 + sub_804C2FC(表0), 再对对象列表逐项调 sub_801D710
 #define ResetSceneObjects sub_801DE44
-void sub_801DEDC();
-void sub_801DF90();
+void sub_801DEDC(BattleObj *, BattleObj *);
+void sub_801DF90(BattleObj *, BattleObj *);
 u8 sub_801E040(void);
 u8 sub_801E1D8(void);
 void sub_801E30C();
-void sub_801E4D4();
-void sub_801E690();
+u32 sub_801E4D4(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 返回 7 项标志数组中是否存在回绕项
+u32 sub_801E690(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 同 E4D4, 查表入口改 animPtr+2 / animPtr+8+f_C2*2
 u8 sub_801E848();
 void sub_801EA70();
-u32 sub_801EC3C(u8 *, u8); // 返回字节值 (0x20 / (x&0x1F)<<3 / 小常量); 调用方需 (u8) 截断
-void sub_801ED40(u8 *, u8);
-void sub_801EE6C();
+u32 sub_801EC3C(BattleObj *, u8); // 返回字节值 (0x20 / (x&0x1F)<<3 / 小常量); 调用方需 (u8) 截断
+void sub_801ED40(BattleObj *, u8);
+void sub_801EE6C(BattleObj *);
 u8 sub_801EEE4();
 void sub_801F3FC();
 void sub_801F76C();
 void sub_801F884();
-void sub_801FA10(u8 *, u8);
+void sub_801FA10(BattleObj *, u8);
 void sub_801FAB8();
-void sub_801FEBC(void *, u16, u8);
+void sub_801FEBC(BattleObj *, u16, u8);
 s8 sub_801FF40(u8);
 void sub_80200E8(u8 *, u8 *, u8);
 void sub_8020228(u8 *, u8 *, u8);
@@ -580,26 +594,26 @@ void sub_8020648();
 u8 sub_8020798();
 void sub_80207A4();
 u8 sub_80207B4(void *);
-void sub_80207DC(u8 *obj, u8 bf, u8 c0, u16 f2a, u8 f35);
-void sub_8020840(u8 *obj, u8 bf, u8 c0, u16 f2a, u8 f35);
-void sub_80208A4(u8 *);
-void sub_8020914(u8 *);
-void sub_802093C(u8 *);
-void sub_8020974(u8 *, u16, u16, u8, u16); // 入口截断定类: r1/r2/栈参 u16, r3 u8, r0 = 对象指针
-void sub_80209C8(u8 *);
-void sub_80209EC();
-void sub_8020A0C(void *, u8);
-u8 sub_8020A7C(u8 *);
+void sub_80207DC(BattleObj *obj, u8 bf, u8 c0, u16 f2a, u8 f35);
+void sub_8020840(BattleObj *obj, u8 bf, u8 c0, u16 f2a, u8 f35);
+void sub_80208A4(BattleObj *);
+void sub_8020914(BattleObj *);
+void sub_802093C(BattleObj *);
+void sub_8020974(ObjHead *, u16, u16, u8, u16); // 入口截断定类: r1/r2/栈参 u16, r3 u8, r0 = 对象头
+void sub_80209C8(BattleObj *);
+void sub_80209EC(BattleObj *);
+void sub_8020A0C(BattleObj *, u8);
+u8 sub_8020A7C(BattleObj *);
 u8 sub_8020AB0(void);
 void sub_8020AE4();
 void sub_8020B04();
 u32 sub_8020B48();
 void sub_8020B54();
-void sub_8020B90(u8 *);
-u8 sub_8020BC0(u8 *);
-u8 sub_8020BF0(u8 *);
+void sub_8020B90(BattleObj *);
+u8 sub_8020BC0(BattleObj *);
+u8 sub_8020BF0(BattleObj *);
 u8 sub_8020C2C(void);
-void sub_8020C58();
+void sub_8020C58(BattleObj *, u32);
 void sub_8020CC4(void *, u8, u8, u16, u8, u16, u16);
 void sub_8020D50(void *, u8);
 void sub_8020DA0(void *, u8);

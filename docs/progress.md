@@ -7756,3 +7756,103 @@ permuter >4 万次迭代 (5 个不同 base)。
 载体**达成 (局部 `struct{u64 w;} s;` / union / `u64 limit` 取址), 属凑形, 按铁律 6.5 未合入。
 自然最优候选只差那 1 条 copy (`cand_natural_nearest.c`) 或 46 条全对仅 4 条 home 差 (`cand_natural_m4.c`)。
 交接: `docs/handoffs/MATCH-45A10-20260912-a.md`。
+
+## 2026-09-12 workbuddy (GLM): sub_801ED40 匹配 ✅ (75.4%)
+
+**✅ sub_801ED40 (300B)** — BattleObj 白色着色启动 (sub_801EE6C 清除的逆操作):
+color 未初始化 RMW 白化 (三连 &0xFFFFFF00/&0xFFFF00FF/&0xFF00FFFF | 0x1F/0x1F00/0x1F0000,
+高 8 位为栈残留) + gUnk_03000765=headA->palSlot+1 + 三分支 sub_804B654 调用族
+(slot≤0xA 仅 mode2 登记 / ≤0x70 先 mode3 后回退 / >0x70 mode3) + (s8) 符号测试 +
+共享 `kindFlags |= 0x8000` 尾。签名升为 `void sub_801ED40(BattleObj *, u8)`;
+BattleObj.pad_6C 拆出 **f_AB** (+0xAB: ==4 时取 gUnk_03000744, 与 sub_801EE6C 共用证据)。
+
+**卡点破解 (前次 09-06 挂起的 "3 高位寄存器 vs 目标 0")**: 根因不是寄存器分配本身, 而是
+外层分支反写 (`> 0xA`) 导致 GCC 把 A 块外移 + 调度全变; 改 `<=` 正向写后 r6/r7 双 home 自然复现。
+**四个形态级教训** (bytecmp 逐级 234→115→34→32B, 全为 bl 槽前只差尾块 2B):
+① B 内选择必须 if/else 而非三目 (三目 beq 出跳, 目标是 bne 出跳);
+② ret 必须 u8 类型 + `(s8)ret >= 0` 测试 (s32 少一条 lsrs 截断);
+③ `mem |= CONST` / `mem = CONST|mem` 都打不中目标形状, 必须命名中间变量
+   `flags = 0x8000 | obj->headA.kindFlags; obj->headA.kindFlags = flags;`
+   ⇒ ORR 结果独立 home (adds r0,r2,#0 + orrs r0,r1, 常量拷贝进累加器);
+④ 结构体成员访问与 u8* 字节访问字节级等价 (headA.palSlot/kindFlags/f_2F)。
+
+验证: bytecmp 32B 差全落 8 个 bl 槽 (target.o 占位 vs veneer 解析, 方法论伪差);
+`fncheck sub_801ED40` **OK** (298B); 全量 make + sha1 绿。交接: docs/handoffs/MATCH-ED40-20260912-a.md。
+套件: permuter/sub_801ED40/ (candidates/struct.c = 最终形态)。
+
+**追加**: sub_801EE6C 签名同步升级 `void sub_801EE6C(BattleObj *ptr)` (slot/f_AB/headA.palSlot/
+kindFlags 结构体化; slot 两次读取保持独立, 目标即两次 ldrb)。bytecmp 12B=3bl 槽伪差,
+fncheck OK 120B, sha1 绿, ED40 复验 OK。code_0.h 原型同步; 无 C 调用方零波及。
+
+**追加 2**: sub_801EC3C / sub_801FA10 签名同步升级 `(BattleObj *, u8)`。
+BattleObj.pad_6C 再拆出 **animPtr** (+0x88, 动画/图形数据块 u8* 指针, [0x2]/[0x1A]/[0x20]
+u16 索引入口, 多处独立消费证据)。EC3C bytecmp **OK 260B 全等** (纯函数零 bl),
+FA10 bytecmp 8B=2bl 槽伪差, 调用方 sub_8020F4C 加 cast 后 fncheck OK。
+中途 sha1 红 = 并行 agent (claude-09/battle_engine.c) 中间态, 非本改动; 最终 sha1 绿 75.5%。
+
+## 2026-09-12 gpnux: sub_801E4D4 ✅ (800/1059)
+
+战斗对象效果函数 (232B, battle_obj_core.c)。**ROM 全扫描零引用 = 死代码** (姊妹 801E30C/E690 同;
+活跃的是 801E1D8/E040)。语义: arg0[0xBC] 选表 gUnk_08393B28[idx].field_10 模式 0/1 ——
+对 arg1 (单体) 或 0xC8 步长成员数组 (5/7 档) 做 [0x6C]-=[0xB2] 下溢清零扣减, 回绕经
+sub_8020B90 语义入队 (gUnk_030006F8/714/718), 任一回绕则返回 1。
+
+形状四要点 (详见 docs/handoffs/MATCH-801E4D4-20260912.md):
+① v 用 `switch (加载表达式)` 而非 `v=…;switch(v)`, 后者寄存器分裂多 copy;
+② case1 idx 拆 `s32 t = h+3; idx = t + b;` 两语句 —— 单语句被 CSE 重结合, u16 中间变量插截断;
+③ `limit = (cond) ? 7 : 5` 三元式保字节加载先于 movs r7,#5 (两语句形式颠倒 → 上会话残留的
+   ll.gba 10 字节差 0xd4..0xdd, 与本次 fncheck 差异完全吻合, 全量构建后消除);
+④ 入队走 `static inline Inl_QueuePushObj` (= sub_8020B90 体), 手写内联打不中 muls 全链原位 r1。
+
+教训: ll.gba 是共享构建产物可含陈旧中间态, 字节对比基准一律 baserom.gba。
+fncheck OK 442B; 全量 make + sha1 **绿 75.5%**。code_0.h 原型同步 (无调用方零波及)。
+
+**追加 3 (2026-09-12 gpnux): battle_obj_core.c 全量结构体化签名, sha1 绿**
+
+BattleObj 补字段 f_6E/f_A2/f_B4/f_B6/f_C3 (布局不变, 全部沿 offset 命名;
+f_6C/f_B2/f_C2 为前一会话已提升)。签名改造 30+ 函数:
+- ObjHead 组: B570/B81C/B878/B8AC/B8FC/20974 (Unk_801B81C 视图退役 = ObjHead 别名);
+- BattleObj 组: CE80/D12C/D19C/DB3C/DC20/DD04/DDB0/DEDC/DF90/E4D4/E040/
+  20B90/20BC0/20BF0/20C2C(fnptr)/20C58/207DC/20840/208A4/20914/2093C/20A0C/20A7C/20974;
+- 未匹配函数原型同步: CA08/CBA4 (BattleObj*,u8,u16,u8,u8), D568 (BattleObj*);
+- iwram.h: gUnk_030006F8 → struct BattleObj *[7] (唯一消费者 battle_obj_core);
+- 有意保留 u8*: 209C8 (+0x88 u16 半字写语义不明), 20B04 (arg0 语义不明), MyStruct 视图 (209EC);
+- ldrsh 语义位用 *(s16 *)&obj->f_6C 形式 (u16 字段 + (s16) 别名读, 单指令 ldrsh);
+- DC20 的 *(u16*)&animPtr=0 保持半字写 (animPtr=0 会变 u32 str);
+- 外部调用点 cast 修整: battle_anim/sio_link 去 cast, scene_obj_fx/cutscene_mgr/
+  event_hub/battle_engine 加 cast (指针传递零代码生成)。
+教训: 批量替换漏网 `arg1[0xBE]` (u8* 下标 → BattleObj* 下标按 0xC8 缩放 → invalid operands),
+编译器能抓到; 但 `ptr + off` 形式的静默缩放抓不到, 必须逐函数核对。
+fncheck: battle_obj_core 57/57 + battle_engine 62 + scene_obj_fx 27 + cutscene 3 +
+event_hub 27 + battle_anim 54 + sio_link 71 全 OK。
+
+**追加 4 (gpnux): 结构体化的两处"静默缩放"陷阱 (血泪教训, 已修复)**
+
+全局 gUnk_030006F8 由 `u8 *[]` 改为 `BattleObj *[]` 后, `gUnk_030006F8[0] + 0xBE`
+不再是字节偏移: 指针算术按 sizeof(BattleObj)=0xC8 缩放, 生成 `muls #0xC8` 多 4 字节。
+此 TU 全绿但**全量链接失败**: .rodata 段紧跟 .text, 绝对边界 0x61C784 被撑破 →
+`ld: cannot move location counter backwards (0x61C788 → 0x61C784)`。
+定位手段: 全项目 fncheck 找字节数异常者 (sub_8020C2C 48B vs 参考 44B 即命中), 修
+`gUnk_030006F8[0]->slot` 后恢复 44B, 链接通过。
+同类: `arg1[0xBE]` (u8* 下标) 改型后会按 0xC8 缩放 —— 编译器能报 "invalid operands",
+但 `ptr + off` 形式**静默**生成错误取址, 编译器和 fncheck 单函数检查都抓不到, 只有
+全量 sha1 能兜底。改型必须逐函数核对所有 `指针 + 偏移` / `指针[整数]` 表达式。
+
+**追加 5 (gpnux): sub_801FEBC 签名 void* → BattleObj*** (无调用者)。
+
+退役本地 Unk_8020F4C 视图 (与 BattleObj 精确同构: state/headA.kindFlags/headA.f_2B/f_2C),
+改 `BattleObj *arg0`; 字节 132B OK。**更正**: 原保留的 `p=&state` 递减裸指针造型被注释
+为"匹配必需", 实为错误——A/B/C 强制重编对照证明全字段访问 `arg0->headA.f_2B/f_2C`
+产出完全相同字节, 已清理。battle_obj_core 57/57 全绿。
+
+**追加 6 (agent-e690/gpnux, 2026-09-12): sub_801E690 匹配 (801E4D4 姊妹, 家族 T3 收官)**
+
+同日第二个战果: sub_801E690 (230 asm 行/438B) bytecmp 一次通过 (440B 含字面池),
+fncheck OK, 全量 make + sha1 通过。MATCH-801E4D4 handoff 的"套用形状经验"预言完全兑现。
+- 方法: E4D4(主体/尾部字节同构) + DF90(dispatch 字节同构) 的现成 C 形状直接拼装;
+  dispatch 差异仅查表入口: mode0=*(u16*)(animPtr+2), mode1=*(u16*)(animPtr+8+f_C2*2)
+  (f_C2 即 animPtr+0x3A 处 u8 副索引, 与 DF90/DEDC 模式完全一致)。
+- E4D4 两条形状规则再次生效: ①field_10 用 switch(*(u16*)((u8*)entry+0x10)) 直派发
+  (r3 直落尾块) ②limit 三元式。case 1 无 E4D4 的 s32 t 两语句问题 (本函数 idx 无加法链)。
+- 签名 void sub_801E690() → u32 sub_801E690(BattleObj*, BattleObj*) (code_0.h:577)。
+- 剩余: 同族最后一个 sub_801E30C (237 行, status=0), 预计同套路。

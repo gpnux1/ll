@@ -810,14 +810,14 @@ void sub_8045F94(u8 *obj, u16 arg1)
         case 5:
         case 6:
         case 7:
-            sub_801D12C(obj, 1);
+            sub_801D12C((BattleObj *)obj, 1);
             if (obj[0xBE] <= 0xA)
-                sub_801CBA4(obj, 4, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CBA4((BattleObj *)obj, 4, *(u16 *)(obj + 0x2A), obj[0x35], zero);
             else
-                sub_801CA08(obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
             break;
         case 8:
-            sub_801D12C(obj, 2);
+            sub_801D12C((BattleObj *)obj, 2);
             break;
     }
     switch (arg1)
@@ -866,14 +866,14 @@ void sub_8046060(u8 *obj, u16 arg1)
         case 5:
         case 6:
         case 7:
-            sub_801D12C(obj, 1);
+            sub_801D12C((BattleObj *)obj, 1);
             if (obj[0xBE] <= 0xA)
-                sub_801CBA4(obj, 0xA, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CBA4((BattleObj *)obj, 0xA, *(u16 *)(obj + 0x2A), obj[0x35], zero);
             else
-                sub_801CA08(obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
             break;
         case 8:
-            sub_801D12C(obj, 2);
+            sub_801D12C((BattleObj *)obj, 2);
             break;
     }
     switch (arg1)
@@ -920,23 +920,23 @@ void sub_804612C(u8 *obj, u16 arg1, u16 arg2)
             if (pool[i * 0xC8 + 0xBE] == obj[0xBE])
                 break;
         v = *(u16 *)(obj + 0x6c);
-        sub_801DD04(obj, i, (u16)(v + arg2));
+        sub_801DD04((BattleObj *)obj, i, (u16)(v + arg2));
     }
     else
     {
         zero = 0;
         obj[0xab] = 0;
         if (obj[0xbe] <= 0xa)
-            sub_801CBA4(obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], zero);
+            sub_801CBA4((BattleObj *)obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], zero);
         else
-            sub_801CA08(obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], 0);
+            sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], 0);
     }
     if (*(u16 *)(obj + 0xb8) & 0x10)
     {
         pool = obj + 0xb8;
         *(u16 *)pool = *(u16 *)(obj + 0xb8) & 0xFFEF;
     }
-    sub_801D12C(obj, 0);
+    sub_801D12C((BattleObj *)obj, 0);
 }
 // @ 0x0804621C
 INCLUDE_ASM("asm/nonmatchings", sub_804621C);
@@ -2025,7 +2025,7 @@ u8 sub_8049C1C(u8 *arg0)
         break;
     }
     ((ObjHead *)gUnk_03000918)->f_2D = b;
-    arg0[0] = sub_801A884(gUnk_03000918, b, &local2);
+    arg0[0] = sub_801A884((ObjHead *)gUnk_03000918, b, &local2);
     return result;
 }
 // @ 0x08049D58
@@ -2122,6 +2122,8 @@ void sub_804AC60(void)
         }
     }
 }
+extern u16 gUnk_0839B462[];
+
 // @ 0x0804ACC0
 u16 *sub_804ACC0(u8 arg0)
 {
@@ -2130,7 +2132,7 @@ u16 *sub_804ACC0(u8 arg0)
     u32 local;
     u16 *base;
     u8 arg = arg0;
-    u16 *table = (u16 *)0x0839B462;
+    u16 *table = gUnk_0839B462;
 
     if (i < arg)
     {

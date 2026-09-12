@@ -226,7 +226,7 @@ extern u8 gUnk_03000630;
 extern u8 *gUnk_03000638[12];
 extern u8 gUnk_03000668;
 extern u8 gUnk_03000669;
-extern u8 *gUnk_030006F8[];
+extern struct BattleObj *gUnk_030006F8[]; /* 战斗效果/步进队列 (7 槽), 消费者 sub_801E040 */
 extern u8 gUnk_03000714;
 extern u8 gUnk_03000715;
 extern u8 gUnk_03000716;

@@ -82,7 +82,7 @@ u8 sub_8042200(u8 *obj)
         case 0:
             gUnk_03000824 = obj[0x35];
             gUnk_03000822 = *(u16 *)(obj + 0x2A);
-            sub_801CA08(obj, 3, 0x1B4, 0xD, result);
+            sub_801CA08((BattleObj *)obj, 3, 0x1B4, 0xD, result);
             gUnk_03000820 = 2;
             break;
         case 2:
@@ -90,7 +90,7 @@ u8 sub_8042200(u8 *obj)
             {
                 sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
                 *(u16 *)(obj + 0x24) &= 0xEFFF;
-                sub_80207DC(obj, obj[0xBF], obj[0xC0], gUnk_03000822, gUnk_03000824);
+                sub_80207DC((BattleObj *)obj, obj[0xBF], obj[0xC0], gUnk_03000822, gUnk_03000824);
                 gUnk_03000820 = 9;
             }
             break;

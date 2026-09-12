@@ -232,11 +232,11 @@ void sub_8018070(void)
             DmaCopy32(3, (void *)0x020362C0, (void *)0x06007800, 0x800);
             DmaWait(3);
         }
-        ret = sub_801B8AC((u8 *)&obj->headA, obj->headA.f_2D);
+        ret = sub_801B8AC(&obj->headA, obj->headA.f_2D);
         if (obj->state & 0x2000)
         {
             if (!(obj->headB.kindFlags & 0x800))
-                ret = sub_801B8AC((u8 *)&obj->headB, obj->headB.f_2D);
+                ret = sub_801B8AC(&obj->headB, obj->headB.f_2D);
         }
         node = node->next;
     }
