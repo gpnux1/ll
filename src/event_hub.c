@@ -631,7 +631,7 @@ u32 sub_80348A8(BattleObj *arg)
             gUnk_03000820 = 1;
             gUnk_03000824 = arg->headA.palSlot;
             gUnk_03000822 = arg->headA.f_1E;
-            gUnk_0300083C = sub_80489E8((u8 *)pool, gUnk_03000830, 1, 0x7F);
+            gUnk_0300083C = sub_80489E8(pool, gUnk_03000830, 1, 0x7F);
             break;
         case 1:
             sub_8020974((ObjHead *)(&arg->headA), 0x386, 0x1B4, 0xD, 2);
@@ -764,7 +764,7 @@ u32 sub_8034BFC(BattleObj *arg)
             gUnk_03000820 = 8;
             break;
         case 8:
-            count = sub_80489E8((u8 *)pool, buf, 1, 7);
+            count = sub_80489E8(pool, buf, 1, 7);
             for (i = 0; i < count; i++)
             {
                 if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)

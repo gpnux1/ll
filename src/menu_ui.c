@@ -747,7 +747,6 @@ void sub_800F3AC(void)
 
 extern u8 gUnk_03000199;
 extern u8 gUnk_030001A0[];
-extern u8 gUnk_03004980[];
 
 extern const u8 gUnk_08095028[][8]; // 物品/名称字符串表 (data_805769C.c / blob), [id] = 8 字符名
 
@@ -807,7 +806,7 @@ void MenuUi_DrawItemList(void)
 
     while (idx <= 0xFD)
     {
-        val = gUnk_03004980[idx];
+        val = gInventory[idx];
         if (val != 0)
         {
             gUnk_030001A0[var_r7] = idx;
@@ -879,7 +878,7 @@ void MenuUi_DrawItemList(void)
 extern u8 gInvPageUpItems[];
 extern u8 gInvPageDownItems[];
 
-/* 从 gUnk_03004980 物品/事件表中, 以 gInvViewState[0] 为起点向下、
+/* 从 gInventory 物品/事件表中, 以 gInvViewState[0] 为起点向下、
  * 以 gInvViewState[9] 为起点向上, 各最多拾取 2 个非零项到
  * gInvPageUpItems[] / gInvPageDownItems[]。 */
 // @ 0x0800F670
@@ -897,7 +896,7 @@ void sub_800F670(void)
         count = 0;
         while (count <= 1 && idx != 0)
         {
-            if (gUnk_03004980[idx] != 0)
+            if (gInventory[idx] != 0)
             {
                 gInvPageUpItems[count] = idx;
                 count = (u8)(count + 1);
@@ -915,7 +914,7 @@ void sub_800F670(void)
         count = 0;
         while (count <= 1 && idx <= 0xFD)
         {
-            if (gUnk_03004980[idx] != 0)
+            if (gInventory[idx] != 0)
             {
                 gInvPageDownItems[count] = idx;
                 count = (u8)(count + 1);

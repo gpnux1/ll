@@ -11,7 +11,7 @@ MEMORY {
 
 gUnk_08091948 = 0x08091948;
 gMapNpcSlotGroups = 0x08091948;
-gUnk_08393A24 = 0x08393A24;
+gObjSizeTable = 0x08393A24;
 gCosTable = 0x0839C26C;   /* float[360] 余弦表 (淡出波) */
 gSinTable = 0x0839BCCC;   /* float[360] 正弦表 (淡出波) */
 gUnk_08093418 = 0x08093418;
@@ -129,7 +129,6 @@ gObjPalFadeInSteps = 0x08289B6E;   /* OBJ 调色板 10 帧渐显步进表 (Op_Sy
 gObjPalFadeInFinal = 0x083936A8;   /* 渐显末帧 16 色 → OBJ bank10; 亦为 MapScene_Load 场景调色板备选 (0x08393688 表 +0x20) */
 gFlashFxPaletteTable = 0x0808B1B4; /* = gMenuEntPaletteFrames 项 0x7C (闪光帧组 16 色视图, Op_SysEffect 用) */
 gInvPageItemIds = 0x0839CFAA;   /* 16 项: 菜单页号 -> 道具 id (见 data_805769C.h) */
-gUnk_03004980 = 0x03004980;   /* gInventory 的 u8[] 视图别名 */
 gCameraPanStartX = 0x030047DC;   /* 摄像机平移起始 X (Op_CameraPan) */
 gCameraPanStartY = 0x0300461C;   /* 摄像机平移起始 Y (Op_CameraPan) */
 gCameraPanTargetX = 0x03004630;  /* 摄像机平移目标 X (Op_CameraPan) */
@@ -137,8 +136,8 @@ gCameraPanTargetY = 0x03004830;  /* 摄像机平移目标 Y (Op_CameraPan) */
 gCameraPanDuration = 0x030047B4; /* 摄像机平移总帧数 (0=未平移) */
 gCameraPanStep = 0x03004844;     /* 摄像机平移当前步数 */
 gUnk_087ED904 = 0x087ED904;
-gUnk_08619A60 = 0x08619A60;
-gUnk_08619430 = 0x08619430;
+gBattleIntroCmd = 0x08619A60;
+gBattleIntroPal = 0x08619430;
 gSaveSignature = 0x08098199;   /* 12B "LUNAR1_12_09" 存档签名 */
 gUnk_080981E6 = 0x080981E6;    /* u16[] 存档块长度表 {2, 0x5A, 8, 0} */
 gUnk_080981EE = 0x080981EE;    /* u8[] 6B/项 出生/传送参数表 {npcSetId, tileX, tileY, facing, moveCmd u16} */
@@ -422,10 +421,10 @@ SECTIONS {
         . = 0x000008F3; gUnk_030008F3 = .;
         . = 0x00000906; gUnk_03000906 = .;
         . = 0x00000908; gUnk_03000908 = .;
-        . = 0x00000910; gUnk_03000910 = .;
-        . = 0x00000911; gUnk_03000911 = .;
-        . = 0x00000918; gUnk_03000918 = .;
-        . = 0x00000948; gUnk_03000948 = .;
+        . = 0x00000910; gBattleIntroState = .;
+        . = 0x00000911; gBattleIntroTimer = .;
+        . = 0x00000918; gBattleIntroObj = .;
+        . = 0x00000948; gBattleIntroPhase = .;
         . = 0x00000949; gUnk_03000949 = .;
         . = 0x0000094A; gUnk_0300094A = .;
         . = 0x0000094B; gUnk_0300094B = .;
@@ -447,37 +446,37 @@ SECTIONS {
         . = 0x0000097B; gUnk_0300097B = .;
         . = 0x0000097C; gUnk_0300097C = .;
         . = 0x0000097D; gUnk_0300097D = .;
-        . = 0x0000097E; gUnk_0300097E = .;
+        . = 0x0000097E; gBattleIntroFadeFlag = .;
         . = 0x000009BE; gUnk_030009BE = .;
         . = 0x000009BF; gUnk_030009BF = .;
         . = 0x000009C0; gUnk_030009C0 = .;
         . = 0x000009C4; gUnk_030009C4 = .;
         . = 0x000009C5; gUnk_030009C5 = .;
         . = 0x000009C8; gUnk_030009C8 = .;
-        . = 0x000009D0; gUnk_030009D0 = .;
-        . = 0x000009D8; gUnk_030009D8 = .;
-        . = 0x00000AD8; gUnk_03000AD8 = .;
-        . = 0x00000AD9; gUnk_03000AD9 = .;
-        . = 0x00000ADA; gUnk_03000ADA = .;
-        . = 0x00000ADB; gUnk_03000ADB = .;
-        . = 0x00000ADC; gUnk_03000ADC = .;
-        . = 0x00000ADD; gUnk_03000ADD = .;
-        . = 0x00000ADE; gUnk_03000ADE = .;
+        . = 0x000009D0; gWipeDesc = .;
+        . = 0x000009D8; gWipeSavedH = .;
+        . = 0x00000AD8; gWipeSubframe = .;
+        . = 0x00000AD9; gWipeOamStart = .;
+        . = 0x00000ADA; gWipeOamEnd = .;
+        . = 0x00000ADB; gWipeMinY = .;
+        . = 0x00000ADC; gWipeMaxY = .;
+        . = 0x00000ADD; gWipeProgress = .;
+        . = 0x00000ADE; gWipeCtl = .;
         . = 0x00000AE0; gUnk_03000AE0 = .;
 
         . = 0x00000AE2; gUnk_03000AE2 = .;
         . = 0x00000AE4; gUnk_03000AE4 = .;
         . = 0x00000AE5; gUnk_03000AE5 = .;
-        . = 0x00000AE8; gUnk_03000AE8 = .;
-        . = 0x00000BE8; gUnk_03000BE8 = .;
+        . = 0x00000AE8; gBgPalAnim = .;
+        . = 0x00000BE8; gObjPalAnim = .;
         . = 0x00000CE8; gUnk_03000CE8 = .;
         
-        . = 0x00000D38; gUnk_03000D38 = .;
-        . = 0x00000D48; gUnk_03000D48 = .;
-        . = 0x00000D88; gUnk_03000D88 = .;
-        . = 0x00000DC8; gUnk_03000DC8 = .;
-        . = 0x00000DDC; gUnk_03000DDC = .;
-        . = 0x00000DDD; gUnk_03000DDD = .;
+        . = 0x00000D38; gObjTargetCache = .;
+        . = 0x00000D48; gInvPendingApply = .;
+        . = 0x00000D88; gInvPageDeltas = .;
+        . = 0x00000DC8; gObjInvBackup = .;
+        . = 0x00000DDC; gInvPageDeltaCount = .;
+        . = 0x00000DDD; gInvPendingApplyCount = .;
         . = 0x00000DDE; gUnk_03000DDE = .;
         . = 0x00000DE6; gUnk_03000DE6 = .;
         . = 0x00000DE8; gUnk_03000DE8 = .;

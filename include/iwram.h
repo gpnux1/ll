@@ -357,10 +357,10 @@ extern u8 gUnk_030008F2;
 extern u8 gUnk_030008F3;
 extern u16 gUnk_03000906;
 extern u16 gUnk_03000908;
-extern u8 gUnk_03000910;
-extern u8 gUnk_03000911;
-extern u8 gUnk_03000918[];
-extern u8 gUnk_03000948;
+extern u8 gBattleIntroState;      ///< 战斗开场 BGM/淡入演出状态机 (sub_8049C1C): 0..4
+extern u8 gBattleIntroTimer;      ///< 上述状态机的帧计数
+extern u8 gBattleIntroObj[];      ///< 战斗开场对象的 ObjHead (sub_804AD60 用 sub_801B81C 装配)
+extern u8 gBattleIntroPhase;      ///< 开场阶段标志 (0/1/2, sub_804ADE0/ADF8 设置)
 extern u16 *gUnk_0300096C;
 extern u8 gUnk_03000974[]; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
 extern u8 gUnk_03000979; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
@@ -368,17 +368,27 @@ extern u8 gUnk_0300097A; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
 extern u8 gUnk_0300097B;
 extern u8 gUnk_0300097C;
 extern u8 gUnk_0300097D;
-extern u8 gUnk_0300097E;
+extern u8 gBattleIntroFadeFlag;   ///< sub_804ADF8 复位 (淡入/开场演出标志)
 
-extern u32 gUnk_030009D0;
-extern u16 gUnk_030009D8[];
-extern u8 gUnk_03000AD8;
-extern u8 gUnk_03000AD9;
-extern u8 gUnk_03000ADA;
-extern u8 gUnk_03000ADB;
-extern u8 gUnk_03000ADC;
-extern u8 gUnk_03000ADD;
-extern u16 gUnk_03000ADE;
+/* 战斗转场/擦除 (wipe) 效果 (sub_804AE2C 逐帧更新, sub_804B1EC 复位, sub_804B1F8 启动):
+ * gWipeDesc 指向转场源对象 (sub_804B1F8 的首参); 其 +0x2D/+0x2E 给出受影响的 OAM 下标范围
+ * (sub_804AE2C 取 gWipeOamStart = +0x2D, gWipeOamEnd = +0x2D - +0x2E)。
+ * gWipeCtl: bit0=运行中, bit1=已捕获 OAM, bits4-7=效果类型 (0x10=上/下擦除)。 */
+typedef struct
+{
+    u8 pad[0x2D];
+    u8 field_2D;   /* +0x2D 受影响 OAM 下标上界 (gWipeOamStart) */
+    u8 field_2E;   /* +0x2E 受影响 OAM 下标基准 (gWipeOamStart - gWipeOamEnd = 计数) */
+} WipeDesc;
+extern WipeDesc *gWipeDesc;
+extern u16 gWipeSavedH[];   ///< 逐 OAM 保存的原始 HPos
+extern u8 gWipeSubframe;    ///< 5 帧子计数 (归零时推进 gWipeProgress)
+extern u8 gWipeOamStart;    ///< 转场影响的 OAM 起始下标
+extern u8 gWipeOamEnd;      ///< 转场影响的 OAM 结束下标
+extern u8 gWipeMinY;        ///< 受影响 OAM 的最小 VPos
+extern u8 gWipeMaxY;        ///< 受影响 OAM 的最大 VPos+高度
+extern u8 gWipeProgress;    ///< 擦除推进量 (遮挡高度)
+extern u16 gWipeCtl;        ///< 转场控制字
 extern u16 gUnk_03000AE0;
 extern u16 gUnk_03000AE2;
 extern u8 gUnk_03000AE4; // 2026-09-11 zcode-engine 登记 (sub_804B288)
@@ -392,7 +402,7 @@ extern u8 gUnk_03000AE5; // 2026-09-11 zcode-engine 登记 (sub_804B288)
 typedef struct
 {
     u8 ctrl;       /* +0x0 控制字/opcode */
-    s8 palSlot;    /* +0x1 目标调色板槽 (<<4 或 <<5 索引) */
+    u8 palSlot;    /* +0x1 目标调色板槽 (<<4 或 <<5 索引); 作有符号槽号时由使用处强转 (s8) */
     u8 period;     /* +0x2 周期/总帧数 */
     u8 counter;    /* +0x3 当前帧计数器 */
     u8 span;       /* +0x4 低4位=宽, 高4位=帧数 */
@@ -405,22 +415,28 @@ typedef struct
     s8 dB;         /* +0xE B 增量 */
     u8 shift;      /* +0xF 插值移位/除数 */
 } PaletteAnimEntry;
-extern u8 gUnk_03000AE8[];
+extern PaletteAnimEntry gBgPalAnim[];   /* 0x03000AE8 BG 调色板动画表 (目的 0x05000200 / 镜像 0x02036AC0) */
 extern u16 gUnk_03000CE8; // 2026-09-11 zcode-engine 登记 (sub_804B288)
-extern u8 gUnk_03000BE8[];
-extern u8 gUnk_03000D38[];
+extern PaletteAnimEntry gObjPalAnim[];  /* 0x03000BE8 OBJ 调色板动画表 (目的 0x05000000 / 镜像 0x02036CC0) */
+extern u8 gObjTargetCache[]; ///< 每 obj 池槽 (0..10) 缓存的目标对象索引 (f_BD): 0xFF=未选, sub_804CEBC 初始化, sub_804CA2C 族惰性赋值
 typedef struct
 {
-    u8 field_0;
-    u8 field_1;
+    u8 itemId;   /* +0x0 道具 id (0 = 空) */
+    u8 count;    /* +0x1 数量 */
     u8 field_2;
     u8 field_3;
-} Unk_03000DEntry;
-extern Unk_03000DEntry gUnk_03000D48[];
-extern Unk_03000DEntry gUnk_03000D88[];
-extern Unk_03000DEntry gUnk_03000DC8[];
-extern u8 gUnk_03000DDC;
-extern u8 gUnk_03000DDD;
+} InvListEntry;
+/* 道具/背包延迟写入系统 (sub_804DE8C / sub_804EF50 族):
+ *  - gInvPageDeltas/gInvPageDeltaCount: 当前道具页的"已改动道具"工作表 (由
+ *    sub_804DE8C 从 gInvPageItemIds 快照当前数量), sub_804EF00 可回滚单项。
+ *  - gObjInvBackup: 每个 obj 池槽 (0..4) 被替换时的原始 {道具 id, 数量} 备份。
+ *  - gInvPendingApply/gInvPendingApplyCount: sub_804DE20 收集的待提交项, sub_804EEC4 写回 gInventory。
+ *  - sub_804EF50 把 gInvPageDeltas 中 itemId>0xDC 的真实道具数量写回 gInventory (背包数量表)。 */
+extern InvListEntry gInvPendingApply[];
+extern InvListEntry gInvPageDeltas[];
+extern InvListEntry gObjInvBackup[];
+extern u8 gInvPageDeltaCount;
+extern u8 gInvPendingApplyCount;
 extern u8 gUnk_03000DDE;
 /* 0x03000DE6/0x03000DE8: 物件状态机 (sub_804E0E4) 在切场景前保存的
  * obj+0x2A (u16) 与 obj+0x35 (u8), 供 sub_801CBA4 恢复用。 */

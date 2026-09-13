@@ -873,7 +873,7 @@ u8 sub_8045A10(u8 *, u8);
 u8 sub_8045A74(u8 *, u8 *, u8, u8, u8);
 void sub_8045B90(BattleObj *obj, u8 index);
 void sub_8045BF4(BattleObj *obj);
-void sub_8045D00();
+void sub_8045D00(BattleObj *, u8, u16, s8 *); // 池目标候选收集: mode 0/4=自身 1/2=同族/外形 3=敌侧 5=我方 6=无
 void sub_8045EB8(u8 *);
 u8 sub_8045F10(BattleObj *, u16);
 void sub_8045F94(BattleObj *obj, u16 arg1);
@@ -915,7 +915,7 @@ u8 sub_8048934(BattleObj *arg0, u8 arg1);
 u8 sub_8048984(u8 *, u8);
 u8 sub_80489A4(u8 *, u8);
 u16 sub_80489C8(u8 *, u16);
-u8 sub_80489E8(u8 *, u8 *, u8, u16);
+u8 sub_80489E8(BattleObj *base, u8 *output, u8 mode, u16 flags);
 u8 sub_8048A68(BattleObj *arg0);
 void sub_8048A88(u8 *, s8, s8);
 void sub_8048ACC(u8 *, u8, u8);
@@ -961,33 +961,22 @@ void sub_804AE2C();
 void sub_804AF60();
 void sub_804B080();
 void sub_804B1EC();
-void sub_804B1F8(u32);
+void sub_804B1F8(WipeDesc *);
 void sub_804B224(u16 *);
 void sub_804B288();
-void sub_804B3C0();
-typedef struct
-{
-    s8 field_0;
-    s8 field_1;
-    u8 field_2;
-    u8 field_3;
-    u8 field_4;
-    u8 field_5;
-    u16 field_6;
-    u8 field_8;
-} Unk_804B458;
-void sub_804B458(Unk_804B458 *, u8, u16 *, u16 *);
-void sub_804B4D0();
-void sub_804B56C();
+void sub_804B3C0(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode1 流式调色板动画一帧
+void sub_804B458(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode2 帧步进调色板动画一帧
+void sub_804B4D0(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode3 淡变调色板动画一帧
+void sub_804B56C(u16 *, u16 *, u8, s8 *); // 16 色插值: src + delta*weight>>shift, clamp 0..31 (delta+3=shift)
 s32 sub_804B654();
-void sub_804B7B0();
-void sub_804B834();
+void sub_804B7B0(u8, u8);
+s8 sub_804B834(u8, u8, u8, s8, u8);
 void sub_804B8E8(u8, u8);
 void sub_804B96C();
 void sub_804BB64(u8, u8);
 u8 sub_804BBDC(u8, u32, u32, u32, u32, u32, u32, u32);
 void sub_804BD54(u8, u8);
-void sub_804BDD8();
+s8 sub_804BDD8(u8, u8, u8, s8, u8);
 void sub_804BE90(u8, u8);
 void sub_804BF14();
 void sub_804C10C(u8, u8);
@@ -1016,19 +1005,19 @@ void sub_804C674(u8);
 void sub_804C6B0(void);
 void sub_804C728(u8, u8, u8); // 三个形参入口均 lsls/lsrs #0x18 → u8
 void sub_804C78C();
-void sub_804C890();
-u8 sub_804C8E0(u8 *, u8); // obj池槽位移除元素+随机取回 (返回 u8)
+void sub_804C890(BattleObj *); // 对 obj 池槽 0..4 中 sub_8045F10(o,0x20)==2 的对象置 f_BD=随机同伴, fxKind=0
+u8 sub_804C8E0(BattleObj *, u8); // obj池槽位移除元素+随机取回 (返回 u8)
 void sub_804C9B4();
 void sub_804CA2C(BattleObj *obj);
-void sub_804CAA0(u8 *);
+void sub_804CAA0(BattleObj *);
 void sub_804CB18(BattleObj *obj);
-void sub_804CB8C(u8 *);
-void sub_804CC00(u8 *);
-void sub_804CC78(u8 *);
-void sub_804CCEC(u8 *);
-void sub_804CD60(u8 *);
-void sub_804CDD4(u8 *);
-void sub_804CE48(u8 *);
+void sub_804CB8C(BattleObj *);
+void sub_804CC00(BattleObj *);
+void sub_804CC78(BattleObj *);
+void sub_804CCEC(BattleObj *);
+void sub_804CD60(BattleObj *);
+void sub_804CDD4(BattleObj *);
+void sub_804CE48(BattleObj *);
 void sub_804CEBC();
 void sub_804CEE0();
 void sub_804D0F8(BattleObj *obj); // obj槽位填充: 守卫+移除匹配obj[0xAC]+随机取回
@@ -1052,8 +1041,8 @@ void sub_804DD70(BattleObj *ptr, u32 arg1);
 u8 sub_804DD90(u8, u8); /** 勿改宽原型/K&R: u8原型+Sub6C结构形态才是 sub_8045EB8 的解 */
 void sub_804DE20();
 void sub_804DE8C();
-u8 sub_804DF14(Unk_03000DEntry *);
-void sub_804DF74(Unk_03000DEntry *, u8 *, u8);
+u8 sub_804DF14(InvListEntry *);
+void sub_804DF74(InvListEntry *, u8 *, u8);
 void sub_804DFD8(u16 *, u8, u8, u8 *, u8, u8, u8);
 u8 sub_804E0E4(BattleObj *arg0, u32 arg1);
 u8 sub_804E2AC(u8 *, u32);
@@ -1071,10 +1060,10 @@ void sub_804EFDC(u8 *, u8, u8, u8 *, u8);
 u8 sub_804F050(u8);
 void sub_804F07C();
 u8 sub_804F088(BattleObj *arg0, u32 arg1);
-u8 sub_804F0B8(u8 *, s32); // CheckObjectKindSlot: 比较对象 +0x91/+0x92 两个候选 id, 返 1/2/0
+u8 sub_804F0B8(BattleObj *, s32); // CheckObjectKindSlot: 比较 equipSlots[4]/[5] (+0x91/+0x92) 两个候选 id, 返 1/2/0
 #define CheckObjectKindSlot sub_804F0B8
 s8 sub_804F10C(u8, u8);
-u8 sub_804F17C(u8 *, u8, u8);
+u8 sub_804F17C(u8 *outSlots, u8, u8); // 收集版: 命中的槽下标写入 outSlots[0..n-1], 返 n
 void SioBattle_ResetState();
 u8 SioBattle_GetState();
 void SioBattle_ClearSlots();

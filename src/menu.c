@@ -78,9 +78,8 @@ void sub_801114C(void)
 INCLUDE_ASM("asm/nonmatchings", sub_8011268);
 
 /* 在 16 页道具表 gInvPageItemIds[] 中, 从 gSkillMenuPage+1 页向后找第一个
- * 仍持有的道具页 i (gUnk_03004980[itemId] != 0); 之后至少还要有 2 个持有页
+ * 仍持有的道具页 i (gInventory[itemId] != 0); 之后至少还要有 2 个持有页
  * 才算有效, 返回页号 i; 没有候选页返回 0, 候选不足返回 0xFF。 */
-extern u8 gUnk_03004980[];
 
 // @ 0x080113CC
 u8 sub_80113CC(void)
@@ -90,14 +89,14 @@ u8 sub_80113CC(void)
     u8 count;
 
     i = gSkillMenuPage + 1;
-    while (i <= 15 && gUnk_03004980[gInvPageItemIds[i]] == 0)
+    while (i <= 15 && gInventory[gInvPageItemIds[i]] == 0)
         i++;
     if (i > 14)
         return 0;
     count = 0;
     for (j = i + 1; j <= 15; j++)
     {
-        if (gUnk_03004980[gInvPageItemIds[j]] != 0)
+        if (gInventory[gInvPageItemIds[j]] != 0)
         {
             count++;
             if (count == 2)

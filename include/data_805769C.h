@@ -29,7 +29,7 @@ extern const u8 gScreenIdleIconPageMap[];
  * 围绕它的五个函数构成一组"按页浏览这 16 个道具"的逻辑:
  *   Inv_FindFirstHeld / Inv_FindPrevHeld  翻页 (用 gSkillMenuPage 作当前页)
  *   Inv_FindHeldItemOnPage                本页道具 id, 未持有则 0xFF
- *   sub_804DE20                           压缩成 {id, count} 列表写 gUnk_03000D48
+ *   sub_804DE20                           压缩成 {id, count} 列表写 gInvPendingApply
  *   sub_804F050                           反向: 道具 id -> 页号
  * 注意: 必须保持 extern 数组形式, 不要写成 ((const u8 *)0x0839CFAA) 强转宏 ——
  * GCC2 对 const_int 与 symbol_ref 的 local-alloc 结果不同, 强转会换掉暂存寄存器。 */

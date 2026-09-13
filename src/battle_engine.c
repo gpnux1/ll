@@ -688,7 +688,105 @@ void sub_8045BF4(BattleObj *obj)
     }
 }
 // @ 0x08045D00
-INCLUDE_ASM("asm/nonmatchings", sub_8045D00);
+/* 战斗对象池的"目标候选收集器": 遍历对象池 (0xC8 步长), 按 mode 把符合条件的
+ * 槽号写进输出数组 arg3 (先全填 -1), 供上层对象选择/指向使用。
+ *   arg1 = mode (来自 sub_80489A4 → 技能/敌种属性元素):
+ *     0/4 → 只写锚点对象自身槽号 arg2;
+ *     1   → 敌侧槽 5..0xB 中 +0xAC 低 nibble (属性族) 与锚点相同的;
+ *     2   → 敌侧槽 5..0xB 中 (+0xAC & 0xF0) 命中锚点外形组 (0x10→0x10, 0x20/0x30→0x30)
+ *           或属 0x20 组的;
+ *     3   → 全部敌侧槽 5..0xB;
+ *     5   → 全部我方槽 0..4;
+ *     6   → 不收集。
+ * +0xAC 是装载时由 gUnk_08393B14[memberId] 写入的外形/属性族字节 (高4=外形, 低4=族)。
+ * 形状要点 (GCC2.9): ①arg2 声明为 u16 且首句 `arg2 = (u8)arg2;` —— u8/i32 都会让
+ * 截断的 lsls/lsrs 目标寄存器变异 (差 2B); ②case 1 的锚点属性必须重写成完整指针
+ * 表达式 `*(u8*)(arg0 + arg2*0xC8 + 0xAC) & 0xF` 而非缓存进 sel —— 否则 GCC 把
+ * `sel & 0xF` 当循环不变量提到循环外, 少一整个 ldrb (分数 1845→10); 缓存的 sel 仅
+ * 供 case 2 使用。 */
+void sub_8045D00(BattleObj *arg0, u8 arg1, u16 arg2, s8 *arg3)
+{
+    s8 found;
+    s8 i;
+    u8 sel;
+
+    arg2 = (u8)arg2;
+    found = 0;
+    sel = *((u8 *)arg0 + arg2 * 0xC8 + 0xAC);
+
+    for (i = 0; i <= 6; i++)
+        arg3[i] = -1;
+
+    switch (arg1)
+    {
+    case 3:
+        for (i = 5; i <= 0xB; i++)
+        {
+            if (*((u8 *)arg0 + i * 0xC8 + 0xBE) != 0xFF)
+            {
+                arg3[found] = i;
+                found++;
+            }
+        }
+        break;
+    case 1:
+        for (i = 5; i <= 0xB; i++)
+        {
+            if (*((u8 *)arg0 + i * 0xC8 + 0xBE) != 0xFF)
+            {
+                if ((*((u8 *)arg0 + i * 0xC8 + 0xAC) & 0xF) == (*((u8 *)arg0 + arg2 * 0xC8 + 0xAC) & 0xF))
+                {
+                    arg3[found] = i;
+                    found++;
+                }
+            }
+        }
+        break;
+    case 2:
+    {
+        u8 mask;
+        switch (sel & 0xF0)
+        {
+        case 0x10:
+            mask = 0x10;
+            break;
+        case 0x20:
+        case 0x30:
+            mask = 0x30;
+            break;
+        }
+        for (i = 5; i <= 0xB; i++)
+        {
+            u8 v;
+            if (*((u8 *)arg0 + i * 0xC8 + 0xBE) == 0xFF)
+                continue;
+            v = *((u8 *)arg0 + i * 0xC8 + 0xAC) & 0xF0;
+            if (v == mask || v == 0x20)
+            {
+                arg3[found] = i;
+                found++;
+            }
+        }
+        break;
+    }
+    case 0:
+    case 4:
+        arg3[found] = arg2;
+        break;
+    case 5:
+        for (i = 0; i <= 4; i++)
+        {
+            if (*((u8 *)arg0 + i * 0xC8 + 0xBE) != 0xFF)
+            {
+                arg3[found] = i;
+                found++;
+            }
+        }
+        break;
+    case 6:
+        break;
+    }
+}
 /* obj+0x6C 起是 0x21 字节的移动/上下文块 (MOD-04: +0x6C/6E = 移动坐标),
  * 紧随其后的 obj+0x8D..0x92 是 6 个角色编号。必须用 Sub6C 视图取号:
  * 写成 `obj + 0x8D` 会被折成单一基址, 目标里 "(p + 0x21) + i" 的三条
@@ -1489,7 +1587,7 @@ u16 sub_80489C8(u8 *arg0, u16 arg1)
     return arg1;
 }
 // @ 0x080489E8
-u8 sub_80489E8(u8 *base, u8 *output, u8 mode, u16 flags)
+u8 sub_80489E8(BattleObj *base, u8 *output, u8 mode, u16 flags)
 {
     u8 count;
     u8 i;
@@ -1512,7 +1610,7 @@ u8 sub_80489E8(u8 *base, u8 *output, u8 mode, u16 flags)
     }
     for (; i < end; i++)
     {
-        if (sub_8045F10((BattleObj *)(base + i * 0xC8), flags) == 2)
+        if (sub_8045F10(&base[i], flags) == 2)
         {
             output[count] = i;
             count++;
@@ -1843,8 +1941,8 @@ void sub_8048DA4(void)
     Bg0_InitClear();
     sub_80196D4(0, 0x02035AC0, 0xB, 2, 2, 1, 0, 0x1C, 4);
     gUnk_03000949 = 0;
-    gUnk_03000910 = 0;
-    gUnk_03000948 = 1;
+    gBattleIntroState = 0;
+    gBattleIntroPhase = 1;
     gUnk_03000956 = 0;
     gUnk_03000958 = 0;
     DmaCopy16(3, 0x0861A7A4, 0x0600B7C0, 0x40);
@@ -1988,9 +2086,9 @@ INCLUDE_ASM("asm/nonmatchings", sub_8049AD8);
 // @ 0x08049B70
 INCLUDE_ASM("asm/nonmatchings", sub_8049B70);
 // @ 0x08049C1C
-// BGM 演出状态机: 按 gUnk_03000910 分派 (0=开场曲判定+FadeIn, 1/3=滑动计数(sub_801768C 插值写
-// gUnk_03000918.f_2B, 计满进下一态), 2=等待计数, 4=完成返回1); case1/3 的自增走 <= 在 then 臂。
-// 尾部: gUnk_03000918.f_2D = 入参槽号, arg0[0] = sub_801A884(gUnk_03000918, 槽号, &local)。
+// BGM 演出状态机: 按 gBattleIntroState 分派 (0=开场曲判定+FadeIn, 1/3=滑动计数(sub_801768C 插值写
+// gBattleIntroObj.f_2B, 计满进下一态), 2=等待计数, 4=完成返回1); case1/3 的自增走 <= 在 then 臂。
+// 尾部: gBattleIntroObj.f_2D = 入参槽号, arg0[0] = sub_801A884(gBattleIntroObj, 槽号, &local)。
 u8 sub_8049C1C(u8 *arg0)
 {
     u8 result;
@@ -1999,12 +2097,12 @@ u8 sub_8049C1C(u8 *arg0)
 
     result = 0;
     b = arg0[0];
-    switch (gUnk_03000910)
+    switch (gBattleIntroState)
     {
     case 0:
-        if ((((ObjHead *)gUnk_03000918)->kindFlags & 0x800) == 0)
+        if ((((ObjHead *)gBattleIntroObj)->kindFlags & 0x800) == 0)
         {
-            gUnk_03000910 = 1;
+            gBattleIntroState = 1;
             if (sub_80187B4() & 0x20)
             {
                 Bgm_Play(0x37, 0);
@@ -2017,46 +2115,46 @@ u8 sub_8049C1C(u8 *arg0)
         }
         break;
     case 1:
-        ((ObjHead *)gUnk_03000918)->f_2B = sub_801768C(0xF0, -0x78, 0x14, gUnk_03000911, 2);
-        if (gUnk_03000911 <= 0x13)
+        ((ObjHead *)gBattleIntroObj)->f_2B = sub_801768C(0xF0, -0x78, 0x14, gBattleIntroTimer, 2);
+        if (gBattleIntroTimer <= 0x13)
         {
-            gUnk_03000911++;
+            gBattleIntroTimer++;
         }
         else
         {
-            gUnk_03000911 = 0;
-            gUnk_03000910 = 2;
+            gBattleIntroTimer = 0;
+            gBattleIntroState = 2;
         }
         break;
     case 2:
-        if (gUnk_03000911 <= 0x31)
+        if (gBattleIntroTimer <= 0x31)
         {
-            gUnk_03000911++;
+            gBattleIntroTimer++;
         }
         else
         {
-            gUnk_03000911 = 0;
-            gUnk_03000910 = 3;
+            gBattleIntroTimer = 0;
+            gBattleIntroState = 3;
         }
         break;
     case 3:
-        ((ObjHead *)gUnk_03000918)->f_2B = sub_801768C(0x78, -0x78, 8, gUnk_03000911, 1);
-        if (gUnk_03000911 <= 7)
+        ((ObjHead *)gBattleIntroObj)->f_2B = sub_801768C(0x78, -0x78, 8, gBattleIntroTimer, 1);
+        if (gBattleIntroTimer <= 7)
         {
-            gUnk_03000911++;
+            gBattleIntroTimer++;
         }
         else
         {
-            gUnk_03000911 = 0;
-            gUnk_03000910 = 4;
+            gBattleIntroTimer = 0;
+            gBattleIntroState = 4;
         }
         break;
     case 4:
         result = 1;
         break;
     }
-    ((ObjHead *)gUnk_03000918)->f_2D = b;
-    arg0[0] = sub_801A884((ObjHead *)gUnk_03000918, b, &local2);
+    ((ObjHead *)gBattleIntroObj)->f_2D = b;
+    arg0[0] = sub_801A884((ObjHead *)gBattleIntroObj, b, &local2);
     return result;
 }
 // @ 0x08049D58
@@ -2185,9 +2283,9 @@ void sub_804AD24(u8 *arg0)
 {
     u8 value;
 
-    gUnk_03000911 = (gUnk_03000911 + 1) % 16;
+    gBattleIntroTimer = (gBattleIntroTimer + 1) % 16;
 
-    value = gUnk_03000911 / 8;
+    value = gBattleIntroTimer / 8;
 
     *(u16 *)(arg0 + 0xB6) = 0xB1BE + value;
 }

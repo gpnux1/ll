@@ -8084,3 +8084,22 @@ bytecmp 240B 全等 + fncheck OK 176B + 全量 make/sha1 通过 (812/1059, 76.7%
 - 0x3C9/0x3CA 动画族; case22 复合条件 (state&0x2000 && headB.frameIdx>0xE) + headA&0x1000 复位。
 - 验证: bytecmp non-bl 差异 0; fncheck OK 668B; make+SHA1 绿 (862/1059, 81.4%)。
 - 原型 `void()` → `u32 sub_8039024(BattleObj *, BattleObj *)`。
+
+## sub_804BDD8 (0x0804BDD8, battle_anim, OBJ 调色板淡变槽 setter) — ✅ 2026-09-13 opencode-bdd8
+
+- 接管自 `kimi-takeover` (原锁 2026-09-09~09-10, 闲置约 4 天)。原挂起结论为 "global-alloc
+  tiebreak 卡点, 差 70B", 实际重测为 **仅 3 字节差**: 目标 `movs r1,#0xf; ands r0,r1` +
+  `lsls r7,r4,#4`, 旧 base.c 得 `movs r7,#0xf; ands r7,r0; lsls r0,r4,#4`。
+- **破解关键**: `span` 的低 4 位掩码必须先算成 u32 临时 `m = abs & 0xF`, 再
+  `entry->span = (arg4 << 4) | m`; 行内 `(abs & 0xF) | (arg4 << 4)` 会让 GCC 把 AND 折进
+  span 的目标寄存器 (r7) → 差 3B。且 `m` 不能是 u8 (差 11B)。
+- 语义: 遍历 `gObjPalAnim[arg0..arg0+arg1)` (OBJ 表 0x03000BE8), guard `ctrl&0xF!=2`,
+  `sub_804C638` 备份后填 ctrl=0x22/palSlot/period=arg2/counter=0/span/frameIdx=0/dir=arg3>>7;
+  返回 `gBgPalAnim[arg0].palSlot` (BG 表 0x03000AE8) — 写 OBJ 读 BG 是 ROM 事实。
+- 结构体更新: 现存 `PaletteAnimEntry` 字段可直接用, 但地址计算必须保留
+  `(PaletteAnimEntry *)(idx * 16 + base)` (不能用 `&gObjPalAnim[arg0+i]`)。
+- 验证: fncheck OK 184B; 直接 .text 段 cmp diff=0; link 后 ROM 区段与 baserom 逐字节相同。
+  仓库 SHA1 失败点为其他 agent 在制函数, 与本函数无关。
+- 共享改动: `include/code_0.h` 修正 `sub_804BDD8` 原型 + 顺带修正 `sub_804B458` 旧声明
+  (`Unk_804B458 *` → `PaletteAnimEntry *`, 阻塞编译的在制函数遗留)。
+- 详见 `docs/handoffs/MATCH-804BDD8-20260913.md`。

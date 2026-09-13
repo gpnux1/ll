@@ -1823,7 +1823,7 @@ u32 Op_IfItemQtyJump(u32 *pScriptCursor)
 
     pBytecode = (u8 *)*pScriptCursor;
     index = pBytecode[1];
-    if (gUnk_03004980[index] <= 0x62)
+    if (gInventory[index] <= 0x62)
     {
         *pScriptCursor = (u32)(pBytecode + 3);
     }

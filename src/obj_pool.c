@@ -55,7 +55,6 @@ u8 sub_804DD90(u8 arg0, u8 arg1)
     }
     return result;
 }
-extern u8 gUnk_03004980[];
 
 // @ 0x0804DE20
 void sub_804DE20(void)
@@ -64,17 +63,17 @@ void sub_804DE20(void)
 
     for (i = 0; i <= 15; i++)
     {
-        gUnk_03000D48[i].field_0 = 0;
-        gUnk_03000D48[i].field_1 = 0;
+        gInvPendingApply[i].itemId = 0;
+        gInvPendingApply[i].count = 0;
     }
-    gUnk_03000DDD = 0;
+    gInvPendingApplyCount = 0;
     for (i = 0; i <= 15; i++)
     {
-        if (gUnk_03004980[gInvPageItemIds[i]] != 0)
+        if (gInventory[gInvPageItemIds[i]] != 0)
         {
-            gUnk_03000D48[gUnk_03000DDD].field_0 = gInvPageItemIds[i];
-            gUnk_03000D48[gUnk_03000DDD].field_1 = gUnk_03004980[gInvPageItemIds[i]];
-            gUnk_03000DDD++;
+            gInvPendingApply[gInvPendingApplyCount].itemId = gInvPageItemIds[i];
+            gInvPendingApply[gInvPendingApplyCount].count = gInventory[gInvPageItemIds[i]];
+            gInvPendingApplyCount++;
         }
     }
 }
@@ -85,43 +84,43 @@ void sub_804DE8C(void)
 
     for (i = 0; i <= 4; i++)
     {
-        gUnk_03000DC8[i].field_0 = 0;
-        gUnk_03000DC8[i].field_1 = 0;
+        gObjInvBackup[i].itemId = 0;
+        gObjInvBackup[i].count = 0;
     }
     for (i = 0; i <= 15; i++)
     {
-        gUnk_03000D88[i].field_0 = 0;
-        gUnk_03000D88[i].field_1 = 0;
+        gInvPageDeltas[i].itemId = 0;
+        gInvPageDeltas[i].count = 0;
     }
-    gUnk_03000DDC = 0;
+    gInvPageDeltaCount = 0;
     for (i = 0; i <= 15; i++)
     {
-        if (gUnk_03004980[gInvPageItemIds[i]] != 0)
+        if (gInventory[gInvPageItemIds[i]] != 0)
         {
-            gUnk_03000D88[gUnk_03000DDC].field_0 = gInvPageItemIds[i];
-            gUnk_03000D88[gUnk_03000DDC].field_1 = gUnk_03004980[gInvPageItemIds[i]];
-            gUnk_03000DDC++;
+            gInvPageDeltas[gInvPageDeltaCount].itemId = gInvPageItemIds[i];
+            gInvPageDeltas[gInvPageDeltaCount].count = gInventory[gInvPageItemIds[i]];
+            gInvPageDeltaCount++;
         }
     }
 }
 // @ 0x0804DF14
-u8 sub_804DF14(Unk_03000DEntry *dest)
+u8 sub_804DF14(InvListEntry *dest)
 {
     u8 count;
     u8 i;
 
     for (i = 0; i <= 15; i++)
     {
-        dest[i].field_0 = 0;
-        dest[i].field_1 = 0;
+        dest[i].itemId = 0;
+        dest[i].count = 0;
     }
     count = 0;
-    for (i = 0; i < gUnk_03000DDC; i++)
+    for (i = 0; i < gInvPageDeltaCount; i++)
     {
-        if (gUnk_03000D88[i].field_1 != 0)
+        if (gInvPageDeltas[i].count != 0)
         {
-            dest[count].field_0 = gUnk_03000D88[i].field_0;
-            dest[count].field_1 = gUnk_03000D88[i].field_1;
+            dest[count].itemId = gInvPageDeltas[i].itemId;
+            dest[count].count = gInvPageDeltas[i].count;
             count++;
         }
     }
@@ -129,21 +128,21 @@ u8 sub_804DF14(Unk_03000DEntry *dest)
 }
 
 // @ 0x0804DF74
-void sub_804DF74(Unk_03000DEntry *entry, u8 *obj, u8 index)
+void sub_804DF74(InvListEntry *entry, u8 *obj, u8 index)
 {
     u8 i;
     u8 id;
 
-    gUnk_03000DC8[index].field_0 = entry->field_0;
-    gUnk_03000DC8[index].field_1 = entry->field_1;
-    id = entry->field_0;
+    gObjInvBackup[index].itemId = entry->itemId;
+    gObjInvBackup[index].count = entry->count;
+    id = entry->itemId;
     obj[0xA4] = id;
     obj[0xBC] = 2;
-    for (i = 0; i < gUnk_03000DDC; i++)
+    for (i = 0; i < gInvPageDeltaCount; i++)
     {
-        if (gUnk_03000D88[i].field_0 == entry->field_0)
+        if (gInvPageDeltas[i].itemId == entry->itemId)
         {
-            gUnk_03000D88[i].field_1--;
+            gInvPageDeltas[i].count--;
             break;
         }
     }
@@ -455,9 +454,9 @@ void sub_804EEC4(void)
 {
     u8 i;
 
-    for (i = 0; i < gUnk_03000DDD; i++)
+    for (i = 0; i < gInvPendingApplyCount; i++)
     {
-        gInventory[gUnk_03000D48[i].field_0] = gUnk_03000D48[i].field_1;
+        gInventory[gInvPendingApply[i].itemId] = gInvPendingApply[i].count;
     }
 }
 // @ 0x0804EF00
@@ -465,16 +464,16 @@ void sub_804EF00(u8 arg0)
 {
     u8 i;
 
-    if (gUnk_03000DC8[arg0].field_0 == 0)
+    if (gObjInvBackup[arg0].itemId == 0)
     {
         return;
     }
 
-    for (i = 0; i < gUnk_03000DDC; i++)
+    for (i = 0; i < gInvPageDeltaCount; i++)
     {
-        if (gUnk_03000D88[i].field_0 == gUnk_03000DC8[arg0].field_0)
+        if (gInvPageDeltas[i].itemId == gObjInvBackup[arg0].itemId)
         {
-            gUnk_03000D88[i].field_1 = gUnk_03000DC8[arg0].field_1;
+            gInvPageDeltas[i].count = gObjInvBackup[arg0].count;
         }
     }
 }
@@ -483,11 +482,11 @@ void sub_804EF50(void)
 {
     u8 i;
 
-    for (i = 0; i < gUnk_03000DDC; i++)
+    for (i = 0; i < gInvPageDeltaCount; i++)
     {
-        if (gUnk_03000D88[i].field_0 > 0xDC)
+        if (gInvPageDeltas[i].itemId > 0xDC)
         {
-            gUnk_03004980[gUnk_03000D88[i].field_0] = gUnk_03000D88[i].field_1;
+            gInventory[gInvPageDeltas[i].itemId] = gInvPageDeltas[i].count;
         }
     }
 }
@@ -497,9 +496,9 @@ u8 sub_804EF90(u8 arg0)
     u8 i;
     u8 ret = 0xFF;
 
-    for (i = 0; i < gUnk_03000DDC; i++)
+    for (i = 0; i < gInvPageDeltaCount; i++)
     {
-        if (gUnk_03000D88[i].field_0 == arg0)
+        if (gInvPageDeltas[i].itemId == arg0)
         {
             ret = i;
             break;
@@ -567,14 +566,15 @@ u8 sub_804F088(BattleObj *arg0, u32 arg1)
     return sub_804E2AC(arg0, arg1);
 }
 
-// 检查对象 arg0 的两个候选编号(+0x91 / +0x92) 哪个通过 sub_804DD90(id, 6)。
-// 仅当 arg1 截断到 u8 后恰好为 6 时才检查; 返回 1=前一个 / 2=后一个 / 0=都不行。
+// 检查战斗对象 arg0 的两个装备槽候选 (+0x91/+0x92 = equipSlots[4]/[5]) 哪个
+// 通过 sub_804DD90(id, 6) 校验。仅当 arg1 截断到 u8 后恰好为 6 时才检查;
+// 返回 1=前一个(equip5) / 2=后一个(equip6) / 0=都不行。
 // 注: 全 ROM 无任何调用点(死代码), 两个已知引用位置都是直接 bl 不传参。
 // 注: 两处 do {} while(0) 都是 GCC2 调度/分配屏障, 缺一不可(去掉分别差 48 / 7 字节);
 //     `arg1 = (u8)arg1;` 必须显式写且参数声明为 s32 —— 若参数声明 u8,
 //     GCC2 会把 `arg1 < 0` 当恒假折叠掉(少两条指令)。
 // @ 0x0804F0B8
-u8 sub_804F0B8(u8 *arg0, s32 arg1)
+u8 sub_804F0B8(BattleObj *arg0, s32 arg1)
 {
     u8 ret;
     u8 a;
@@ -582,8 +582,8 @@ u8 sub_804F0B8(u8 *arg0, s32 arg1)
 
     arg1 = (u8)arg1;
     ret = 0;
-    a = arg0[0x91];
-    b = arg0[0x92];
+    a = arg0->equipSlots[4];
+    b = arg0->equipSlots[5];
     do
     {
         if (a == 0 && b == 0)
@@ -639,7 +639,9 @@ s8 sub_804F10C(u8 arg0, u8 arg1)
 }
 // @ 0x0804F17C
 // 在 GetObjPool 空闲槽中找所有通过 sub_804E76C(slot, arg1, arg2) 的槽,
-// 把槽下标写入 arg0[0..found-1], 返回命中数量。
+// 把槽下标写入 arg0[0..found-1], 返回命中数量 (与 sub_804F10C 收集版同族)。
+// arg0 是**输出槽下标数组** (先全清 0..4), 产出单个槽号字节, 不是 BattleObj*:
+// 反汇编里对它是 strb/ldrb 逐字节写 0..4 号元素, 不是对象字段访问。
 // 注: 用 r8/r9/sl 三个高位寄存器, 有 GCC2 泄漏风险。
 u8 sub_804F17C(u8 *arg0, u8 arg1, u8 arg2)
 {

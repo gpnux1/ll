@@ -1554,19 +1554,19 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
                         {
                             if (pool[i].slot == obj->slot)
                             {
-                                obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                                obj->f_BD = sub_804C8E0(pool, i);
                                 return;
                             }
                         }
                         return;
                     }
-                    n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                    n = sub_80489E8(pool, buf, 0, 0x7F);
                     obj->f_BD = buf[(u8)Rng_LcgNext() % n];
                     return;
                 }
                 if (obj->variantClass == 5)
                     return;
-                n = sub_80489E8((u8 *)pool, buf, 1, 0x7F);
+                n = sub_80489E8(pool, buf, 1, 0x7F);
                 obj->f_BD = buf[(u8)Rng_LcgNext() % n];
                 return;
             }
@@ -1574,7 +1574,7 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
                 return;
             if (obj->variantClass != 5)
             {
-                n = sub_80489E8((u8 *)pool, buf, 1, 0x7F);
+                n = sub_80489E8(pool, buf, 1, 0x7F);
                 obj->f_BD = buf[(u8)Rng_LcgNext() % n];
                 return;
             }
@@ -1582,7 +1582,7 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
             {
                 if (pool[i].slot == obj->slot)
                 {
-                    obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                    obj->f_BD = sub_804C8E0(pool, i);
                     return;
                 }
             }
@@ -1593,20 +1593,20 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
             {
                 if (pool[obj->f_BD].variantClass != 7 && pool[obj->f_BD].variantClass != 8)
                     return;
-                n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                n = sub_80489E8(pool, buf, 0, 0x7F);
                 obj->f_BD = buf[(u8)Rng_LcgNext() % n];
                 return;
             }
             if (pool[obj->f_BD].variantClass != 7)
                 return;
-            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            n = sub_80489E8(pool, buf, 0, 0x7F);
             obj->f_BD = buf[(u8)Rng_LcgNext() % n];
             return;
 
         case 2:
             if (pool[obj->f_BD].variantClass != 7)
                 return;
-            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            n = sub_80489E8(pool, buf, 0, 0x7F);
             obj->f_BD = buf[(u8)Rng_LcgNext() % n];
             return;
 
@@ -1617,7 +1617,7 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
                     return;
                 if (obj->variantClass != 5)
                 {
-                    n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                    n = sub_80489E8(pool, buf, 0, 0x7F);
                     obj->f_BD = buf[(u8)Rng_LcgNext() % n];
                     return;
                 }
@@ -1625,7 +1625,7 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
                 {
                     if (pool[i].slot == obj->slot)
                     {
-                        obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                        obj->f_BD = sub_804C8E0(pool, i);
                         return;
                     }
                 }
@@ -1633,7 +1633,7 @@ void sub_801EA70(BattleObj *obj, BattleObj *pool)
             }
             if (pool[obj->f_BD].slot != 0xFF)
                 return;
-            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            n = sub_80489E8(pool, buf, 0, 0x7F);
             obj->f_BD = buf[(u8)Rng_LcgNext() % n];
             return;
         }
@@ -2403,7 +2403,7 @@ u8 sub_8020AB0(void)
     u8 buf[8];
     u8 ret;
 
-    ret = sub_80489E8((u8 *)GetObjPool(), buf, 0, 0x6B);
+    ret = sub_80489E8(GetObjPool(), buf, 0, 0x6B);
     if (sub_8044498() == 0)
     {
         return 1;

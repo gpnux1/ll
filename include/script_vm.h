@@ -153,7 +153,6 @@ enum SysFxPalStep
 extern u16 (*gScriptOpcodeHandlers[])(u32 *);
 extern u8 *gUnk_087ED904[];
 extern u8 gUnk_0862D574[];
-extern u8 gUnk_03004980[];
 extern const u32 gScriptSetTable[];
 #define gUnk_087ED6D4 gScriptSetTable
 
