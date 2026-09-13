@@ -7,6 +7,10 @@ typedef void (*IntrFunc)(void);
 
 extern IntrFunc const gIntrTable[];
 
+/* 方向码 0..8 -> (dx, dy) 单位步进向量, s16 成对存放; 下标 = dir*2 / dir*2+1。
+ * 0 = 静止, 1 = 上, 顺时针到 8 = 左上。唯一消费者: MovePlayer (sub_80055E8)。 */
+extern const s16 gWalkDirVectors[];
+
 /* 128 项正弦表 (幅值 ±100), 逐扫描线水波效果的源数据 —— 仅被 HBlankWave_BuildTables 读。
  * 类型是 u8 不是 s8, 且必须保持 u8 (依赖 ldrb 零扩展 + 无符号除法)。 */
 extern const u8 gWaveSineTable[];

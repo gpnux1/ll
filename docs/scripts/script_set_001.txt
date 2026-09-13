@@ -1,0 +1,2870 @@
+================================================================================
+ Lunar Legend (GBA) - Script VM Disassembly
+ Total Decompressed Size: 29681 bytes (0x73F1)
+ Total Entries: 256 (Unique Entry Points: 168)
+================================================================================
+
+--- [Entry Point Table (0x0000 .. 0x01FF)] ---
+  E_00: 0x0200 | E_01: 0x0202 | E_02: 0x0280 | E_03: 0x031E | E_04: 0x0390 | E_05: 0x03F0 | E_06: 0x0438 | E_07: 0x04E6
+  E_08: 0x053A | E_09: 0x05BE | E_0A: 0x0624 | E_0B: 0x067E | E_0C: 0x067E | E_0D: 0x067E | E_0E: 0x067E | E_0F: 0x067E
+  E_10: 0x02CC | E_11: 0x0737 | E_12: 0x067E | E_13: 0x0690 | E_14: 0x0785 | E_15: 0x0790 | E_16: 0x0790 | E_17: 0x0BA1
+  E_18: 0x0BA1 | E_19: 0x0BA1 | E_1A: 0x0BFB | E_1B: 0x0CB7 | E_1C: 0x1717 | E_1D: 0x0709 | E_1E: 0x0BFD | E_1F: 0x1717
+  E_20: 0x1791 | E_21: 0x65A9 | E_22: 0x17ED | E_23: 0x1873 | E_24: 0x187D | E_25: 0x17F3 | E_26: 0x1CAB | E_27: 0x1C25
+  E_28: 0x1C25 | E_29: 0x1C25 | E_2A: 0x1C25 | E_2B: 0x1C25 | E_2C: 0x1C25 | E_2D: 0x1C25 | E_2E: 0x1C25 | E_2F: 0x1829
+  E_30: 0x1D17 | E_31: 0x1C33 | E_32: 0x0C39 | E_33: 0x0C81 | E_34: 0x5FAA | E_35: 0x1D69 | E_36: 0x5791 | E_37: 0x5877
+  E_38: 0x58DF | E_39: 0x5939 | E_3A: 0x2085 | E_3B: 0x20C9 | E_3C: 0x20F7 | E_3D: 0x2853 | E_3E: 0x2CEB | E_3F: 0x2CEB
+  E_40: 0x2CEB | E_41: 0x2CEB | E_42: 0x2CEB | E_43: 0x2CEB | E_44: 0x2CEB | E_45: 0x2CEB | E_46: 0x344A | E_47: 0x34A0
+  E_48: 0x3584 | E_49: 0x367A | E_4A: 0x3758 | E_4B: 0x37B0 | E_4C: 0x38B2 | E_4D: 0x450D | E_4E: 0x4581 | E_4F: 0x463D
+  E_50: 0x2CEB | E_51: 0x2E0A | E_52: 0x2E98 | E_53: 0x2F32 | E_54: 0x2F9E | E_55: 0x30CE | E_56: 0x317A | E_57: 0x31E4
+  E_58: 0x32F0 | E_59: 0x334E | E_5A: 0x3924 | E_5B: 0x39E6 | E_5C: 0x3A08 | E_5D: 0x3AF4 | E_5E: 0x3B3A | E_5F: 0x3C60
+  E_60: 0x3CCC | E_61: 0x3D68 | E_62: 0x3E10 | E_63: 0x3ED4 | E_64: 0x3F34 | E_65: 0x4001 | E_66: 0x40AB | E_67: 0x40F1
+  E_68: 0x418F | E_69: 0x41DD | E_6A: 0x4295 | E_6B: 0x4333 | E_6C: 0x43CD | E_6D: 0x445D | E_6E: 0x467F | E_6F: 0x46CE
+  E_70: 0x47A6 | E_71: 0x48D6 | E_72: 0x4A14 | E_73: 0x4A6A | E_74: 0x4B42 | E_75: 0x4B72 | E_76: 0x4BD4 | E_77: 0x4C3E
+  E_78: 0x4CF2 | E_79: 0x4D7C | E_7A: 0x4E30 | E_7B: 0x4E80 | E_7C: 0x500C | E_7D: 0x3FB9 | E_7E: 0x5058 | E_7F: 0x5058
+  E_80: 0x5058 | E_81: 0x5058 | E_82: 0x5058 | E_83: 0x50E4 | E_84: 0x5150 | E_85: 0x519A | E_86: 0x526E | E_87: 0x52CE
+  E_88: 0x52D0 | E_89: 0x52D0 | E_8A: 0x52D0 | E_8B: 0x52D0 | E_8C: 0x52D0 | E_8D: 0x52D0 | E_8E: 0x52D0 | E_8F: 0x52D0
+  E_90: 0x52D0 | E_91: 0x52D0 | E_92: 0x52D0 | E_93: 0x52D0 | E_94: 0x52D0 | E_95: 0x52D0 | E_96: 0x52D0 | E_97: 0x5347
+  E_98: 0x53E7 | E_99: 0x542F | E_9A: 0x5519 | E_9B: 0x5583 | E_9C: 0x5655 | E_9D: 0x56D1 | E_9E: 0x573F | E_9F: 0x5763
+  E_A0: 0x5997 | E_A1: 0x59F8 | E_A2: 0x5B1C | E_A3: 0x5B90 | E_A4: 0x5BBA | E_A5: 0x5C66 | E_A6: 0x5D78 | E_A7: 0x5DD0
+  E_A8: 0x5E5E | E_A9: 0x5EF8 | E_AA: 0x602C | E_AB: 0x608D | E_AC: 0x60E3 | E_AD: 0x61B7 | E_AE: 0x61ED | E_AF: 0x6311
+  E_B0: 0x635D | E_B1: 0x6413 | E_B2: 0x646F | E_B3: 0x64D7 | E_B4: 0x6631 | E_B5: 0x66B4 | E_B6: 0x67AA | E_B7: 0x6808
+  E_B8: 0x6910 | E_B9: 0x6970 | E_BA: 0x6A18 | E_BB: 0x6ABC | E_BC: 0x6B76 | E_BD: 0x6C1E | E_BE: 0x6C1E | E_BF: 0x6C57
+  E_C0: 0x6C96 | E_C1: 0x6CCF | E_C2: 0x6D0A | E_C3: 0x6D36 | E_C4: 0x6D66 | E_C5: 0x6D66 | E_C6: 0x6D66 | E_C7: 0x6D66
+  E_C8: 0x6D66 | E_C9: 0x6E6B | E_CA: 0x6EEC | E_CB: 0x6FF1 | E_CC: 0x7072 | E_CD: 0x712F | E_CE: 0x712F | E_CF: 0x712F
+  E_D0: 0x712F | E_D1: 0x712F | E_D2: 0x712F | E_D3: 0x712F | E_D4: 0x712F | E_D5: 0x712F | E_D6: 0x712F | E_D7: 0x712F
+  E_D8: 0x712F | E_D9: 0x712F | E_DA: 0x712F | E_DB: 0x712F | E_DC: 0x712F | E_DD: 0x714C | E_DE: 0x714C | E_DF: 0x714C
+  E_E0: 0x714C | E_E1: 0x714C | E_E2: 0x714C | E_E3: 0x714C | E_E4: 0x714C | E_E5: 0x714C | E_E6: 0x714C | E_E7: 0x714C
+  E_E8: 0x714C | E_E9: 0x714C | E_EA: 0x714C | E_EB: 0x714C | E_EC: 0x714C | E_ED: 0x714C | E_EE: 0x714C | E_EF: 0x714C
+  E_F0: 0x714C | E_F1: 0x71E4 | E_F2: 0x720A | E_F3: 0x7230 | E_F4: 0x7266 | E_F5: 0x72E4 | E_F6: 0x7374 | E_F7: 0x7374
+  E_F8: 0x7374 | E_F9: 0x7374 | E_FA: 0x7376 | E_FB: 0x7376 | E_FC: 0x7376 | E_FD: 0x7376 | E_FE: 0x7376 | E_FF: 0x7396
+
+================================================================================
+--- [Script Bytecode Disassembly Stream] ---
+================================================================================
+
+; ----------------------------------------------------------------------------
+; Entry_00  @ Offset 0x0200 (Buffer 0x02016200)
+; ----------------------------------------------------------------------------
+  [0x0200] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_01  @ Offset 0x0202 (Buffer 0x02016202)
+; ----------------------------------------------------------------------------
+  [0x0202] Op_IfAllFlagsJump [0x029E] -> Entry_0A (0x0624)
+  [0x0207] Op_IfAllFlagsJump [0x0054] -> Entry_09 (0x05BE)
+  [0x020C] Op_IfAllFlagsJump [0x0039] -> Entry_08 (0x053A)
+  [0x0211] Op_IfAllFlagsJump [0x0402] -> Entry_07 (0x04E6)
+  [0x0216] Op_IfAllFlagsJump [0x0038] -> Entry_06 (0x0438)
+  [0x021B] Op_IfAllFlagsJump [0x0401] -> Entry_05 (0x03F0)
+  [0x0220] Op_IfAllFlagsJump [0x0010] -> Entry_03 (0x031E)
+  [0x0225] Op_IfAllFlagsJump [0x0000] -> Entry_02 (0x0280)
+  [0x022A] Op_BgmStop
+  [0x022B] Op_ScriptStreamLZ setId=0, entry=0
+  [0x022E] Op_LoadMap mapNpcSet=1, moveCmdSet=1, spawn=(11, 4), dir=4
+  [0x0235] CharaControl SetPosDir chara=3, pos=(62, 90), dir=2
+  [0x023C] CharaControl SetPosDir chara=4, pos=(65, 89), dir=0
+  [0x0243] CharaControl SetPosDir chara=5, pos=(71, 82), dir=6
+  [0x024A] CharaControl SetPosDir chara=6, pos=(70, 92), dir=0
+  [0x0251] CharaControl SetPosDir chara=7, pos=(64, 94), dir=0
+  [0x0258] CharaControl SetPosDir chara=9, pos=(66, 78), dir=4
+  [0x025F] CharaControl SetPosDir chara=12, pos=(56, 85), dir=2
+  [0x0266] CharaControl SetPosDir chara=13, pos=(59, 81), dir=2
+  [0x026D] CharaControl SetPosDir chara=14, pos=(59, 92), dir=0
+  [0x0274] CharaControl SetPosDir chara=17, pos=(74, 87), dir=6
+  [0x027B] Op_SceneChangePlain mode=0
+  [0x027D] Op_WaitSceneIdle
+  [0x027E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_02  @ Offset 0x0280 (Buffer 0x02016280)
+; ----------------------------------------------------------------------------
+  [0x0280] DialogMessage style=0, len=32:
+                "ヴェーンの魔法使いが来るなんて\n
+                めずらしいことも あるもんだ[WAIT][CLEAR]"
+  [0x02C6] Op_IfPartyMemberJump member=3, count=1 -> Entry_10 (0x02CC)
+  [0x02CA] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_10  @ Offset 0x02CC (Buffer 0x020162CC)
+; ----------------------------------------------------------------------------
+  [0x02CC] DialogMessage style=0, len=37:
+                "[PORTRAIT:18]ふん、、、\n
+                ボクだって 好き好んでは\n
+                こんなイナカには来やしないさ![WAIT][CLEAR]"
+  [0x031C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_03  @ Offset 0x031E (Buffer 0x0201631E)
+; ----------------------------------------------------------------------------
+  [0x031E] DialogMessage style=0, len=25:
+                "おっ どうやら儀式の準備は\n
+                終わったみたいだな[WAIT][CLEAR]"
+  [0x0356] Op_IfPartyMemberJump member=3, count=1 -> Entry_04 (0x0390)
+  [0x035A] DialogMessage style=0, len=21:
+                "[PORTRAIT:55]オレたち\n
+                英雄の墓参に行ったんだぜ![WAIT][CLEAR]"
+  [0x038A] Op_SetFlagsList [0x0401]
+  [0x038E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_04  @ Offset 0x0390 (Buffer 0x02016390)
+; ----------------------------------------------------------------------------
+  [0x0390] DialogMessage style=0, len=42:
+                "[PORTRAIT:20]この村に来たボクの目的は\n
+                間違っていなかったみたいだ\n
+                村長の屋敷に 感謝するよ[WAIT][CLEAR]"
+  [0x03EA] Op_SetFlagsList [0x0401]
+  [0x03EE] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_05  @ Offset 0x03F0 (Buffer 0x020163F0)
+; ----------------------------------------------------------------------------
+  [0x03F0] DialogMessage style=0, len=32:
+                "ゴートの肉って 臭くないか?\n
+                どうも好きになれないんだよなぁ[WAIT][CLEAR]"
+  [0x0436] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_06  @ Offset 0x0438 (Buffer 0x02016438)
+; ----------------------------------------------------------------------------
+  [0x0438] DialogMessage style=0, len=15:
+                "あ あなたはガレオン様!?[WAIT][CLEAR]"
+  [0x045C] DialogMessage style=0, len=13:
+                "[PORTRAIT:56]さっすが四雄長だなぁ[WAIT][CLEAR]"
+  [0x047C] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x0480] DialogMessage style=0, len=20:
+                "[PORTRAIT:47]あまり いいことばかりでもないがね[WAIT][CLEAR]"
+  [0x04AE] DialogMessage style=0, len=22:
+                "いやぁ お目にかかれるなんて\n
+                光栄です![WAIT][CLEAR]"
+  [0x04E0] Op_SetFlagsList [0x0402]
+  [0x04E4] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_07  @ Offset 0x04E6 (Buffer 0x020164E6)
+; ----------------------------------------------------------------------------
+  [0x04E6] DialogMessage style=0, len=38:
+                "ガレオン様といえば\n
+                雲上雲上の魔法使い\n
+                まさか その長に行えるなんてなぁ[WAIT][CLEAR]"
+  [0x0538] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_08  @ Offset 0x053A (Buffer 0x0201653A)
+; ----------------------------------------------------------------------------
+  [0x053A] DialogMessage style=0, len=62:
+                "気にするな、、、っていうのも\n
+                元意な奴か、、、[WAIT][08:00]けど あまり考えすぎるなよ\n
+                ルーナなら\n
+                きっと元気にアレスを待ってるさ[WAIT][CLEAR]"
+  [0x05BC] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_09  @ Offset 0x05BE (Buffer 0x020165BE)
+; ----------------------------------------------------------------------------
+  [0x05BE] DialogMessage style=0, len=47:
+                "アレス お[112]ってヤツは、、、\n
+                まさか ルーナを助けるために\n
+                ドラゴンマスターになるなんてな[WAIT][CLEAR]"
+  [0x0622] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_0A  @ Offset 0x0624 (Buffer 0x02016624)
+; ----------------------------------------------------------------------------
+  [0x0624] DialogMessage style=0, len=41:
+                "アレスを見てると\n
+                こっちまで勇気づけられるよ\n
+                どんなことでも がんばろうってな[WAIT][CLEAR]"
+  [0x067C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_0B, Entry_0C, Entry_0D, Entry_0E, Entry_0F, Entry_12  @ Offset 0x067E (Buffer 0x0201667E)
+; ----------------------------------------------------------------------------
+  [0x067E] Op_IfEventFlagJump flag=0x0039 -> Entry_11 (0x0737)
+  [0x0682] Op_IfPartyMemberJump member=2, count=1 -> Entry_F9 (0x7374)
+  [0x0686] Op_IfEventFlagJump flag=0x0001 -> Entry_1D (0x0709)
+  [0x068A] Op_IfEventFlagJump flag=0x0000 -> Entry_13 (0x0690)
+  [0x068E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_13  @ Offset 0x0690 (Buffer 0x02016690)
+; ----------------------------------------------------------------------------
+  [0x0690] Op_IfEventFlagJump flag=0x0001 -> Entry_1D (0x0709)
+  [0x0694] Op_BgmVolume volume=128
+  [0x0698] Op_SfxPlay sfx=219, arg=0
+  [0x069C] Op_WaitFrames count=200
+  [0x069E] Op_WaitFrames count=200
+  [0x06A0] Op_WaitFrames count=150
+  [0x06A2] DialogMessage style=0, len=39:
+                "[PORTRAIT:55]これ ルーナの[10D]じゃないか?\n
+                泉の方から聞こえるぜ\n
+                行ってみよう アレス[WAIT][CLEAR]"
+  [0x06F6] Op_BgmVolume volume=255
+  [0x06FA] CharaControl len=7: 4d 00 00 00 01 04 fd
+  [0x0703] Op_WaitCharsStop
+  [0x0704] Op_SetEventFlag flag=0x0001
+  [0x0707] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_1D  @ Offset 0x0709 (Buffer 0x02016709)
+; ----------------------------------------------------------------------------
+  [0x0709] DialogMessage style=0, len=14:
+                "[PORTRAIT:55]どこ行くんだよ アレス[WAIT][CLEAR]"
+  [0x072B] CharaControl len=7: 4d 00 00 00 01 04 fd
+  [0x0734] Op_WaitCharsStop
+  [0x0735] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_11  @ Offset 0x0737 (Buffer 0x02016737)
+; ----------------------------------------------------------------------------
+  [0x0737] DialogMessage style=0, len=30:
+                "[PORTRAIT:55]アレス!\n
+                レイクのオッチャンに\n
+                お礼を迎いに行こうぜ![WAIT][CLEAR]"
+  [0x0779] CharaControl len=7: 4d 00 00 00 01 08 fd
+  [0x0782] Op_WaitCharsStop
+  [0x0783] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_14  @ Offset 0x0785 (Buffer 0x02016785)
+; ----------------------------------------------------------------------------
+  [0x0785] Op_SetSwitch switch=0x0014
+  [0x0788] Op_SetSwitch switch=0x0016
+  [0x078B] Op_SetSwitch switch=0x0017
+  [0x078E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_15, Entry_16  @ Offset 0x0790 (Buffer 0x02016790)
+; ----------------------------------------------------------------------------
+  [0x0790] Op_LoadCharaGfx chara=2, gfx1=2, gfx2=0
+  [0x0794] Op_LoadCharaGfx chara=3, gfx1=3, gfx2=0
+  [0x0798] Op_LoadCharaGfx chara=4, gfx1=8, gfx2=0
+  [0x079C] Op_LoadCharaPal chara=6, pal1=2, pal2=0
+  [0x07A0] Op_LoadCharaPal chara=7, pal1=3, pal2=0
+  [0x07A4] Op_LoadCharaPal chara=8, pal1=8, pal2=0
+  [0x07A8] Op_WaitSpriteLoad
+  [0x07A9] CharaControl len=14: 53 02 00 02 06 00 06 41 06 41 06 41 01 02
+  [0x07B9] CharaControl len=14: 53 03 00 03 07 00 07 43 07 43 08 42 01 02
+  [0x07C9] CharaControl len=14: 53 04 00 04 08 00 05 45 05 45 05 45 01 02
+  [0x07D9] CharaControl len=1: 6e
+  [0x07DC] CharaControl len=11: 4d 01 00 02 01 12 00 06 01 01 fd
+  [0x07E9] CharaControl len=11: 4d 02 00 02 01 0f 00 06 01 02 fd
+  [0x07F6] CharaControl len=11: 4d 03 00 02 01 19 00 06 01 02 fd
+  [0x0803] CharaControl len=11: 4d 04 00 02 01 0f 00 06 01 02 fd
+  [0x0810] Op_WaitCharsStop
+  [0x0811] Op_SceneChangePlain mode=0
+  [0x0813] Op_WaitSceneIdle
+  [0x0814] DialogMessage style=0, len=27:
+                "[PORTRAIT:55]まさか 英丘に参に行えるなんて\n
+                思わなかったよな[WAIT][CLEAR]"
+  [0x0850] DialogMessage style=0, len=31:
+                "[PORTRAIT:11]そうね 今までは雄談の話でしか\n
+                知らないことだったものね[WAIT][CLEAR]"
+  [0x0894] CharaControl len=7: 4d 01 00 02 01 0f fd
+  [0x089D] CharaControl len=7: 4d 03 00 02 01 0f fd
+  [0x08A6] CharaControl len=7: 4d 04 00 02 01 0f fd
+  [0x08AF] CharaControl len=7: 4d 02 00 02 01 0a fd
+  [0x08B8] Op_WaitCharsStop
+  [0x08B9] Op_WaitFrames count=30
+  [0x08BB] CharaControl len=7: 4d 02 00 06 01 02 fd
+  [0x08C4] Op_WaitCharsStop
+  [0x08C5] CharaControl len=7: 4d 01 00 06 01 01 fd
+  [0x08CE] CharaControl len=7: 4d 03 00 06 01 01 fd
+  [0x08D7] CharaControl len=7: 4d 04 00 06 01 01 fd
+  [0x08E0] Op_WaitCharsStop
+  [0x08E1] DialogMessage style=0, len=13:
+                "[PORTRAIT:11]どうしたの アレス?[WAIT][CLEAR]"
+  [0x0901] DialogMessage style=0, len=8:
+                "[PORTRAIT:4]うん、、、[WAIT][CLEAR]"
+  [0x0917] DialogMessage style=0, len=4:
+                "[PORTRAIT:11]?[WAIT][CLEAR]"
+  [0x0925] DialogMessage style=0, len=26:
+                "[PORTRAIT:45]疲れたんじゃないか?\n
+                ボクも もうヘロヘロだよ[WAIT][CLEAR]"
+  [0x095F] DialogMessage style=0, len=30:
+                "[PORTRAIT:17]情けない奴だな?\n
+                修行中ちのボクでも\n
+                平気だというのに[WAIT][CLEAR]"
+  [0x09A1] CharaControl len=7: 4d 01 00 02 01 00 fd
+  [0x09AA] Op_WaitCharsStop
+  [0x09AB] DialogMessage style=0, len=12:
+                "([PORTRAIT:59]、、、どうだか)[WAIT][CLEAR]"
+  [0x09C9] CharaControl len=7: 4d 03 00 06 01 10 fd
+  [0x09D2] Op_WaitCharsStop
+  [0x09D3] DialogMessage style=0, len=35:
+                "[PORTRAIT:18]なんだい その目は!\n
+                だいたい キミは生意気だぞ\n
+                まったく、、、[WAIT][CLEAR]"
+  [0x0A1F] DialogMessage style=0, len=53:
+                "[PORTRAIT:57]なんだと![WAIT][08:00]ナッシュなんて アレスがいなかったら\n
+                ファイディのジッチャンにも\n
+                行えなかったんだぞ![WAIT][CLEAR]"
+  [0x0A8F] CharaControl len=11: 4d 02 00 06 02 07 00 04 02 05 fd
+  [0x0A9C] CharaControl len=7: 4d 01 02 06 01 06 fd
+  [0x0AA5] CharaControl len=7: 4d 03 02 02 01 10 fd
+  [0x0AAE] Op_WaitCharsStop
+  [0x0AAF] DialogMessage style=0, len=14:
+                "[PORTRAIT:15][196]長とも やめなさい![WAIT][CLEAR]"
+  [0x0AD1] CharaControl len=11: 4d 04 00 06 01 0a 00 00 01 03 fd
+  [0x0ADE] Op_WaitCharsStop
+  [0x0ADF] DialogMessage style=0, len=40:
+                "[PORTRAIT:43]疲れてイライラしてるんだよ\n
+                アルテナ様の[111]に [14E]れば\n
+                すぐ 勇気になるさ![WAIT][CLEAR]"
+  [0x0B35] CharaControl len=4: 68 01 ff ff
+  [0x0B3B] CharaControl len=4: 68 02 ff ff
+  [0x0B41] CharaControl len=4: 68 03 ff ff
+  [0x0B47] CharaControl len=4: 68 04 ff ff
+  [0x0B4D] Op_WaitCharsStop
+  [0x0B4E] CharaControl len=1: 4e
+  [0x0B51] CharaControl len=2: 64 02
+  [0x0B55] CharaControl len=2: 64 03
+  [0x0B59] CharaControl len=2: 64 04
+  [0x0B5D] Op_LoadCharaGfx chara=2, gfx1=12, gfx2=0
+  [0x0B61] Op_LoadCharaGfx chara=3, gfx1=13, gfx2=0
+  [0x0B65] Op_LoadCharaGfx chara=4, gfx1=14, gfx2=0
+  [0x0B69] CharaControl len=14: 53 02 00 02 05 00 0e 14 09 0e 12 15 01 82
+  [0x0B79] CharaControl len=14: 53 03 00 03 03 00 0f 22 09 0e 12 15 01 01
+  [0x0B89] CharaControl len=14: 53 04 00 04 04 00 3c 1e 37 1a 41 22 02 50
+  [0x0B99] Op_SetSwitch switch=0x0014
+  [0x0B9C] Op_SetEventFlag flag=0x0015
+  [0x0B9F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_17, Entry_18, Entry_19  @ Offset 0x0BA1 (Buffer 0x02016BA1)
+; ----------------------------------------------------------------------------
+  [0x0BA1] Op_IfPartyMemberJump member=2, count=1 -> Entry_1E (0x0BFD)
+  [0x0BA5] Op_IfEventFlagJump flag=0x0002 -> Entry_F9 (0x7374)
+  [0x0BA9] Op_IfEventFlagJump flag=0x0001 -> Entry_1A (0x0BFB)
+  [0x0BAD] Op_BgmVolume volume=128
+  [0x0BB1] Op_SfxPlay sfx=219, arg=0
+  [0x0BB5] Op_WaitFrames count=200
+  [0x0BB7] Op_WaitFrames count=200
+  [0x0BB9] Op_WaitFrames count=150
+  [0x0BBB] DialogMessage style=0, len=26:
+                "[PORTRAIT:55]この[10D]は、、、\n
+                アレス ルーナの[10D]じゃないか?[WAIT][CLEAR]"
+  [0x0BF5] Op_BgmVolume volume=255
+  [0x0BF9] Op_ScriptJump Entry_3D (0x2853)
+
+; ----------------------------------------------------------------------------
+; Entry_1A  @ Offset 0x0BFB (Buffer 0x02016BFB)
+; ----------------------------------------------------------------------------
+  [0x0BFB] Op_ScriptJump Entry_3D (0x2853)
+
+; ----------------------------------------------------------------------------
+; Entry_1E  @ Offset 0x0BFD (Buffer 0x02016BFD)
+; ----------------------------------------------------------------------------
+  [0x0BFD] Op_IfSwitchJump switch=0x0003 -> Entry_32 (0x0C39)
+  [0x0C01] DialogMessage style=0, len=19:
+                "[PORTRAIT:11][0E8][0E9][111]の[112]に [113]まるんでしょう?[WAIT][CLEAR]"
+  [0x0C2D] CharaControl len=7: 4d 00 00 04 01 04 fd
+  [0x0C36] Op_WaitCharsStop
+  [0x0C37] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_32  @ Offset 0x0C39 (Buffer 0x02016C39)
+; ----------------------------------------------------------------------------
+  [0x0C39] Op_IfPartyMemberJump member=2, count=1 -> Entry_33 (0x0C81)
+  [0x0C3D] DialogMessage style=0, len=25:
+                "[PORTRAIT:55]アレス 泉なんて行ってる\n
+                [1BD][1BE]じゃないだろ?[WAIT][CLEAR]"
+  [0x0C75] CharaControl len=7: 4d 00 00 04 01 20 fd
+  [0x0C7E] Op_WaitCharsStop
+  [0x0C7F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_33  @ Offset 0x0C81 (Buffer 0x02016C81)
+; ----------------------------------------------------------------------------
+  [0x0C81] DialogMessage style=0, len=18:
+                "[PORTRAIT:11]あら 泉に行って どうするの?[WAIT][CLEAR]"
+  [0x0CAB] CharaControl len=7: 4d 00 00 04 01 20 fd
+  [0x0CB4] Op_WaitCharsStop
+  [0x0CB5] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_1B  @ Offset 0x0CB7 (Buffer 0x02016CB7)
+; ----------------------------------------------------------------------------
+  [0x0CB7] Op_IfSwitchJump switch=0x0003 -> Entry_F9 (0x7374)
+  [0x0CBB] CharaControl len=4: 68 00 3e 54
+  [0x0CC1] Op_WaitCharsStop
+  [0x0CC2] Op_SceneChangeFade mode=2
+  [0x0CC4] Op_WaitSceneIdle
+  [0x0CC5] Op_LoadMap mapNpcSet=138, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x0CCC] Op_SaveOp 8
+  [0x0CCE] Op_BgmPlay song=65309, arg=0
+  [0x0CD2] CharaControl len=2: 64 00
+  [0x0CD6] CharaControl len=2: 64 01
+  [0x0CDA] Op_SceneChangePlain mode=0
+  [0x0CDC] Op_WaitSceneIdle
+  [0x0CDD] DialogMessage style=0, len=71:
+                "そろそろ[120][121][113]まったみたいだね\n
+                ボクの雄は ナッシュ・ルーマック![WAIT][08:00]見てのとおり 魔法修[119]ヴェーンの\n
+                魔法ギルドからやって来た魔法使いだ[WAIT][CLEAR]"
+  [0x0D71] Op_BgmFadeOut speed=48
+  [0x0D73] Op_WaitFrames count=120
+  [0x0D75] Op_SceneChangeFade mode=0
+  [0x0D77] Op_WaitSceneIdle
+  [0x0D78] Op_CameraSnap
+  [0x0D79] Op_LoadMap mapNpcSet=14, moveCmdSet=0, spawn=(0, 2), dir=0
+  [0x0D80] Op_LoadCutsceneAnim 00 00 00 64
+  [0x0D85] Op_LoadCutsceneAnim 0d 00 01 64
+  [0x0D8A] Op_LoadCutsceneAnim 1b 00 02 02
+  [0x0D8F] Op_LoadCutsceneAnim 1c 00 03 02
+  [0x0D94] Op_LoadCutsceneAnim 01 00 04 65
+  [0x0D99] Op_LoadCutsceneAnim 1d 00 05 02
+  [0x0D9E] Op_LoadCutsceneAnim 24 00 06 67
+  [0x0DA3] Op_LoadCutsceneAnim 25 00 07 67
+  [0x0DA8] Op_LoadCutsceneAnim 02 00 08 68
+  [0x0DAD] Op_LoadCutsceneAnim 0f 00 09 68
+  [0x0DB2] Op_LoadCutsceneAnim 04 00 0a 69
+  [0x0DB7] Op_LoadCutsceneAnim 3c 00 0b 06
+  [0x0DBC] Op_LoadCutsceneAnim 10 00 0c 65
+  [0x0DC1] Op_LoadCutsceneAnim 1e 00 0d 00
+  [0x0DC6] Op_LoadCutsceneAnim 23 00 0e 05
+  [0x0DCB] Op_LoadCutsceneAnim 1f 00 0f 01
+  [0x0DD0] Op_LoadCutsceneAnim 04 00 10 05
+  [0x0DD5] Op_LoadCutsceneAnim 20 00 11 64
+  [0x0DDA] Op_LoadCutsceneAnim 21 00 12 01
+  [0x0DDF] Op_LoadCutsceneAnim cb 01 13 02
+  [0x0DE4] Op_LoadCutsceneAnim 20 00 14 00
+  [0x0DE9] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x0DF9] CharaControl len=14: 53 01 01 01 01 00 00 00 00 00 00 00 00 00
+  [0x0E09] CharaControl len=14: 53 02 01 02 02 00 00 00 00 00 00 00 00 00
+  [0x0E19] CharaControl len=14: 53 03 01 03 03 00 00 00 00 00 00 00 00 00
+  [0x0E29] CharaControl len=14: 53 04 01 04 04 00 00 00 00 00 00 00 00 00
+  [0x0E39] CharaControl len=14: 53 05 01 05 05 00 00 00 00 00 00 00 00 00
+  [0x0E49] CharaControl len=14: 53 06 01 06 06 00 00 00 00 00 00 00 00 00
+  [0x0E59] Op_RestartCharaAnim chara=0, anim=13
+  [0x0E5C] Op_RestartCharaAnim chara=1, anim=15
+  [0x0E5F] Op_RestartCharaAnim chara=2, anim=2
+  [0x0E62] Op_RestartCharaAnim chara=3, anim=7
+  [0x0E65] Op_RestartCharaAnim chara=4, anim=9
+  [0x0E68] Op_RestartCharaAnim chara=5, anim=14
+  [0x0E6B] Op_RestartCharaAnim chara=6, anim=11
+  [0x0E6E] CharaControl SetPosDir chara=0, pos=(18, 20), dir=0
+  [0x0E75] CharaControl SetPosDir chara=1, pos=(15, 20), dir=0
+  [0x0E7C] CharaControl SetPosDir chara=2, pos=(18, 25), dir=0
+  [0x0E83] CharaControl len=7: 4d 02 00 06 02 02 fd
+  [0x0E8C] CharaControl len=3: 48 02 4a
+  [0x0E91] CharaControl SetPosDir chara=3, pos=(11, 17), dir=0
+  [0x0E98] CharaControl SetPosDir chara=4, pos=(4, 17), dir=0
+  [0x0E9F] CharaControl SetPosDir chara=5, pos=(21, 19), dir=0
+  [0x0EA6] CharaControl len=3: 48 05 0a
+  [0x0EAB] CharaControl SetPosDir chara=6, pos=(20, 16), dir=0
+  [0x0EB2] Op_SysEffect subOp=0x64, arg=0x00
+  [0x0EB5] Op_BgmFadeIn speed=48
+  [0x0EB7] Op_SceneChangePlain mode=0
+  [0x0EB9] Op_WaitSceneIdle
+  [0x0EBA] Op_RestartCharaAnim chara=5, anim=16
+  [0x0EBD] DialogMessage style=1, len=63:
+                "[PORTRAIT:55]なんだ アレスと[136]して\n
+                [197]わらないじゃん[WAIT][08:00]ヴェーンの魔法使いって迎うから\n
+                ヒゲのはえたじいちゃんかと\n
+                思ってたんだけど[WAIT][CLEAR]"
+  [0x0F41] Op_RestartCharaAnim chara=0, anim=20
+  [0x0F44] Op_RestartCharaAnim chara=1, anim=18
+  [0x0F47] DialogMessage style=1, len=9:
+                "[PORTRAIT:1]うん [198]かに[WAIT][CLEAR]"
+  [0x0F5F] Op_RestartCharaAnim chara=2, anim=3
+  [0x0F62] Op_WaitFrames count=25
+  [0x0F64] Op_SfxPlay sfx=49, arg=0
+  [0x0F68] Op_WaitCharaAnim chara=2
+  [0x0F6A] DialogMessage style=1, len=6:
+                "[PORTRAIT:18]そこ![WAIT][CLEAR]"
+  [0x0F7C] Op_RestartCharaAnim chara=5, anim=14
+  [0x0F7F] Op_RestartCharaAnim chara=0, anim=13
+  [0x0F82] Op_RestartCharaAnim chara=1, anim=15
+  [0x0F85] DialogMessage style=1, len=36:
+                "[PORTRAIT:18]長の奴は [199]かに聞くものだ!\n
+                まったく これだからイナカの長間は![WAIT][CLEAR]"
+  [0x0FD3] Op_RestartCharaAnim chara=2, anim=19
+  [0x0FD6] DialogMessage style=1, len=89:
+                "[PORTRAIT:20]魔法ギルドのエリートである\n
+                このボクの奴を聞けるなんて\n
+                こんなイナカじゃ[19A]しいだろうからね[WAIT][08:00]気[19B]ちは [188]からなくもないが\n
+                もう[19C]しマナーというものに\n
+                気をつかってほしいね[WAIT][CLEAR]"
+  [0x108E] Op_RestartCharaAnim chara=2, anim=2
+  [0x1091] Op_RestartCharaAnim chara=5, anim=16
+  [0x1094] DialogMessage style=1, len=21:
+                "[PORTRAIT:57]アレス あいつひっかいてきていいか?[WAIT][CLEAR]"
+  [0x10C4] Op_RestartCharaAnim chara=0, anim=17
+  [0x10C7] DialogMessage style=1, len=8:
+                "[PORTRAIT:3]やめろって[WAIT][CLEAR]"
+  [0x10DD] Op_RestartCharaAnim chara=3, anim=6
+  [0x10E0] Op_RestartCharaAnim chara=5, anim=14
+  [0x10E3] Op_RestartCharaAnim chara=0, anim=13
+  [0x10E6] CharaControl len=4: 68 03 0e 11
+  [0x10EC] Op_WaitCharsStop
+  [0x10ED] Op_RestartCharaAnim chara=3, anim=7
+  [0x10F0] DialogMessage style=1, len=73:
+                "[19D]し[19E]ありません\n
+                ウチの[142][19F]が[1A0]礼をいたしまして[WAIT][08:00]ところで 魔法ギルドのかたが\n
+                こんな[1A1][1A2]の村にどのような[1A3][1A4]で\n
+                いらっしゃったのでしょう?[WAIT][CLEAR]"
+  [0x1188] Op_RestartCharaAnim chara=2, anim=5
+  [0x118B] DialogMessage style=1, len=70:
+                "[PORTRAIT:16]ん ああ、、、\n
+                この村は ドラゴンマスター ダインの\n
+                [105][0FE][137]だそうだね[WAIT][08:00]ならば ダインの[0E1][0E2]について\n
+                [1A6]しい[153]が いるのではないか?[WAIT][CLEAR]"
+  [0x121D] Op_RestartCharaAnim chara=0, anim=20
+  [0x1220] Op_RestartCharaAnim chara=1, anim=18
+  [0x1223] DialogMessage style=1, len=29:
+                "ええ ウチの[142][19F]なんかは\n
+                [1A5]に[1A6]しいと思いますが、、、[WAIT][CLEAR]"
+  [0x1263] DialogMessage style=1, len=28:
+                "[PORTRAIT:17]やっぱりいたか!\n
+                ならば さっそく儀式を備もうか![WAIT][CLEAR]"
+  [0x12A1] Op_RestartCharaAnim chara=0, anim=13
+  [0x12A4] Op_RestartCharaAnim chara=1, anim=15
+  [0x12A7] DialogMessage style=1, len=11:
+                "[PORTRAIT:1]儀式? どこに?[WAIT][CLEAR]"
+  [0x12C3] Op_RestartCharaAnim chara=2, anim=3
+  [0x12C6] Op_WaitFrames count=25
+  [0x12C8] Op_SfxPlay sfx=49, arg=0
+  [0x12CC] Op_WaitCharaAnim chara=2
+  [0x12CE] DialogMessage style=1, len=155:
+                "[PORTRAIT:20][1C1]まっているだろう 墓参[0E9][0D8]のある\n
+                ゴートの肉さ![WAIT][08:00]ボクはドラゴンマスターになるために\n
+                墓参の[1A8][10E]を[149]けに来たんだからね![WAIT][08:00]でなければ\n
+                魔法ギルドのエリートである\n
+                このボクが、、、[WAIT][08:00]わざわざこんなイナカまで\n
+                来る意[1A9]がないだろう[WAIT][08:00]ボクは村の[14C]り[1AA]で待っている\n
+                [110]いで[1AB][1AC]を\n
+                すませてきてくれたまえ[WAIT][CLEAR]"
+  [0x140A] Op_BgmFadeOut speed=48
+  [0x140C] Op_SceneChangeFade mode=2
+  [0x140E] Op_WaitSceneIdle
+  [0x140F] Op_CameraFollow
+  [0x1410] Op_LoadMap mapNpcSet=1, moveCmdSet=1, spawn=(63, 88), dir=0
+  [0x1417] CharaControl SetPosDir chara=2, pos=(3, 64), dir=0
+  [0x141E] Op_AddPartyMember memberId=8
+  [0x1420] Op_WaitCharsStop
+  [0x1421] Op_LoadCharaGfx chara=10, gfx1=2, gfx2=0
+  [0x1425] Op_LoadCharaGfx chara=11, gfx1=8, gfx2=0
+  [0x1429] Op_LoadCharaPal chara=10, pal1=2, pal2=0
+  [0x142D] Op_LoadCharaPal chara=11, pal1=8, pal2=0
+  [0x1431] CharaControl len=14: 53 02 00 0a 0a 04 00 00 00 00 00 00 00 00
+  [0x1441] CharaControl len=14: 53 03 00 0b 0b 04 00 00 00 00 00 00 00 00
+  [0x1451] CharaControl len=1: 6e
+  [0x1454] CharaControl SetPosDir chara=1, pos=(63, 86), dir=4
+  [0x145B] CharaControl SetPosDir chara=2, pos=(65, 88), dir=6
+  [0x1462] CharaControl SetPosDir chara=3, pos=(61, 88), dir=2
+  [0x1469] Op_WaitCharsStop
+  [0x146A] Op_SceneChangePlain mode=0
+  [0x146C] Op_WaitSceneIdle
+  [0x146D] DialogMessage style=0, len=55:
+                "[PORTRAIT:43]墓参[0E9][0D8]か、、、[WAIT][08:00]もしかしたら ダイン様の[0E1][0E2][1AD]に\n
+                [105]てくる参のダイヤが[14B]に[14C]るかも\n
+                行こう アレス![WAIT][CLEAR]"
+  [0x14E1] DialogMessage style=0, len=39:
+                "[PORTRAIT:55]ダイン様みたいな[0E1][0E2]がしたいって\n
+                いつも迎ってるじゃんか\n
+                チャンスだぜ![WAIT][CLEAR]"
+  [0x1535] DialogMessage style=3, len=70:
+                "[0E:0D]ちょっと待って [196]長とも!\n
+                アレスだって墓参[0E9][0D8]に行ったことが\n
+                あるわけじゃないのよ?[WAIT][08:00]肉の[1A2]に行けば 魔雄だっているし\n
+                [1AE][0E2]だわ![WAIT][CLEAR]"
+  [0x15C7] DialogMessage style=0, len=33:
+                "[PORTRAIT:55]ヴェーンの魔法使いが[12A][1AF]なんだ\n
+                魔雄くらいどうってことないさ[WAIT][CLEAR]"
+  [0x160F] DialogMessage style=0, len=42:
+                "[PORTRAIT:43]そうだよ! それに ゴートの肉なら\n
+                ウチに[137][1B0]があるはずだ\n
+                [1B1]うこともないって[WAIT][CLEAR]"
+  [0x1669] DialogMessage style=0, len=12:
+                "[PORTRAIT:1][188]かった 行こう![WAIT][CLEAR]"
+  [0x1687] DialogMessage style=3, len=33:
+                "[0E:0B]アレス、、、[WAIT][08:00]だったら[24D]も行くわ\n
+                アレス[12A]長じゃ[150][1B2]だもの[WAIT][CLEAR]"
+  [0x16CF] CharaControl len=7: 4d 00 00 04 00 01 ff
+  [0x16D8] CharaControl len=4: 68 01 ff ff
+  [0x16DE] CharaControl len=4: 68 02 ff ff
+  [0x16E4] CharaControl len=4: 68 03 ff ff
+  [0x16EA] Op_WaitCharsStop
+  [0x16EB] CharaControl len=14: 53 02 00 02 06 04 03 3f 03 3f 03 3f 00 1f
+  [0x16FB] CharaControl len=14: 53 03 00 03 03 02 0f 22 09 0e 12 15 01 01
+  [0x170B] Op_WaitCharsStop
+  [0x170C] CharaControl len=1: 4e
+  [0x170F] Op_SetSwitch switch=0x0003
+  [0x1712] Op_ClearSwitch switch=0x0076
+  [0x1715] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_1C, Entry_1F  @ Offset 0x1717 (Buffer 0x02017717)
+; ----------------------------------------------------------------------------
+  [0x1717] DialogMessage style=0, len=18:
+                "[PORTRAIT:16]やあ もう[1AB][1AC]はできたのかい?[WAIT][CLEAR]"
+  [0x1741] Op_IfEventFlagJump flag=0x0004 -> Entry_20 (0x1791)
+  [0x1745] DialogMessage style=0, len=34:
+                "[PORTRAIT:43]アレス ゴートの肉の[137][1B0]がないぞ\n
+                ウチにあるから [1B3]ってこよう[WAIT][CLEAR]"
+  [0x178F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_20  @ Offset 0x1791 (Buffer 0x02017791)
+; ----------------------------------------------------------------------------
+  [0x1791] DialogMessage style=0, len=6:
+                "[PORTRAIT:1]うん [WAIT][CLEAR]"
+  [0x17A3] DialogMessage style=0, len=17:
+                "[PORTRAIT:16]よし それじゃあ儀式を備むよ[WAIT][CLEAR]"
+  [0x17CB] CharaControl len=4: 68 02 ff ff
+  [0x17D1] Op_WaitCharsStop
+  [0x17D2] CharaControl len=2: 64 02
+  [0x17D6] Op_WaitCharsStop
+  [0x17D7] Op_AddPartyMember memberId=3
+  [0x17D9] Op_SetSwitch switch=0x0006
+  [0x17DC] Op_ClearEventFlag flag=0x0006
+  [0x17DF] Op_SetSwitch switch=0x0014
+  [0x17E2] Op_SetSwitch switch=0x0015
+  [0x17E5] Op_SetSwitch switch=0x0016
+  [0x17E8] Op_SetSwitch switch=0x0017
+  [0x17EB] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_22  @ Offset 0x17ED (Buffer 0x020177ED)
+; ----------------------------------------------------------------------------
+  [0x17ED] Op_IfPartyMemberJump member=6, count=0 -> Entry_25 (0x17F3)
+  [0x17F1] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_25  @ Offset 0x17F3 (Buffer 0x020177F3)
+; ----------------------------------------------------------------------------
+  [0x17F3] Op_IfPartyMemberJump member=8, count=0 -> Entry_2F (0x1829)
+  [0x17F7] DialogMessage style=0, len=16:
+                "[PORTRAIT:18]おい どこへ行くつもりだ![WAIT][CLEAR]"
+  [0x181D] CharaControl len=7: 4d 00 00 02 01 20 fd
+  [0x1826] Op_WaitCharsStop
+  [0x1827] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_2F  @ Offset 0x1829 (Buffer 0x02017829)
+; ----------------------------------------------------------------------------
+  [0x1829] DialogMessage style=0, len=28:
+                "[PORTRAIT:57]アレス どこ行くんだよ\n
+                [0E8][0E9][111]のとこに行くんだろ?[WAIT][CLEAR]"
+  [0x1867] CharaControl len=7: 4d 00 00 02 01 20 fd
+  [0x1870] Op_WaitCharsStop
+  [0x1871] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_23  @ Offset 0x1873 (Buffer 0x02017873)
+; ----------------------------------------------------------------------------
+  [0x1873] Op_IfEventFlagJump flag=0x001D -> Entry_F9 (0x7374)
+  [0x1877] Op_IfEventFlagJump flag=0x0015 -> Entry_24 (0x187D)
+  [0x187B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_24  @ Offset 0x187D (Buffer 0x0201787D)
+; ----------------------------------------------------------------------------
+  [0x187D] CharaControl len=4: 68 00 3c 56
+  [0x1883] Op_WaitCharsStop
+  [0x1884] CharaControl len=1: 6e
+  [0x1887] CharaControl len=7: 4d 00 00 06 00 01 fd
+  [0x1890] CharaControl len=7: 4d 01 00 06 00 01 fd
+  [0x1899] Op_WaitCharsStop
+  [0x189A] Op_LoadCharaGfx chara=4, gfx1=3, gfx2=0
+  [0x189E] Op_LoadCharaPal chara=9, pal1=3, pal2=0
+  [0x18A2] Op_LoadCharaGfx chara=10, gfx1=2, gfx2=0
+  [0x18A6] Op_LoadCharaGfx chara=11, gfx1=8, gfx2=0
+  [0x18AA] Op_LoadCharaPal chara=10, pal1=2, pal2=0
+  [0x18AE] Op_LoadCharaPal chara=11, pal1=8, pal2=0
+  [0x18B2] Op_WaitSpriteLoad
+  [0x18B3] CharaControl len=14: 53 02 00 0a 0a 06 3c 54 00 00 00 00 00 00
+  [0x18C3] CharaControl len=14: 53 03 00 0b 0b 02 3c 54 00 00 00 00 00 00
+  [0x18D3] CharaControl len=14: 53 04 00 04 09 02 3c 54 00 00 00 00 00 00
+  [0x18E3] Op_WaitCharsStop
+  [0x18E4] CharaControl len=7: 4d 01 02 01 01 10 fd
+  [0x18ED] CharaControl len=7: 4d 02 02 03 01 10 fd
+  [0x18F6] CharaControl len=7: 4d 04 02 05 01 10 fd
+  [0x18FF] CharaControl len=7: 4d 03 02 07 01 10 fd
+  [0x1908] Op_WaitCharsStop
+  [0x1909] DialogMessage style=0, len=30:
+                "[PORTRAIT:43]さすが アルテナ様だ\n
+                疲れなんてすっかりなくなったよ![WAIT][CLEAR]"
+  [0x194B] DialogMessage style=0, len=39:
+                "[PORTRAIT:17]それじゃあ、、、\n
+                ボクはこの[1B4]で[1A0]礼するよ\n
+                [23D]の参のことも[1B5]べたいからね[WAIT][CLEAR]"
+  [0x199F] DialogMessage style=3, len=35:
+                "[0E:0C]せっかく来たんだから\n
+                お[11D]りを見ていったらどう?\n
+                ねえ アレス?[WAIT][CLEAR]"
+  [0x19EB] DialogMessage style=0, len=10:
+                "[PORTRAIT:2]うん そうだよ[WAIT][CLEAR]"
+  [0x1A05] DialogMessage style=0, len=44:
+                "[PORTRAIT:17]ありがたい[19D]し[105]だけど、、、\n
+                またの[1B6]行に 見雄させてもらうよ!\n
+                それじゃあ、、、[WAIT][CLEAR]"
+  [0x1A63] CharaControl len=7: 4d 04 00 06 02 12 fd
+  [0x1A6C] CharaControl len=7: 4d 03 00 06 00 01 fd
+  [0x1A75] Op_WaitCharsStop
+  [0x1A76] CharaControl len=11: 4d 04 00 00 02 1d 00 06 02 27 fd
+  [0x1A83] Op_WaitCharsStop
+  [0x1A84] CharaControl len=2: 64 04
+  [0x1A88] Op_WaitCharsStop
+  [0x1A89] DialogMessage style=3, len=16:
+                "[0E:37]なんだか [1B7]しいヤツだなぁ[WAIT][CLEAR]"
+  [0x1AAF] CharaControl len=7: 4d 00 00 00 00 01 fd
+  [0x1AB8] CharaControl len=7: 4d 02 00 00 00 01 fd
+  [0x1AC1] Op_WaitCharsStop
+  [0x1AC2] DialogMessage style=0, len=96:
+                "[PORTRAIT:43]魔法ギルドのエリートだって迎うし\n
+                いろいろ あるんじゃないか?[WAIT][08:00]ボクは あのダイヤを\n
+                上く[22C]る方法を考えるよ![WAIT][08:00]なんたって あの参のダイヤだ!\n
+                [136][1BB][19B]ちになれるぞぉ!\n
+                それじゃ、、、[WAIT][CLEAR]"
+  [0x1B88] CharaControl len=7: 4d 03 00 00 02 20 fd
+  [0x1B91] Op_WaitCharsStop
+  [0x1B92] CharaControl len=2: 64 03
+  [0x1B96] Op_WaitCharsStop
+  [0x1B97] DialogMessage style=0, len=31:
+                "[PORTRAIT:55]オレたちも そろそろ[1BC]ろうぜ!\n
+                もう おなかペコペコだよ[WAIT][CLEAR]"
+  [0x1BDB] CharaControl len=4: 68 01 ff ff
+  [0x1BE1] CharaControl len=4: 68 02 ff ff
+  [0x1BE7] Op_WaitCharsStop
+  [0x1BE8] CharaControl len=1: 4e
+  [0x1BEB] CharaControl len=2: 64 02
+  [0x1BEF] Op_WaitCharsStop
+  [0x1BF0] Op_LoadCharaGfx chara=4, gfx1=14, gfx2=0
+  [0x1BF4] Op_WaitSpriteLoad
+  [0x1BF5] CharaControl len=14: 53 03 00 03 03 02 0f 22 09 0e 12 15 01 01
+  [0x1C05] CharaControl len=14: 53 04 00 04 04 00 3c 1e 37 1a 41 22 02 50
+  [0x1C15] Op_WaitCharsStop
+  [0x1C16] Op_RemovePartyMember memberId=3
+  [0x1C18] Op_RemovePartyMember memberId=8
+  [0x1C1A] Op_ClearSwitch switch=0x0015
+  [0x1C1D] Op_SetEventFlag flag=0x001D
+  [0x1C20] Op_GiveTakeItem item=237, count=101
+  [0x1C23] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_27, Entry_28, Entry_29, Entry_2A, Entry_2B, Entry_2C, Entry_2D, Entry_2E  @ Offset 0x1C25 (Buffer 0x02017C25)
+; ----------------------------------------------------------------------------
+  [0x1C25] Op_IfEventFlagJump flag=0x0015 -> Entry_F9 (0x7374)
+  [0x1C29] Op_IfEventFlagJump flag=0x0010 -> Entry_16 (0x0790)
+  [0x1C2D] Op_IfEventFlagJump flag=0x0006 -> Entry_25 (0x17F3)
+  [0x1C31] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_31  @ Offset 0x1C33 (Buffer 0x02017C33)
+; ----------------------------------------------------------------------------
+  [0x1C33] Op_IfEventFlagJump flag=0x003B -> Entry_26 (0x1CAB)
+  [0x1C37] Op_IfEventFlagJump flag=0x0039 -> Entry_35 (0x1D69)
+  [0x1C3B] Op_IfEventFlagJump flag=0x0038 -> Entry_30 (0x1D17)
+  [0x1C3F] DialogMessage style=0, len=45:
+                "[PORTRAIT:55]アレス＾ いくらスキだからって\n
+                [1A3]もないのに行くのは\n
+                ダインのオッチャンに [1A0]礼だぞ[WAIT][CLEAR]"
+  [0x1C9F] CharaControl len=7: 4d 00 00 04 01 20 fd
+  [0x1CA8] Op_WaitCharsStop
+  [0x1CA9] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_26  @ Offset 0x1CAB (Buffer 0x02017CAB)
+; ----------------------------------------------------------------------------
+  [0x1CAB] DialogMessage style=0, len=45:
+                "[PORTRAIT:55]アレス＾ いくらスキだからって\n
+                [1A3]もないのに行くのは\n
+                ダインのオッチャンに [1A0]礼だぞ[WAIT][CLEAR]"
+  [0x1D0B] CharaControl len=7: 4d 00 00 04 01 20 fd
+  [0x1D14] Op_WaitCharsStop
+  [0x1D15] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_30  @ Offset 0x1D17 (Buffer 0x02017D17)
+; ----------------------------------------------------------------------------
+  [0x1D17] DialogMessage style=0, len=32:
+                "[PORTRAIT:47]やめておこう\n
+                [1E7][1E8]の[135]を意[226]する雄など\n
+                見たくはない、、、[WAIT][CLEAR]"
+  [0x1D5D] CharaControl len=7: 4d 00 00 04 01 20 fd
+  [0x1D66] Op_WaitCharsStop
+  [0x1D67] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_35  @ Offset 0x1D69 (Buffer 0x02017D69)
+; ----------------------------------------------------------------------------
+  [0x1D69] Op_SceneChangeFade mode=2
+  [0x1D6B] Op_WaitSceneIdle
+  [0x1D6C] Op_LoadMap mapNpcSet=11, moveCmdSet=0, spawn=(15, 46), dir=6
+  [0x1D73] Op_LoadCutsceneAnim 0d 00 00 00
+  [0x1D78] Op_LoadCutsceneAnim 00 00 01 00
+  [0x1D7D] Op_LoadCutsceneAnim 0d 00 02 64
+  [0x1D82] Op_LoadCutsceneAnim c7 01 03 64
+  [0x1D87] Op_LoadCutsceneAnim 04 00 0a 01
+  [0x1D8C] Op_LoadCutsceneAnim 04 00 0b 65
+  [0x1D91] Op_LoadCutsceneAnim c8 01 14 66
+  [0x1D96] Op_LoadCutsceneAnim 7b 01 15 66
+  [0x1D9B] Op_LoadCutsceneAnim 7a 01 16 66
+  [0x1DA0] Op_LoadCutsceneAnim 7b 01 17 02
+  [0x1DA5] Op_LoadCutsceneAnim b4 01 18 66
+  [0x1DAA] Op_LoadCutsceneAnim b5 01 19 66
+  [0x1DAF] Op_LoadCutsceneAnim b6 01 1a 66
+  [0x1DB4] Op_LoadCutsceneAnim 03 00 1b 05
+  [0x1DB9] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x1DC9] CharaControl len=14: 53 01 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x1DD9] CharaControl len=14: 53 02 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x1DE9] CharaControl len=14: 53 05 03 00 00 00 00 00 00 00 00 00 00 00
+  [0x1DF9] CharaControl SetPosDir chara=100, pos=(0, 25), dir=60
+  [0x1E05] CharaControl SetPosDir chara=101, pos=(0, 25), dir=78
+  [0x1E14] CharaControl SetPosDir chara=102, pos=(0, 0), dir=128
+  [0x1E20] CharaControl SetPosDir chara=5, pos=(10, 46), dir=2
+  [0x1E27] Op_RestartCharaAnim chara=0, anim=1
+  [0x1E2A] Op_RestartCharaAnim chara=1, anim=10
+  [0x1E2D] Op_RestartCharaAnim chara=2, anim=23
+  [0x1E30] Op_RestartCharaAnim chara=5, anim=27
+  [0x1E33] Op_BgmPlay song=65307, arg=0
+  [0x1E37] Op_SceneChangePlain mode=0
+  [0x1E39] Op_WaitSceneIdle
+  [0x1E3A] CharaControl len=7: 4d 00 00 06 01 60 fd
+  [0x1E43] CharaControl len=7: 4d 01 00 06 01 60 fd
+  [0x1E4C] Op_WaitCharsStop
+  [0x1E4D] Op_RestartCharaAnim chara=0, anim=0
+  [0x1E50] DialogMessage style=0, len=13:
+                "[PORTRAIT:55]レイクのオッチャン![WAIT][CLEAR]"
+  [0x1E70] Op_RestartCharaAnim chara=2, anim=21
+  [0x1E73] DialogMessage style=0, len=20:
+                "[PORTRAIT:51]おお 気がついたか?\n
+                アレス ナル[WAIT][CLEAR]"
+  [0x1EA1] DialogMessage style=0, len=48:
+                "[PORTRAIT:55]オッチャン\n
+                助けてくれて ありがとな![WAIT][08:00]でも どうしてオッチャンが\n
+                あそこにいたんだい?[WAIT][CLEAR]"
+  [0x1F07] Op_RestartCharaAnim chara=2, anim=26
+  [0x1F0A] DialogMessage style=0, len=29:
+                "[PORTRAIT:52]ハハハッ ワッハッハッ!\n
+                [1BF]かいことは 気にするな![WAIT][CLEAR]"
+  [0x1F4A] Op_RestartCharaAnim chara=2, anim=21
+  [0x1F4D] DialogMessage style=0, len=15:
+                "[PORTRAIT:58][1BF]かいこと かな、、、?[WAIT][CLEAR]"
+  [0x1F71] Op_RestartCharaAnim chara=2, anim=24
+  [0x1F74] DialogMessage style=0, len=41:
+                "[PORTRAIT:51]アレス、、、ルーナのことは\n
+                気の[1C0]だったな?[WAIT][08:00]で お[112]はどうするつもりだ?[WAIT][CLEAR]"
+  [0x1FCC] DialogMessage style=0, len=19:
+                "[PORTRAIT:55]どうって\n
+                そんなの[1C1]まって、、、[WAIT][CLEAR]"
+  [0x1FF8] Op_RestartCharaAnim chara=2, anim=21
+  [0x1FFB] DialogMessage style=0, len=26:
+                "[PORTRAIT:51]すまんな おチビちゃん\n
+                アレスと奴をさせてくれ[WAIT][CLEAR]"
+  [0x2035] DialogMessage style=0, len=8:
+                "[PORTRAIT:4][0E6]は、、、[WAIT][CLEAR]"
+  [0x204B] Op_DialogChoice e0=Entry_3A (0x2085), e1=Entry_3B (0x20C9), text="[0E6]"
+
+; ----------------------------------------------------------------------------
+; Entry_3A  @ Offset 0x2085 (Buffer 0x02018085)
+; ----------------------------------------------------------------------------
+  [0x2085] DialogMessage style=0, len=30:
+                "[PORTRAIT:3][0E6]が魔法[0D5][0D6]を[1C4]します!\n
+                そして ルーナを助けるんだ![WAIT][CLEAR]"
+  [0x20C7] Op_ScriptJump Entry_3C (0x20F7)
+
+; ----------------------------------------------------------------------------
+; Entry_3B  @ Offset 0x20C9 (Buffer 0x020180C9)
+; ----------------------------------------------------------------------------
+  [0x20C9] DialogMessage style=0, len=19:
+                "[PORTRAIT:3][0E6]は ルーナを助けます!\n
+                [1C5]ず![WAIT][CLEAR]"
+  [0x20F5] Op_ScriptJump Entry_3C (0x20F7)
+
+; ----------------------------------------------------------------------------
+; Entry_3C  @ Offset 0x20F7 (Buffer 0x020180F7)
+; ----------------------------------------------------------------------------
+  [0x20F7] DialogMessage style=0, len=97:
+                "[PORTRAIT:51]、、、[1C6][14B]は[1C7][0ED][0EE]の[12A]長\n
+                あの ガレオンだぞ?[WAIT][08:00]しかも[1B4][1C8]の魔[1C9]たちと[1CA]み\n
+                魔法[0D5][0D6]として\n
+                [1CB][1CC]していると聞く、、、[WAIT][08:00]どれほど [1CD][136]な敷を[19B]っているか\n
+                [188]からんのだぞ?[WAIT][08:00]それでもか?[WAIT][CLEAR]"
+  [0x21BF] DialogMessage style=0, len=6:
+                "[PORTRAIT:1]はい![WAIT][CLEAR]"
+  [0x21D1] DialogMessage style=0, len=9:
+                "[PORTRAIT:51]そうか、、、[WAIT][CLEAR]"
+  [0x21E9] Op_WaitFrames count=50
+  [0x21EB] Op_RestartCharaAnim chara=2, anim=23
+  [0x21EE] Op_WaitFrames count=50
+  [0x21F0] DialogMessage style=0, len=75:
+                "[PORTRAIT:51]『[100]らが[0ED][0EE]\n
+                 ドラゴンマスター ダインの[101][102]を\n
+                 たたえん』 か[0A:14]、[0A:14]、[0A:14]、[0A:14][WAIT][08:00]アレス 15[1CE][112] ダインが\n
+                どうして[135]んだか 知っているか?[WAIT][CLEAR]"
+  [0x228C] DialogMessage style=0, len=8:
+                "[PORTRAIT:4]いえ、、、[WAIT][CLEAR]"
+  [0x22A2] Op_RestartCharaAnim chara=2, anim=21
+  [0x22A5] DialogMessage style=0, len=67:
+                "[PORTRAIT:51]ダインは ある[0E8][1CF]の気[19B]ちに\n
+                うたれた、、、[WAIT][08:00][168][0E8]の 長[1DC]を[1D0]じる[150]を[0EB]るために\n
+                [120]ての敷を使い[0FA]たし、、、[WAIT][08:00]そして [1C4]れた[WAIT][CLEAR]"
+  [0x2331] DialogMessage style=0, len=12:
+                "[PORTRAIT:4]、[0A:14]、[0A:14]、[0A:14]、[0A:14]、[WAIT][CLEAR]"
+  [0x234F] DialogMessage style=0, len=35:
+                "[PORTRAIT:52]ハハハ\n
+                ま [0E8]の[19F]を助けるってのは\n
+                それだけしんどいってことだ![WAIT][CLEAR]"
+  [0x239B] Op_WaitFrames count=60
+  [0x239D] DialogMessage style=0, len=31:
+                "[PORTRAIT:51]だが やると迎ったのはお[112]だ!\n
+                がんばってみることだな?[WAIT][CLEAR]"
+  [0x23E1] DialogMessage style=0, len=6:
+                "[PORTRAIT:1]はい![WAIT][CLEAR]"
+  [0x23F3] DialogMessage style=0, len=24:
+                "[PORTRAIT:51]いい[1D1]気だ!\n
+                [1D2][1D3]させてもらうよ アレス![WAIT][CLEAR]"
+  [0x2429] DialogMessage style=0, len=27:
+                "[PORTRAIT:59]ちぇっ オーエンだけかよ\n
+                なんか [1D4]でいいよなァ[WAIT][CLEAR]"
+  [0x2465] DialogMessage style=0, len=22:
+                "[PORTRAIT:52]ハッハッハッ\n
+                まぁ そういうな チビ助[WAIT][CLEAR]"
+  [0x2497] DialogMessage style=0, len=62:
+                "[PORTRAIT:51]おっと そうだ!\n
+                こんなものを ひろってな[WAIT][08:00]ちょうど 墓参のいた[1BD][1D5]だ\n
+                [194]かの[1D6]に[0F6]つかもしれん\n
+                [1D7]しておこう、、、[WAIT][CLEAR]"
+  [0x2519] Op_RestartCharaAnim chara=2, anim=22
+  [0x251C] CharaControl len=7: 4d 02 00 02 01 10 fd
+  [0x2525] Op_WaitCharsStop
+  [0x2526] Op_RestartCharaAnim chara=2, anim=20
+  [0x2529] Op_WaitFrames count=40
+  [0x252B] Op_RestartCharaAnim chara=2, anim=21
+  [0x252E] Op_WaitFrames count=10
+  [0x2530] Op_RestartCharaAnim chara=2, anim=22
+  [0x2533] CharaControl len=7: 4d 02 00 06 01 08 fd
+  [0x253C] Op_WaitCharsStop
+  [0x253D] Op_RestartCharaAnim chara=2, anim=21
+  [0x2540] Op_SfxPlay sfx=26, arg=0
+  [0x2544] DialogMessage style=4, len=17:
+                "\n
+                墓参のつばさを [14B]に[14C]れた![WAIT][CLEAR]"
+  [0x256C] DialogMessage style=0, len=16:
+                "[PORTRAIT:51]では また行おう\n
+                アレス![WAIT][CLEAR]"
+  [0x2592] Op_RestartCharaAnim chara=2, anim=22
+  [0x2595] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25A1] Op_WaitFrames count=0
+  [0x25A3] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25AA] Op_WaitFrames count=0
+  [0x25AC] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25B8] Op_WaitFrames count=0
+  [0x25BA] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25C1] Op_WaitFrames count=0
+  [0x25C3] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25CF] Op_WaitFrames count=0
+  [0x25D1] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25D8] Op_WaitFrames count=0
+  [0x25DA] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25E6] Op_WaitFrames count=0
+  [0x25E8] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x25EF] Op_WaitFrames count=0
+  [0x25F1] CharaControl len=7: 4d 02 00 02 01 80 fd
+  [0x25FA] Op_WaitFrames count=60
+  [0x25FC] Op_RestartCharaAnim chara=0, anim=2
+  [0x25FF] Op_WaitFrames count=10
+  [0x2601] Op_RestartCharaAnim chara=1, anim=11
+  [0x2604] Op_WaitCharsStop
+  [0x2605] Op_RestartCharaAnim chara=1, anim=10
+  [0x2608] DialogMessage style=0, len=20:
+                "[PORTRAIT:55]ホントに [197]なオッチャンだな、、、[WAIT][CLEAR]"
+  [0x2636] DialogMessage style=0, len=50:
+                "[PORTRAIT:56]でも アレスがルーナを\n
+                助けるって [1C1]めてくれて\n
+                オレ うれしいよ![WAIT][08:00]がんばろうな アレス![WAIT][CLEAR]"
+  [0x26A0] DialogMessage style=0, len=9:
+                "[PORTRAIT:2]ああ ナル![WAIT][CLEAR]"
+  [0x26B8] DialogMessage style=0, len=101:
+                "[PORTRAIT:55]まず ルーナがどこに\n
+                [1DA]れてかれちゃったのか\n
+                [0FF]さないと いけないよなぁ、、、[WAIT][08:00]さっきオッチャンがくれた、、、\n
+                墓参のつばさ だっけ?\n
+                あれに なんか[14B]がかりないかな?[WAIT][08:00]使ってみようぜ アレス[WAIT][CLEAR]"
+  [0x2788] DialogMessage style=0, len=8:
+                "[PORTRAIT:1]うん、、、[WAIT][CLEAR]"
+  [0x279E] Op_RestartCharaAnim chara=0, anim=3
+  [0x27A1] Op_WaitCharaAnim chara=0
+  [0x27A3] Op_RestartCharaAnim chara=0, anim=2
+  [0x27A6] Op_LoadCutsceneAnim 78 00 14 04
+  [0x27AB] Op_LoadCutsceneAnim 79 00 15 04
+  [0x27B0] CharaControl len=14: 53 04 03 00 00 00 00 00 00 00 00 00 00 00
+  [0x27C0] CharaControl SetPosDir chara=104, pos=(0, 0), dir=168
+  [0x27CC] Op_RestartCharaAnim chara=4, anim=20
+  [0x27CF] Op_SfxPlay sfx=94, arg=0
+  [0x27D3] CharaControl SetPosDir chara=120, pos=(0, 1), dir=255
+  [0x27DF] Op_WaitFrames count=0
+  [0x27E1] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27E3] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27E5] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27E7] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27E9] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27EB] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27ED] Op_WaitFrames count=0
+  [0x27EF] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27F1] Op_WaitFrames count=0
+  [0x27F3] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27F5] Op_WaitFrames count=1
+  [0x27F7] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27F9] Op_WaitFrames count=1
+  [0x27FB] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x27FD] Op_WaitFrames count=2
+  [0x27FF] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x2801] Op_WaitFrames count=2
+  [0x2803] Op_ScriptCallAlt Entry_DC (0x712F)
+  [0x2805] Op_WaitFrames count=3
+  [0x2807] DialogMessage style=0, len=5:
+                "[PORTRAIT:3]!?[WAIT][CLEAR]"
+  [0x2817] DialogMessage style=0, len=11:
+                "[PORTRAIT:57]な なんだぁ!?[WAIT][CLEAR]"
+  [0x2833] Op_WaitFrames count=30
+  [0x2835] Op_WaitCharaAnim chara=4
+  [0x2837] Op_RestartCharaAnim chara=4, anim=21
+  [0x283A] Op_SfxPlay sfx=26, arg=0
+  [0x283E] Op_WaitFrames count=120
+  [0x2840] Op_GiveTakeItem item=183, count=1
+  [0x2843] Op_BgmFadeOut speed=48
+  [0x2845] Op_SceneChangeFade mode=2
+  [0x2847] Op_WaitSceneIdle
+  [0x2848] Op_SetEventFlag flag=0x003B
+  [0x284B] Op_SetSwitch switch=0x0001
+  [0x284E] Op_ScriptStreamLZ setId=32, entry=0
+  [0x2851] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_3D  @ Offset 0x2853 (Buffer 0x02018853)
+; ----------------------------------------------------------------------------
+  [0x2853] Op_SceneChangeFade mode=2
+  [0x2855] Op_WaitSceneIdle
+  [0x2856] Op_CameraSnap
+  [0x2857] Op_LoadMap mapNpcSet=13, moveCmdSet=0, spawn=(0, 5), dir=0
+  [0x285E] Op_LoadCutsceneAnim 00 00 00 00
+  [0x2863] Op_LoadCutsceneAnim 0d 00 01 00
+  [0x2868] Op_LoadCutsceneAnim 15 00 02 01
+  [0x286D] Op_LoadCutsceneAnim 16 00 03 01
+  [0x2872] Op_LoadCutsceneAnim 10 00 04 01
+  [0x2877] Op_LoadCutsceneAnim 19 00 05 64
+  [0x287C] Op_LoadCutsceneAnim 1a 00 06 65
+  [0x2881] Op_LoadCutsceneAnim 04 00 07 02
+  [0x2886] Op_LoadCutsceneAnim 04 00 08 66
+  [0x288B] Op_LoadCutsceneAnim 17 00 09 03
+  [0x2890] Op_LoadCutsceneAnim 17 00 0a 04
+  [0x2895] Op_LoadCutsceneAnim 17 00 0b 05
+  [0x289A] Op_LoadCutsceneAnim 10 00 0c 65
+  [0x289F] Op_LoadCutsceneAnim 19 00 0d 00
+  [0x28A4] Op_LoadCutsceneAnim 1a 00 0e 01
+  [0x28A9] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x28B9] CharaControl len=14: 53 01 01 01 01 00 00 00 00 00 00 00 00 00
+  [0x28C9] CharaControl len=17: 53 02 01 02 02 00 00 00 00 00 00 00 00 00 48 02 0a
+  [0x28DC] CharaControl len=17: 53 03 01 03 03 00 00 00 00 00 00 00 00 00 48 03 a5
+  [0x28EF] CharaControl len=17: 53 04 01 04 04 00 00 00 00 00 00 00 00 00 48 04 87
+  [0x2902] CharaControl len=17: 53 05 01 05 05 00 00 00 00 00 00 00 00 00 48 05 93
+  [0x2915] CharaControl SetPosDir chara=100, pos=(0, 25), dir=56
+  [0x2921] CharaControl SetPosDir chara=102, pos=(0, 27), dir=56
+  [0x292D] CharaControl SetPosDir chara=1, pos=(11, 18), dir=6
+  [0x2934] CharaControl SetPosDir chara=3, pos=(32, 27), dir=6
+  [0x293B] CharaControl SetPosDir chara=4, pos=(35, 27), dir=6
+  [0x2942] CharaControl SetPosDir chara=5, pos=(38, 27), dir=6
+  [0x2949] Op_RestartCharaAnim chara=0, anim=13
+  [0x294C] Op_RestartCharaAnim chara=1, anim=2
+  [0x294F] Op_RestartCharaAnim chara=2, anim=7
+  [0x2952] Op_RestartCharaAnim chara=3, anim=9
+  [0x2955] Op_RestartCharaAnim chara=4, anim=10
+  [0x2958] Op_RestartCharaAnim chara=5, anim=11
+  [0x295B] Op_SceneChangePlain mode=0
+  [0x295D] Op_WaitSceneIdle
+  [0x295E] Op_SfxPlay sfx=219, arg=0
+  [0x2962] CharaControl len=11: 4d 03 00 06 01 fa 00 06 01 64 fd
+  [0x296F] CharaControl len=11: 4d 04 00 06 01 fa 00 06 01 64 fd
+  [0x297C] CharaControl len=11: 4d 05 00 06 01 fa 00 06 01 64 fd
+  [0x2989] Op_WaitCharsStop
+  [0x298A] CharaControl len=2: 64 03
+  [0x298E] CharaControl len=2: 64 04
+  [0x2992] CharaControl len=2: 64 05
+  [0x2996] CharaControl len=7: 4d 01 00 00 00 5a fd
+  [0x299F] Op_WaitCharsStop
+  [0x29A0] Script_Call Entry_C8 (0x6D66)
+  [0x29A2] Script_Call Entry_C9 (0x6E6B)
+  [0x29A4] Op_WaitFrames count=0
+  [0x29A6] Script_Call Entry_C9 (0x6E6B)
+  [0x29A8] Op_WaitFrames count=0
+  [0x29AA] Script_Call Entry_C9 (0x6E6B)
+  [0x29AC] Op_WaitFrames count=0
+  [0x29AE] Script_Call Entry_C9 (0x6E6B)
+  [0x29B0] Op_WaitFrames count=0
+  [0x29B2] Script_Call Entry_C9 (0x6E6B)
+  [0x29B4] Op_WaitFrames count=0
+  [0x29B6] Script_Call Entry_C9 (0x6E6B)
+  [0x29B8] Op_WaitFrames count=0
+  [0x29BA] Script_Call Entry_C9 (0x6E6B)
+  [0x29BC] Op_WaitFrames count=0
+  [0x29BE] Script_Call Entry_C9 (0x6E6B)
+  [0x29C0] Op_WaitFrames count=0
+  [0x29C2] Script_Call Entry_C9 (0x6E6B)
+  [0x29C4] Op_WaitFrames count=0
+  [0x29C6] Script_Call Entry_C9 (0x6E6B)
+  [0x29C8] Op_WaitFrames count=0
+  [0x29CA] Script_Call Entry_C9 (0x6E6B)
+  [0x29CC] Op_WaitFrames count=0
+  [0x29CE] Script_Call Entry_C9 (0x6E6B)
+  [0x29D0] Op_RestartCharaAnim chara=1, anim=4
+  [0x29D3] CharaControl len=7: 4d 00 00 06 02 0a fd
+  [0x29DC] CharaControl len=7: 4d 02 00 06 02 0a fd
+  [0x29E5] Op_WaitCharsStop
+  [0x29E6] Op_RestartCharaAnim chara=0, anim=1
+  [0x29E9] Op_RestartCharaAnim chara=1, anim=3
+  [0x29EC] Op_WaitCharaAnim chara=1
+  [0x29EE] Op_RestartCharaAnim chara=1, anim=12
+  [0x29F1] Op_SceneChangeFade mode=2
+  [0x29F3] Op_WaitSceneIdle
+  [0x29F4] Op_LoadMap mapNpcSet=137, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x29FB] Op_SaveOp 7
+  [0x29FD] Op_BgmPlay song=65339, arg=0
+  [0x2A01] Op_SceneChangePlain mode=0
+  [0x2A03] Op_WaitSceneIdle
+  [0x2A04] Op_WaitFrames count=120
+  [0x2A06] DialogMessage style=0, len=72:
+                "アレス 今[10A]も[1DB][161]ね\n
+                アレスのことだから また \n
+                ダイン様の[108]に行ってたんでしょう?[WAIT][08:00]お[11D]りまであと[19C]しなのよ?\n
+                ちゃんとオカリナ[1DD]えてね[WAIT][CLEAR]"
+  [0x2A9C] Op_SceneChangeFade mode=0
+  [0x2A9E] Op_WaitSceneIdle
+  [0x2A9F] Op_BgmFadeOut speed=30
+  [0x2AA1] Op_WaitFrames count=30
+  [0x2AA3] Op_BgmStop
+  [0x2AA4] Op_LoadMap mapNpcSet=13, moveCmdSet=0, spawn=(0, 5), dir=0
+  [0x2AAB] Op_BgmPlay song=65287, arg=0
+  [0x2AAF] Op_LoadCutsceneAnim 0d 00 01 00
+  [0x2AB4] Op_LoadCutsceneAnim 19 00 05 64
+  [0x2AB9] Op_LoadCutsceneAnim 1a 00 06 65
+  [0x2ABE] Op_LoadCutsceneAnim 04 00 07 02
+  [0x2AC3] Op_LoadCutsceneAnim 04 00 08 66
+  [0x2AC8] Op_LoadCutsceneAnim 10 00 0c 65
+  [0x2ACD] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x2ADD] CharaControl len=14: 53 01 01 01 01 00 00 00 00 00 00 00 00 00
+  [0x2AED] CharaControl len=17: 53 02 01 02 02 00 00 00 00 00 00 00 00 00 48 02 0a
+  [0x2B00] CharaControl SetPosDir chara=100, pos=(0, 0), dir=111
+  [0x2B0C] CharaControl SetPosDir chara=101, pos=(0, 0), dir=88
+  [0x2B18] CharaControl SetPosDir chara=102, pos=(0, 0), dir=127
+  [0x2B24] Op_RestartCharaAnim chara=0, anim=1
+  [0x2B27] Op_RestartCharaAnim chara=1, anim=12
+  [0x2B2A] Op_RestartCharaAnim chara=2, anim=7
+  [0x2B2D] Op_SceneChangePlain mode=0
+  [0x2B2F] Op_WaitSceneIdle
+  [0x2B30] DialogMessage style=3, len=54:
+                "[0E:37]それどころじゃないよ ルーナ!\n
+                村[1DE]が村の長を [120][121][0E8][0E9][111]のところに\n
+                [113]めているんだ [1DF]く行かなきゃ![WAIT][CLEAR]"
+  [0x2BA2] DialogMessage style=0, len=18:
+                "[PORTRAIT:13]ちょっ ちょっと [194]よいきなり[WAIT][CLEAR]"
+  [0x2BCC] DialogMessage style=3, len=26:
+                "[0E:01]行こう ルーナ\n
+                [1E0]きながらでも ワケは奴せるよ[WAIT][CLEAR]"
+  [0x2C06] DialogMessage style=0, len=10:
+                "[PORTRAIT:11]え ええ、、、[WAIT][CLEAR]"
+  [0x2C20] Op_RestartCharaAnim chara=0, anim=5
+  [0x2C23] Op_RestartCharaAnim chara=1, anim=6
+  [0x2C26] Op_RestartCharaAnim chara=2, anim=8
+  [0x2C29] CharaControl len=7: 4d 00 00 02 02 0f fd
+  [0x2C32] CharaControl len=7: 4d 01 00 02 02 18 fd
+  [0x2C3B] CharaControl len=7: 4d 02 00 02 02 0f fd
+  [0x2C44] Op_WaitFrames count=14
+  [0x2C46] Script_Call Entry_CB (0x6FF1)
+  [0x2C48] Op_WaitFrames count=0
+  [0x2C4A] Script_Call Entry_CB (0x6FF1)
+  [0x2C4C] Op_WaitFrames count=0
+  [0x2C4E] Script_Call Entry_CC (0x7072)
+  [0x2C50] Op_WaitFrames count=0
+  [0x2C52] Script_Call Entry_CC (0x7072)
+  [0x2C54] Op_WaitFrames count=0
+  [0x2C56] Script_Call Entry_CC (0x7072)
+  [0x2C58] Op_WaitFrames count=0
+  [0x2C5A] Script_Call Entry_CC (0x7072)
+  [0x2C5C] Op_WaitFrames count=0
+  [0x2C5E] Script_Call Entry_CC (0x7072)
+  [0x2C60] Op_WaitFrames count=0
+  [0x2C62] Script_Call Entry_CC (0x7072)
+  [0x2C64] Op_WaitFrames count=0
+  [0x2C66] Script_Call Entry_CC (0x7072)
+  [0x2C68] Op_WaitFrames count=0
+  [0x2C6A] Script_Call Entry_CC (0x7072)
+  [0x2C6C] Op_WaitFrames count=0
+  [0x2C6E] Script_Call Entry_CC (0x7072)
+  [0x2C70] Op_WaitFrames count=0
+  [0x2C72] Script_Call Entry_CC (0x7072)
+  [0x2C74] Op_WaitFrames count=0
+  [0x2C76] Op_SceneChangeFade mode=2
+  [0x2C78] Script_Call Entry_CC (0x7072)
+  [0x2C7A] Op_WaitFrames count=0
+  [0x2C7C] Script_Call Entry_CC (0x7072)
+  [0x2C7E] Op_WaitFrames count=0
+  [0x2C80] Script_Call Entry_CC (0x7072)
+  [0x2C82] Op_WaitFrames count=0
+  [0x2C84] Script_Call Entry_CC (0x7072)
+  [0x2C86] Op_WaitFrames count=0
+  [0x2C88] Script_Call Entry_CC (0x7072)
+  [0x2C8A] Op_WaitFrames count=0
+  [0x2C8C] Op_WaitSceneIdle
+  [0x2C8D] Op_CameraFollow
+  [0x2C8E] Op_SetEventFlag flag=0x0003
+  [0x2C91] Op_AddPartyMember memberId=2
+  [0x2C93] Op_SetSwitch switch=0x0002
+  [0x2C96] Op_SetSwitch switch=0x0001
+  [0x2C99] Op_LoadMap mapNpcSet=1, moveCmdSet=1, spawn=(68, 5), dir=4
+  [0x2CA0] CharaControl SetPosDir chara=3, pos=(62, 90), dir=2
+  [0x2CA7] CharaControl SetPosDir chara=4, pos=(65, 89), dir=0
+  [0x2CAE] CharaControl SetPosDir chara=5, pos=(71, 82), dir=6
+  [0x2CB5] CharaControl SetPosDir chara=6, pos=(70, 92), dir=0
+  [0x2CBC] CharaControl SetPosDir chara=7, pos=(64, 94), dir=0
+  [0x2CC3] CharaControl SetPosDir chara=9, pos=(66, 78), dir=4
+  [0x2CCA] CharaControl SetPosDir chara=12, pos=(56, 85), dir=2
+  [0x2CD1] CharaControl SetPosDir chara=13, pos=(59, 81), dir=2
+  [0x2CD8] CharaControl SetPosDir chara=14, pos=(59, 92), dir=0
+  [0x2CDF] CharaControl SetPosDir chara=17, pos=(74, 87), dir=6
+  [0x2CE6] Op_SceneChangePlain mode=0
+  [0x2CE8] Op_WaitSceneIdle
+  [0x2CE9] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_3E, Entry_3F, Entry_40, Entry_41, Entry_42, Entry_43, Entry_44, Entry_45, Entry_50  @ Offset 0x2CEB (Buffer 0x02018CEB)
+; ----------------------------------------------------------------------------
+  [0x2CEB] Op_IfAllFlagsJump [0x02A5] -> Entry_4C (0x38B2)
+  [0x2CF0] Op_IfAllFlagsJump [0x040C] -> Entry_4C (0x38B2)
+  [0x2CF5] Op_IfAllFlagsJump [0x029E] -> Entry_4B (0x37B0)
+  [0x2CFA] Op_IfAllFlagsJump [0x040B] -> Entry_4A (0x3758)
+  [0x2CFF] Op_IfAllFlagsJump [0x0054] -> Entry_49 (0x367A)
+  [0x2D04] Op_IfAllFlagsJump [0x040A] -> Entry_46 (0x344A)
+  [0x2D09] Op_IfAllFlagsJump [0x007A] -> Entry_48 (0x3584)
+  [0x2D0E] Op_IfAllFlagsJump [0x0409] -> Entry_46 (0x344A)
+  [0x2D13] Op_IfAllFlagsJump [0x0089] -> Entry_47 (0x34A0)
+  [0x2D18] Op_IfAllFlagsJump [0x0408] -> Entry_46 (0x344A)
+  [0x2D1D] Op_IfAllFlagsJump [0x008C] -> Entry_59 (0x334E)
+  [0x2D22] Op_IfAllFlagsJump [0x0407] -> Entry_58 (0x32F0)
+  [0x2D27] Op_IfAllFlagsJump [0x0406] -> Entry_57 (0x31E4)
+  [0x2D2C] Op_IfAllFlagsJump [0x0039] -> Entry_56 (0x317A)
+  [0x2D31] Op_IfAllFlagsJump [0x0400] -> Entry_55 (0x30CE)
+  [0x2D36] Op_IfAllFlagsJump [0x0038] -> Entry_54 (0x2F9E)
+  [0x2D3B] Op_IfAllFlagsJump [0x03FF] -> Entry_53 (0x2F32)
+  [0x2D40] Op_IfAllFlagsJump [0x0010] -> Entry_52 (0x2E98)
+  [0x2D45] Op_IfAllFlagsJump [0x03FE] -> Entry_51 (0x2E0A)
+  [0x2D4A] DialogMessage style=0, len=90:
+                "15[1CE][112] 雲[1E1]のドラゴンマスターが\n
+                [1E2]くなられた、、、\n
+                そう ダイン様のことじゃ[WAIT][08:00]ダイン様が [1E2]くなられてからは\n
+                ドラゴンマスターは ただの[12A]長も\n
+                あらわれておらん [12A]長もな[WAIT][CLEAR]"
+  [0x2E04] Op_SetFlagsList [0x03FE]
+  [0x2E08] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_51  @ Offset 0x2E0A (Buffer 0x02018E0A)
+; ----------------------------------------------------------------------------
+  [0x2E0A] DialogMessage style=0, len=67:
+                "[0E8][0E9]アルテナ様の しもべである\n
+                [1C7][1E3]の参、、、[WAIT][08:00]ドラゴンマスターとは\n
+                その参たちに [37A]められた\n
+                [0E8][0E9]アルテナ様の[0EB][1E4][153]のことじゃ[WAIT][CLEAR]"
+  [0x2E96] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_52  @ Offset 0x2E98 (Buffer 0x02018E98)
+; ----------------------------------------------------------------------------
+  [0x2E98] DialogMessage style=0, len=71:
+                "なんと 墓参様に\n
+                [0FC][1E5]を いただいたとな!\n
+                こいつは たまげたぞい![WAIT][08:00]あのダイン様も はじめての[0E1][0E2]で\n
+                墓参様に [0FC][1E5]をもらったそうじゃ[WAIT][CLEAR]"
+  [0x2F2C] Op_SetFlagsList [0x03FF]
+  [0x2F30] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_53  @ Offset 0x2F32 (Buffer 0x02018F32)
+; ----------------------------------------------------------------------------
+  [0x2F32] DialogMessage style=0, len=50:
+                "墓参様に[0FC][1E5]を\n
+                いただいたとなると\n
+                これは いよいよ英雄じゃ[WAIT][08:00][1E6][153]のタマゴといったところじゃの[WAIT][CLEAR]"
+  [0x2F9C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_54  @ Offset 0x2F9E (Buffer 0x02018F9E)
+; ----------------------------------------------------------------------------
+  [0x2F9E] DialogMessage style=0, len=133:
+                "おお アレス!\n
+                [166]しぶりに[1BC]って来たと思えば\n
+                とんでもない長を おつれだよ![WAIT][08:00]ガレオン様が このブルグに\n
+                こられたということは、、、\n
+                墓参様に行いにこられたんじゃろ?[WAIT][08:00]となれば 15[1CE]ぶりに\n
+                ドラゴンマスターが生まれるわけじゃ\n
+                なんと めでたいことじゃろう![WAIT][CLEAR]"
+  [0x30AE] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x30B2] DialogMessage style=0, len=8:
+                "[PORTRAIT:50]、、、、、[WAIT][CLEAR]"
+  [0x30C8] Op_SetFlagsList [0x0400]
+  [0x30CC] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_55  @ Offset 0x30CE (Buffer 0x020190CE)
+; ----------------------------------------------------------------------------
+  [0x30CE] DialogMessage style=0, len=82:
+                "ダイン様のあとを [1E7][1E8]じゃった\n
+                ガレオン様が つがれるとは\n
+                すばらしいことじゃのぉ、、、[WAIT][08:00]ガレオン様\n
+                どうか ダイン様の[108]にも\n
+                おまいりして行ってくださいませ[WAIT][CLEAR]"
+  [0x3178] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_56  @ Offset 0x317A (Buffer 0x0201917A)
+; ----------------------------------------------------------------------------
+  [0x317A] DialogMessage style=0, len=47:
+                "おぉ アレス![WAIT][08:00]お[112]を助けてくださった\n
+                レイクさんが ダイン様の[108]で\n
+                待っておられるぞ![WAIT][CLEAR]"
+  [0x31DE] Op_SetFlagsList [0x0406]
+  [0x31E2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_57  @ Offset 0x31E4 (Buffer 0x020191E4)
+; ----------------------------------------------------------------------------
+  [0x31E4] DialogMessage style=0, len=92:
+                "まさか あのガレオン様が\n
+                魔法[0D5][0D6]じゃったとは、、、[WAIT][08:00]ダイン様が生きておいでなら\n
+                こんなことには\n
+                ならなかったじゃろうに、、、[WAIT][08:00]まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x32A2] DialogMessage style=0, len=33:
+                "[PORTRAIT:56]そんなこと迎わずに\n
+                いっぱい[1DE]生きしてくれよな\n
+                ジッチャン![WAIT][CLEAR]"
+  [0x32EA] Op_SetFlagsList [0x0407]
+  [0x32EE] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_58  @ Offset 0x32F0 (Buffer 0x020192F0)
+; ----------------------------------------------------------------------------
+  [0x32F0] DialogMessage style=0, len=43:
+                "ガレオン様が 魔法[0D5][0D6]とは、、、\n
+                まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x334C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_59  @ Offset 0x334E (Buffer 0x0201934E)
+; ----------------------------------------------------------------------------
+  [0x334E] DialogMessage style=0, len=87:
+                "なんと! メル様が 魔[1C9]の[0E8]に\n
+                [1E9]にされたとな!?\n
+                それも ガレオン様の[13C][1EA]かのぉ?[WAIT][08:00][1C7][0ED][0EE]どうしが [482]うなどと、、、\n
+                まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x3402] Op_IfPartyMemberJump member=5, count=0 -> Entry_F9 (0x7374)
+  [0x3406] DialogMessage style=0, len=28:
+                "[PORTRAIT:28]そんなこといわずに\n
+                [1DE]生きしてよね\n
+                おじいちゃん![WAIT][CLEAR]"
+  [0x3444] Op_SetFlagsList [0x0408]
+  [0x3448] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_46  @ Offset 0x344A (Buffer 0x0201944A)
+; ----------------------------------------------------------------------------
+  [0x344A] DialogMessage style=0, len=39:
+                "[3E7]ろしいことに なったもんじゃ\n
+                まったく [1DE]生きなど\n
+                するもんではないのぉ[WAIT][CLEAR]"
+  [0x349E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_47  @ Offset 0x34A0 (Buffer 0x020194A0)
+; ----------------------------------------------------------------------------
+  [0x34A0] DialogMessage style=0, len=73:
+                "なんと! メリビアやヴェーンが\n
+                魔[1C9]に [2AE]われたじゃと!?[WAIT][08:00][120]て ガレオン様の[13C][1EA]じゃとは\n
+                まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x3538] Op_IfPartyMemberJump member=4, count=0 -> Entry_F9 (0x7374)
+  [0x353C] DialogMessage style=0, len=30:
+                "[PORTRAIT:24]そんな、、、\n
+                いっぱい[1DE]生きしてください\n
+                おじいさま![WAIT][CLEAR]"
+  [0x357E] Op_SetFlagsList [0x0409]
+  [0x3582] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_48  @ Offset 0x3584 (Buffer 0x02019584)
+; ----------------------------------------------------------------------------
+  [0x3584] DialogMessage style=0, len=72:
+                "ダイン様が 生きておいでなら\n
+                ガレオン様の[3E7]ろしい[1EB][1EC]を\n
+                いさめてくださったろうに、、、[WAIT][08:00]まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x361A] Op_IfPartyMemberJump member=6, count=0 -> Entry_F9 (0x7374)
+  [0x361E] DialogMessage style=0, len=40:
+                "[PORTRAIT:37]ま 生きてりゃ[1D4]しいことも\n
+                いっぱいあるって\n
+                そんな[215]すんなよ じいさん![WAIT][CLEAR]"
+  [0x3674] Op_SetFlagsList [0x040A]
+  [0x3678] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_49  @ Offset 0x367A (Buffer 0x0201967A)
+; ----------------------------------------------------------------------------
+  [0x367A] DialogMessage style=0, len=75:
+                "おぉ その[20A]は!?\n
+                まさに [24F]いころのダイン様\n
+                そのままじゃわい![WAIT][08:00]アレスがドラゴンマスターになるとは\n
+                やはり [1DE]生きは\n
+                するもんじゃのぉ、、、[WAIT][CLEAR]"
+  [0x3716] DialogMessage style=0, len=27:
+                "[PORTRAIT:56]もっと もっと\n
+                [1DE]生きしてくれよな\n
+                ジッチャン![WAIT][CLEAR]"
+  [0x3752] Op_SetFlagsList [0x040B]
+  [0x3756] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4A  @ Offset 0x3758 (Buffer 0x02019758)
+; ----------------------------------------------------------------------------
+  [0x3758] DialogMessage style=0, len=40:
+                "アレスがドラゴンマスターになるとは\n
+                やはり [1DE]生きは\n
+                するもんじゃのぉ、、、[WAIT][CLEAR]"
+  [0x37AE] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4B  @ Offset 0x37B0 (Buffer 0x020197B0)
+; ----------------------------------------------------------------------------
+  [0x37B0] DialogMessage style=0, len=78:
+                "あのヴェーンが 魔法[0D5][0D6]ガレオンの\n
+                [1B6][1F0][1F1]と[0EC]って [1F2]っこちたじゃと!?[WAIT][08:00]そんなことが おこるとは!\n
+                まったく [1DE]生きなど\n
+                するものではないのぉ、、、[WAIT][CLEAR]"
+  [0x3852] Op_IfPartyMemberJump member=3, count=0 -> Entry_F9 (0x7374)
+  [0x3856] DialogMessage style=0, len=40:
+                "[PORTRAIT:17]でも 雲[1E1]はボクらが[1F3]つさ\n
+                だから [1DE]生きして\n
+                その奴をしてよ おじいさん[WAIT][CLEAR]"
+  [0x38AC] Op_SetFlagsList [0x040C]
+  [0x38B0] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4C  @ Offset 0x38B2 (Buffer 0x020198B2)
+; ----------------------------------------------------------------------------
+  [0x38B2] DialogMessage style=0, len=53:
+                "アレスと ルーナの[19F][1F4]らに\n
+                今[1AC]の[0E1][0E2]の奴を してやらんとな[WAIT][08:00]そのためにも\n
+                [1DE]生きしようかのぉ、、、[WAIT][CLEAR]"
+  [0x3922] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5A  @ Offset 0x3924 (Buffer 0x02019924)
+; ----------------------------------------------------------------------------
+  [0x3924] Op_IfAllFlagsJump [0x03F9] -> Entry_63 (0x3ED4)
+  [0x3929] Op_IfEventFlagJump flag=0x0054 -> Entry_62 (0x3E10)
+  [0x392D] Op_IfEventFlagJump flag=0x0089 -> Entry_61 (0x3D68)
+  [0x3931] Op_IfEventFlagJump flag=0x0039 -> Entry_60 (0x3CCC)
+  [0x3935] Op_IfAllFlagsJump [0x03F8] -> Entry_5F (0x3C60)
+  [0x393A] Op_IfEventFlagJump flag=0x0038 -> Entry_5E (0x3B3A)
+  [0x393E] Op_IfAllFlagsJump [0x03F7] -> Entry_5D (0x3AF4)
+  [0x3943] Op_IfEventFlagJump flag=0x0010 -> Entry_5C (0x3A08)
+  [0x3947] Op_IfAllFlagsJump [0x03F6] -> Entry_5B (0x39E6)
+  [0x394C] DialogMessage style=0, len=31:
+                "泉で [10D]ってたの ルーナだろ?\n
+                [11D]りで聞くのが [1D4]しみだよ[WAIT][CLEAR]"
+  [0x3990] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x3994] DialogMessage style=0, len=11:
+                "[PORTRAIT:12]ふふ ありがとう[WAIT][CLEAR]"
+  [0x39B0] DialogMessage style=0, len=21:
+                "おっと もちろん\n
+                アレスのオカリナもな[WAIT][CLEAR]"
+  [0x39E0] Op_SetFlagsList [0x03F6]
+  [0x39E4] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5B  @ Offset 0x39E6 (Buffer 0x020199E6)
+; ----------------------------------------------------------------------------
+  [0x39E6] DialogMessage style=0, len=13:
+                "[1F5]待してるよ [196]長とも[WAIT][CLEAR]"
+  [0x3A06] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5C  @ Offset 0x3A08 (Buffer 0x02019A08)
+; ----------------------------------------------------------------------------
+  [0x3A08] DialogMessage style=0, len=44:
+                "それにしても アレスとルーナは\n
+                ホントに [1F6]がいいよな\n
+                まるで 英丘の[1F7][1F8]みたいにさ[WAIT][CLEAR]"
+  [0x3A66] DialogMessage style=0, len=38:
+                "[PORTRAIT:55]そんなことないけどなぁ＾\n
+                [196]長とも いっつも\n
+                ケンカばっかしてるんだぜ[WAIT][CLEAR]"
+  [0x3AB8] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x3ABC] DialogMessage style=0, len=22:
+                "[PORTRAIT:15]よけいなこと 迎わないの!\n
+                もうっ!![WAIT][CLEAR]"
+  [0x3AEE] Op_SetFlagsList [0x03F7]
+  [0x3AF2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5D  @ Offset 0x3AF4 (Buffer 0x02019AF4)
+; ----------------------------------------------------------------------------
+  [0x3AF4] DialogMessage style=0, len=31:
+                "ハハハッ\n
+                まあ ケンカするほど[1F6]がいいって\n
+                迎うじゃないか[WAIT][CLEAR]"
+  [0x3B38] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5E  @ Offset 0x3B3A (Buffer 0x02019B3A)
+; ----------------------------------------------------------------------------
+  [0x3B3A] DialogMessage style=0, len=40:
+                "やあ アレス [166]しぶりじゃないか\n
+                勇気そうだね?\n
+                おや? その長は [154]だい?[WAIT][CLEAR]"
+  [0x3B90] DialogMessage style=0, len=36:
+                "[PORTRAIT:56]へへへッ、、、\n
+                おどろくなよ この長が\n
+                あの ガレオンなんだぞ!![WAIT][CLEAR]"
+  [0x3BDE] DialogMessage style=0, len=59:
+                "へ へえ＾ッ、、、\n
+                そいつぁ おどろくなってのが\n
+                ムリな奴さ ナル![WAIT][08:00]なんだか スゴイことに\n
+                なってきてんだなぁ[WAIT][CLEAR]"
+  [0x3C5A] Op_SetFlagsList [0x03F8]
+  [0x3C5E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_5F  @ Offset 0x3C60 (Buffer 0x02019C60)
+; ----------------------------------------------------------------------------
+  [0x3C60] DialogMessage style=0, len=50:
+                "なんだか ずいぶん いろんなことが\n
+                あったみたいだな アレス\n
+                [0E1][0E2]に[105]たかいが あったじゃないか[WAIT][CLEAR]"
+  [0x3CCA] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_60  @ Offset 0x3CCC (Buffer 0x02019CCC)
+; ----------------------------------------------------------------------------
+  [0x3CCC] DialogMessage style=0, len=74:
+                "ガレオンとルーナとは いったい\n
+                どういう[1F9][1FA]なんだい アレス!?[WAIT][08:00][194]もなくて 墓参を[1C4]したあとに\n
+                ルーナをさらっていくハズが\n
+                ないじゃないか![WAIT][CLEAR]"
+  [0x3D66] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_61  @ Offset 0x3D68 (Buffer 0x02019D68)
+; ----------------------------------------------------------------------------
+  [0x3D68] DialogMessage style=0, len=45:
+                "[1EF][137]で[10D][1FC]が さらわれてるそうだが\n
+                ルーナも [10D]に目をつけられて\n
+                さらわれたのかねぇ?[WAIT][CLEAR]"
+  [0x3DC8] Op_IfPartyMemberJump member=4, count=0 -> Entry_F9 (0x7374)
+  [0x3DCC] DialogMessage style=0, len=30:
+                "[PORTRAIT:23][10D]と 魔[1C9]と\n
+                どういうカンケイが\n
+                あるのかしら、、、?[WAIT][CLEAR]"
+  [0x3E0E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_62  @ Offset 0x3E10 (Buffer 0x02019E10)
+; ----------------------------------------------------------------------------
+  [0x3E10] DialogMessage style=0, len=53:
+                "ドラゴンマスターに なったからには\n
+                [0E8][0E9]アルテナ様に 行ったんだろ\n
+                どんなかただった? [1FD]長だったか?[WAIT][CLEAR]"
+  [0x3E80] Op_IfPartyMemberJump member=3, count=0 -> Entry_F9 (0x7374)
+  [0x3E84] DialogMessage style=0, len=34:
+                "[PORTRAIT:27]アルテナ様は\n
+                [0E8][0E9]の[16A]に こもられてて\n
+                [154]にも 行われないのよ[WAIT][CLEAR]"
+  [0x3ECE] Op_SetFlagsList [0x03F9]
+  [0x3ED2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_63  @ Offset 0x3ED4 (Buffer 0x02019ED4)
+; ----------------------------------------------------------------------------
+  [0x3ED4] DialogMessage style=0, len=44:
+                "へぇ＾ ドラゴンマスターって\n
+                アルテナ様を[0EB]る[1E6][153]なんだろ?\n
+                それでも 行えないんだ[WAIT][CLEAR]"
+  [0x3F32] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_64  @ Offset 0x3F34 (Buffer 0x02019F34)
+; ----------------------------------------------------------------------------
+  [0x3F34] Op_IfAllFlagsJump [0x0410] -> Entry_4F (0x463D)
+  [0x3F39] Op_IfAllFlagsJump [0x029E] -> Entry_4E (0x4581)
+  [0x3F3E] Op_IfAllFlagsJump [0x040F] -> Entry_4D (0x450D)
+  [0x3F43] Op_IfEventFlagJump flag=0x0054 -> Entry_6D (0x445D)
+  [0x3F47] Op_IfAllFlagsJump [0x040E] -> Entry_6C (0x43CD)
+  [0x3F4C] Op_IfEventFlagJump flag=0x0089 -> Entry_6B (0x4333)
+  [0x3F50] Op_IfAllFlagsJump [0x040D] -> Entry_6A (0x4295)
+  [0x3F55] Op_IfEventFlagJump flag=0x0039 -> Entry_69 (0x41DD)
+  [0x3F59] Op_IfAllFlagsJump [0x03F1] -> Entry_68 (0x418F)
+  [0x3F5E] Op_IfEventFlagJump flag=0x0038 -> Entry_67 (0x40F1)
+  [0x3F62] Op_IfAllFlagsJump [0x03F0] -> Entry_66 (0x40AB)
+  [0x3F67] Op_IfEventFlagJump flag=0x0010 -> Entry_65 (0x4001)
+  [0x3F6B] DialogMessage style=0, len=33:
+                "ヴェーンっていうのは\n
+                [126]に[1FE]いているらしいけど\n
+                英丘なのかね?[WAIT][CLEAR]"
+  [0x3FB3] Op_IfPartyMemberJump member=3, count=1 -> Entry_7D (0x3FB9)
+  [0x3FB7] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_7D  @ Offset 0x3FB9 (Buffer 0x02019FB9)
+; ----------------------------------------------------------------------------
+  [0x3FB9] DialogMessage style=0, len=32:
+                "[PORTRAIT:18]英丘さ!\n
+                イナカの長たちには\n
+                [1D0]じられないかも知れないけど[WAIT][CLEAR]"
+  [0x3FFF] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_65  @ Offset 0x4001 (Buffer 0x0201A001)
+; ----------------------------------------------------------------------------
+  [0x4001] DialogMessage style=0, len=63:
+                "[3EA][200]だった ルーナを\n
+                あんたの[201][1E7]が[202]き[1B3]ってから\n
+                もう 15[1CE]もたつのねえ、、、[WAIT][08:00]ルーナ アレス\n
+                いつまでも [1F6][203]くね[WAIT][CLEAR]"
+  [0x4085] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x4089] DialogMessage style=0, len=13:
+                "[PORTRAIT:11]ありがとう おばさん[WAIT][CLEAR]"
+  [0x40A9] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_66  @ Offset 0x40AB (Buffer 0x0201A0AB)
+; ----------------------------------------------------------------------------
+  [0x40AB] DialogMessage style=0, len=31:
+                "[196]長ともまっすぐ中って、、、\n
+                サリアも [204]んでいるだろうね[WAIT][CLEAR]"
+  [0x40EF] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_67  @ Offset 0x40F1 (Buffer 0x0201A0F1)
+; ----------------------------------------------------------------------------
+  [0x40F1] DialogMessage style=0, len=73:
+                "おや [1BC]って来たのかい?[WAIT][08:00]ルーナや アレスとナルの\n
+                [1F6]のいい[1AA]ゲンカが 聞けなくて\n
+                アタシゃ さみしかったよ[WAIT][08:00][PORTRAIT:11]まあ おばさんったら、、、[WAIT][CLEAR]"
+  [0x4189] Op_SetFlagsList [0x03F1]
+  [0x418D] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_68  @ Offset 0x418F (Buffer 0x0201A18F)
+; ----------------------------------------------------------------------------
+  [0x418F] DialogMessage style=0, len=35:
+                "そうかい、、、\n
+                まあ あんたたちには\n
+                この村は せますぎるものねえ[WAIT][CLEAR]"
+  [0x41DB] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_69  @ Offset 0x41DD (Buffer 0x0201A1DD)
+; ----------------------------------------------------------------------------
+  [0x41DD] DialogMessage style=0, len=86:
+                "ルーナみたいな いい[205]を\n
+                さらうなんて ガレオンは\n
+                いったい [194]を考えてるんだい![WAIT][08:00]魔法[0D5][0D6]だかなんだか 知らないが\n
+                そんなこと ルーナには\n
+                [1F9][1FA]ないじゃないのさ!![WAIT][CLEAR]"
+  [0x428F] Op_SetFlagsList [0x040D]
+  [0x4293] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6A  @ Offset 0x4295 (Buffer 0x0201A295)
+; ----------------------------------------------------------------------------
+  [0x4295] DialogMessage style=0, len=41:
+                "アタシゃねぇ、、、\n
+                あの[205]が[150][1B2]で [150][1B2]で、、、\n
+                アレス [1DF]く 助けておやりよ[WAIT][CLEAR]"
+  [0x42ED] DialogMessage style=0, len=31:
+                "[PORTRAIT:56]まかしときなって\n
+                アレスは\n
+                ゼッタイ ルーナを助けるよ![WAIT][CLEAR]"
+  [0x4331] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6B  @ Offset 0x4333 (Buffer 0x0201A333)
+; ----------------------------------------------------------------------------
+  [0x4333] DialogMessage style=0, len=71:
+                "メリビアやヴェーンでは\n
+                [194]なにやら [136][197]なことが\n
+                あったようだねぇ、、、[WAIT][08:00]ガレオンが ルーナをさらったことと\n
+                [194]か [1F9][1FA]があるのかねぇ?[WAIT][CLEAR]"
+  [0x43C7] Op_SetFlagsList [0x040E]
+  [0x43CB] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6C  @ Offset 0x43CD (Buffer 0x0201A3CD)
+; ----------------------------------------------------------------------------
+  [0x43CD] DialogMessage style=0, len=48:
+                "ルーナのことを思うと なにやら\n
+                [207]さわぎがして [393]方がないんだよ\n
+                [1DF]く 助けておやり アレス[WAIT][CLEAR]"
+  [0x4433] DialogMessage style=0, len=17:
+                "[PORTRAIT:56]まかしといてよ オバチャン![WAIT][CLEAR]"
+  [0x445B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6D  @ Offset 0x445D (Buffer 0x0201A45D)
+; ----------------------------------------------------------------------------
+  [0x445D] DialogMessage style=0, len=44:
+                "おや? ずいぶんと\n
+                いさましいカッコウだね アレス\n
+                それは ルーナを助けるためかい?[WAIT][CLEAR]"
+  [0x44BB] DialogMessage style=0, len=35:
+                "[PORTRAIT:56]そうだよ オバチャン\n
+                アレスはドラゴンマスターに\n
+                なったんだぜ![WAIT][CLEAR]"
+  [0x4507] Op_SetFlagsList [0x040F]
+  [0x450B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4D  @ Offset 0x450D (Buffer 0x0201A50D)
+; ----------------------------------------------------------------------------
+  [0x450D] DialogMessage style=0, len=54:
+                "ふぇ＾!? ダイン様のようにかい!?\n
+                さすが アレスだ! ルーナのために\n
+                ドラゴンマスターになるとはねぇ[WAIT][CLEAR]"
+  [0x457F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4E  @ Offset 0x4581 (Buffer 0x0201A581)
+; ----------------------------------------------------------------------------
+  [0x4581] DialogMessage style=0, len=48:
+                "ルーナのことを思うと なにやら\n
+                [207]さわぎがして [393]方がないんだよ\n
+                [1DF]く 助けておやり アレス[WAIT][CLEAR]"
+  [0x45E7] DialogMessage style=0, len=39:
+                "[PORTRAIT:56]まかしといてよ オバチャン\n
+                もうすぐ ルーナに\n
+                行えるモン な アレス![WAIT][CLEAR]"
+  [0x463B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_4F  @ Offset 0x463D (Buffer 0x0201A63D)
+; ----------------------------------------------------------------------------
+  [0x463D] DialogMessage style=0, len=29:
+                "ルーナはあんたを待ってるよ\n
+                がんばっておくれ アレス![WAIT][CLEAR]"
+  [0x467D] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6E  @ Offset 0x467F (Buffer 0x0201A67F)
+; ----------------------------------------------------------------------------
+  [0x467F] Op_IfAllFlagsJump [0x029E] -> Entry_77 (0x4C3E)
+  [0x4684] Op_IfEventFlagJump flag=0x0054 -> Entry_76 (0x4BD4)
+  [0x4688] Op_IfEventFlagJump flag=0x0039 -> Entry_75 (0x4B72)
+  [0x468C] Op_IfAllFlagsJump [0x03FD] -> Entry_74 (0x4B42)
+  [0x4691] Op_IfEventFlagJump flag=0x0038 -> Entry_73 (0x4A6A)
+  [0x4695] Op_IfAllFlagsJump [0x03F2] -> Entry_72 (0x4A14)
+  [0x469A] Op_IfEventFlagJump flag=0x0010 -> Entry_6F (0x46CE)
+  [0x469E] DialogMessage style=0, len=20:
+                "アレスにーちゃん オカリナきかせて![WAIT][CLEAR]"
+  [0x46CC] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_6F  @ Offset 0x46CE (Buffer 0x0201A6CE)
+; ----------------------------------------------------------------------------
+  [0x46CE] DialogMessage style=0, len=73:
+                "あっ ルーナおねえちゃん!\n
+                お[11D]りの[10A]に[10D]うお[10D]の\n
+                れんしゅうしてたんでしょ?[WAIT][08:00]ねぇ ねぇ ボクにも聞かせてよ!\n
+                ねっ いいでしょ お[38D]い![WAIT][CLEAR]"
+  [0x4766] Op_DialogChoice e0=Entry_70 (0x47A6), e1=Entry_71 (0x48D6), text="聞かせてあげなよ "
+
+; ----------------------------------------------------------------------------
+; Entry_70  @ Offset 0x47A6 (Buffer 0x0201A7A6)
+; ----------------------------------------------------------------------------
+  [0x47A6] DialogMessage style=0, len=22:
+                "[PORTRAIT:1][0E6]も聞きたいな\n
+                [10D]ってあげなよ ルーナ[WAIT][CLEAR]"
+  [0x47D8] DialogMessage style=0, len=23:
+                "[PORTRAIT:15]もう アレスったら\n
+                いつも聞いてるクセに[WAIT][CLEAR]"
+  [0x480C] DialogMessage style=0, len=36:
+                "[PORTRAIT:12]まだ [10E][10F]話で\n
+                うまく[10D]えないんだけど\n
+                よかったら 聞いてくれる?[WAIT][CLEAR]"
+  [0x485A] Op_BgmVolume volume=128
+  [0x485E] Op_SfxPlay sfx=219, arg=0
+  [0x4862] Op_WaitFrames count=180
+  [0x4864] Op_WaitFrames count=180
+  [0x4866] Op_WaitFrames count=180
+  [0x4868] Op_BgmVolume volume=255
+  [0x486C] DialogMessage style=0, len=47:
+                "わぁ! ルーナおねえちゃんの[10D]って\n
+                なんだか [302]思[303]な感じがするね!\n
+                どうしてなのかなぁ?[WAIT][CLEAR]"
+  [0x48D0] Op_SetFlagsList [0x03F2]
+  [0x48D4] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_71  @ Offset 0x48D6 (Buffer 0x0201A8D6)
+; ----------------------------------------------------------------------------
+  [0x48D6] DialogMessage style=0, len=27:
+                "[PORTRAIT:56]ダメダメ\n
+                お[11D]りの[10A]までナイショさ\n
+                なっ ルーナ[WAIT][CLEAR]"
+  [0x4912] DialogMessage style=0, len=25:
+                "[PORTRAIT:13]もう ナルったら\n
+                そんな イジワルしないの![WAIT][CLEAR]"
+  [0x494A] DialogMessage style=0, len=36:
+                "[PORTRAIT:12]まだ [10E][10F]話で\n
+                うまく[10D]えないんだけど\n
+                よかったら 聞いてくれる?[WAIT][CLEAR]"
+  [0x4998] Op_BgmVolume volume=128
+  [0x499C] Op_SfxPlay sfx=219, arg=0
+  [0x49A0] Op_WaitFrames count=180
+  [0x49A2] Op_WaitFrames count=180
+  [0x49A4] Op_WaitFrames count=180
+  [0x49A6] Op_BgmVolume volume=255
+  [0x49AA] DialogMessage style=0, len=47:
+                "わぁ! ルーナおねえちゃんの[10D]って\n
+                なんだか [302]思[303]な感じがするね!\n
+                どうしてなのかなぁ?[WAIT][CLEAR]"
+  [0x4A0E] Op_SetFlagsList [0x03F2]
+  [0x4A12] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_72  @ Offset 0x4A14 (Buffer 0x0201AA14)
+; ----------------------------------------------------------------------------
+  [0x4A14] DialogMessage style=0, len=39:
+                "ルーナおねえちゃん\n
+                今[1AC] お[10D][209]えてね!\n
+                きっとだよ! やくそくだからね![WAIT][CLEAR]"
+  [0x4A68] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_73  @ Offset 0x4A6A (Buffer 0x0201AA6A)
+; ----------------------------------------------------------------------------
+  [0x4A6A] DialogMessage style=0, len=26:
+                "あっ ルーナお[20B]ちゃん!\n
+                ねぇねぇ お[10D][209]えてよ[WAIT][CLEAR]"
+  [0x4AA4] DialogMessage style=0, len=29:
+                "[PORTRAIT:14]ごめんね\n
+                まだ やらなくちゃいけないことが\n
+                あるのよ[WAIT][CLEAR]"
+  [0x4AE4] DialogMessage style=0, len=16:
+                "じゃあ それが終わったらね![WAIT][CLEAR]"
+  [0x4B0A] DialogMessage style=0, len=11:
+                "[PORTRAIT:12]ええ [211][20C]するわ[WAIT][CLEAR]"
+  [0x4B26] DialogMessage style=0, len=8:
+                "[PORTRAIT:47]、、、、、[WAIT][CLEAR]"
+  [0x4B3C] Op_SetFlagsList [0x03FD]
+  [0x4B40] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_74  @ Offset 0x4B42 (Buffer 0x0201AB42)
+; ----------------------------------------------------------------------------
+  [0x4B42] DialogMessage style=0, len=20:
+                "ルーナお[20B]ちゃん\n
+                [1DF]く[1BC]ってきてね![WAIT][CLEAR]"
+  [0x4B70] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_75  @ Offset 0x4B72 (Buffer 0x0201AB72)
+; ----------------------------------------------------------------------------
+  [0x4B72] DialogMessage style=0, len=45:
+                "アレスにいちゃん!\n
+                ガレオンのヤツを やっつけてね!\n
+                ズエ＾ッたいにね! やくそくだよ[WAIT][CLEAR]"
+  [0x4BD2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_76  @ Offset 0x4BD4 (Buffer 0x0201ABD4)
+; ----------------------------------------------------------------------------
+  [0x4BD4] DialogMessage style=0, len=49:
+                "ねぇ ねぇ ドラゴンマスターなら\n
+                あの ダイン様の[108]にささってる[20D]\n
+                ぬけるんじゃないのかなぁ?[WAIT][CLEAR]"
+  [0x4C3C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_77  @ Offset 0x4C3E (Buffer 0x0201AC3E)
+; ----------------------------------------------------------------------------
+  [0x4C3E] DialogMessage style=0, len=86:
+                "ねぇ ねぇ アレスにいちゃんなら\n
+                ルーナおねえちゃんを\n
+                助けられるよね?[WAIT][08:00]ボク アレスにいちゃんのこと\n
+                ずっと おーえんしてるよ!\n
+                だから ガンバってね きっとだよ![WAIT][CLEAR]"
+  [0x4CF0] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_78  @ Offset 0x4CF2 (Buffer 0x0201ACF2)
+; ----------------------------------------------------------------------------
+  [0x4CF2] Op_IfAllFlagsJump [0x03FC] -> Entry_7C (0x500C)
+  [0x4CF7] Op_IfEventFlagJump flag=0x0038 -> Entry_7B (0x4E80)
+  [0x4CFB] Op_IfAllFlagsJump [0x03FB] -> Entry_7A (0x4E30)
+  [0x4D00] Op_IfEventFlagJump flag=0x0010 -> Entry_79 (0x4D7C)
+  [0x4D04] DialogMessage style=0, len=37:
+                "ヴェーンの魔法使い様を\n
+                [14B][20E]うんだって?\n
+                [20F][14B]まといにならないようにな[WAIT][CLEAR]"
+  [0x4D54] DialogMessage style=0, len=16:
+                "[PORTRAIT:55][2A5]せとけよ オッチャン!![WAIT][CLEAR]"
+  [0x4D7A] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_79  @ Offset 0x4D7C (Buffer 0x0201AD7C)
+; ----------------------------------------------------------------------------
+  [0x4D7C] DialogMessage style=0, len=31:
+                "[11D]りが [210]いからな\n
+                たくさん エモノを\n
+                [2F6]まえておかないと[WAIT][CLEAR]"
+  [0x4DC0] DialogMessage style=0, len=18:
+                "[PORTRAIT:56]キタイしてるぜ オッチャン!![WAIT][CLEAR]"
+  [0x4DEA] DialogMessage style=0, len=29:
+                "おう!\n
+                ナルが [212]べきれないくらい\n
+                とってきてやるよ![WAIT][CLEAR]"
+  [0x4E2A] Op_SetFlagsList [0x03FB]
+  [0x4E2E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_7A  @ Offset 0x4E30 (Buffer 0x0201AE30)
+; ----------------------------------------------------------------------------
+  [0x4E30] DialogMessage style=0, len=36:
+                "そうだなぁ、、、\n
+                とりあえず [15C]しく考えたワナを\n
+                使ってみようかな?[WAIT][CLEAR]"
+  [0x4E7E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_7B  @ Offset 0x4E80 (Buffer 0x0201AE80)
+; ----------------------------------------------------------------------------
+  [0x4E80] DialogMessage style=0, len=14:
+                "ナル! [166]しぶりだなぁ![WAIT][CLEAR]"
+  [0x4EA2] DialogMessage style=0, len=16:
+                "[PORTRAIT:56]勇気だったか オッチャン![WAIT][CLEAR]"
+  [0x4EC8] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x4ECC] DialogMessage style=0, len=50:
+                "あったりまえじゃねぇか![WAIT][08:00]、、、ん? 見かけないヤツと[12A][1AF]だな\n
+                なんだか [215][216][217]いなぁ あんた[WAIT][CLEAR]"
+  [0x4F36] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x4F3A] DialogMessage style=0, len=29:
+                "[PORTRAIT:15]あ あんたって、、、\n
+                おじさん ちょっと[1A0]礼よ、、、[WAIT][CLEAR]"
+  [0x4F7A] DialogMessage style=0, len=11:
+                "[PORTRAIT:47]フッ かまわんよ[WAIT][CLEAR]"
+  [0x4F96] DialogMessage style=0, len=11:
+                "[PORTRAIT:11]ガレオン様、、、[WAIT][CLEAR]"
+  [0x4FB2] DialogMessage style=0, len=22:
+                "ガ ガレオン様ぁ!?\n
+                し [1A0]礼しました![WAIT][CLEAR]"
+  [0x4FE4] DialogMessage style=0, len=14:
+                "[PORTRAIT:47]いや 気にしないでくれ[WAIT][CLEAR]"
+  [0x5006] Op_SetFlagsList [0x03FC]
+  [0x500A] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_7C  @ Offset 0x500C (Buffer 0x0201B00C)
+; ----------------------------------------------------------------------------
+  [0x500C] DialogMessage style=0, len=34:
+                "あのガレオン様と[12A][1AF]だなんて、、、\n
+                お[112]たち [194]やってきたんだ?[WAIT][CLEAR]"
+  [0x5056] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_7E, Entry_7F, Entry_80, Entry_81, Entry_82  @ Offset 0x5058 (Buffer 0x0201B058)
+; ----------------------------------------------------------------------------
+  [0x5058] Op_IfAllFlagsJump [0x03F5] -> Entry_86 (0x526E)
+  [0x505D] Op_IfEventFlagJump flag=0x0038 -> Entry_85 (0x519A)
+  [0x5061] Op_IfAllFlagsJump [0x03F4] -> Entry_84 (0x5150)
+  [0x5066] Op_IfEventFlagJump flag=0x0010 -> Entry_83 (0x50E4)
+  [0x506A] DialogMessage style=0, len=31:
+                "魔法使いって\n
+                どんなことでも できるんでしょ?\n
+                すごいねぇ[WAIT][CLEAR]"
+  [0x50AE] Op_IfPartyMemberJump member=3, count=0 -> Entry_F9 (0x7374)
+  [0x50B2] DialogMessage style=0, len=21:
+                "[PORTRAIT:16]そんなに\n
+                [194]でもできるワケじゃないさ[WAIT][CLEAR]"
+  [0x50E2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_83  @ Offset 0x50E4 (Buffer 0x0201B0E4)
+; ----------------------------------------------------------------------------
+  [0x50E4] DialogMessage style=0, len=48:
+                "ねぇ ねぇ アレスにいちゃん\n
+                ダイン様の[108]に ささってる[20D]\n
+                いつになったら ぬけるのかなぁ?[WAIT][CLEAR]"
+  [0x514A] Op_SetFlagsList [0x03F4]
+  [0x514E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_84  @ Offset 0x5150 (Buffer 0x0201B150)
+; ----------------------------------------------------------------------------
+  [0x5150] DialogMessage style=0, len=33:
+                "もし ダイン様の[20D]がぬけたら\n
+                ボクにも見せてね やくそくだよ![WAIT][CLEAR]"
+  [0x5198] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_85  @ Offset 0x519A (Buffer 0x0201B19A)
+; ----------------------------------------------------------------------------
+  [0x519A] DialogMessage style=0, len=73:
+                "わぁ!\n
+                その長が ガレオン様なの?\n
+                スゴイなぁ!![WAIT][08:00]ボクも 魔法の[218][1CD]をして\n
+                ガレオン様みたいに エラクなって\n
+                ドラゴンマスターになるんだ![WAIT][CLEAR]"
+  [0x5232] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x5236] DialogMessage style=0, len=22:
+                "[PORTRAIT:48]ふっ、、、\n
+                ドラゴンマスター か、、、[WAIT][CLEAR]"
+  [0x5268] Op_SetFlagsList [0x03F5]
+  [0x526C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_86  @ Offset 0x526E (Buffer 0x0201B26E)
+; ----------------------------------------------------------------------------
+  [0x526E] DialogMessage style=0, len=44:
+                "ねぇ ねぇ ガレオン様って\n
+                ドラゴンマスター ダイン様と\n
+                [299]じくらい [1CD]いんだよネ?[WAIT][CLEAR]"
+  [0x52CC] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_87  @ Offset 0x52CE (Buffer 0x0201B2CE)
+; ----------------------------------------------------------------------------
+  [0x52CE] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_88, Entry_89, Entry_8A, Entry_8B, Entry_8C, Entry_8D, Entry_8E, Entry_8F, Entry_90, Entry_91, Entry_92, Entry_93, Entry_94, Entry_95, Entry_96  @ Offset 0x52D0 (Buffer 0x0201B2D0)
+; ----------------------------------------------------------------------------
+  [0x52D0] Op_IfSwitchJump switch=0x00A5 -> Entry_39 (0x5939)
+  [0x52D4] Op_IfAllFlagsJump [0x029E] -> Entry_38 (0x58DF)
+  [0x52D9] Op_IfAllFlagsJump [0x0411] -> Entry_37 (0x5877)
+  [0x52DE] Op_IfSwitchJump switch=0x0056 -> Entry_36 (0x5791)
+  [0x52E2] Op_IfEventFlagJump flag=0x0039 -> Entry_9D (0x56D1)
+  [0x52E6] Op_IfAllFlagsJump [0x03EA] -> Entry_9C (0x5655)
+  [0x52EB] Op_IfEventFlagJump flag=0x0038 -> Entry_9B (0x5583)
+  [0x52EF] Op_IfAllFlagsJump [0x03E9] -> Entry_9A (0x5519)
+  [0x52F4] Op_IfEventFlagJump flag=0x0010 -> Entry_99 (0x542F)
+  [0x52F8] Op_IfAllFlagsJump [0x03E8] -> Entry_98 (0x53E7)
+  [0x52FD] Op_IfPartyMemberJump member=3, count=1 -> Entry_97 (0x5347)
+  [0x5301] DialogMessage style=0, len=31:
+                "墓参には [219][21A]な雄があるのじゃ\n
+                その雄を ファイディという[WAIT][CLEAR]"
+  [0x5345] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_97  @ Offset 0x5347 (Buffer 0x0201B347)
+; ----------------------------------------------------------------------------
+  [0x5347] DialogMessage style=0, len=74:
+                "ここ ブルグ村で\n
+                ダイン様は 生まれ中ったのじゃ[WAIT][08:00][1E2]くなられた ダイン様をしのんで\n
+                村の[21B]に あの[108]が[0F6]てられてから\n
+                もう15[1CE]にもなるかのぉ[WAIT][CLEAR]"
+  [0x53E1] Op_SetFlagsList [0x03E8]
+  [0x53E5] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_98  @ Offset 0x53E7 (Buffer 0x0201B3E7)
+; ----------------------------------------------------------------------------
+  [0x53E7] DialogMessage style=0, len=32:
+                "アレス お[112]は\n
+                おさないころの ダイン様に\n
+                そっくりじゃのぉ[WAIT][CLEAR]"
+  [0x542D] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_99  @ Offset 0x542F (Buffer 0x0201B42F)
+; ----------------------------------------------------------------------------
+  [0x542F] DialogMessage style=0, len=69:
+                "ほほう 墓参の[0FC][1E5]を見るのは\n
+                15[1CE]ぶりじゃて、、、[WAIT][08:00]そのときは たしか\n
+                ダイン様に 見せてもろうたんじゃ\n
+                いやはや なつかしいのぉ[WAIT][CLEAR]"
+  [0x54BF] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x54C3] DialogMessage style=0, len=37:
+                "[PORTRAIT:12]よかったわね アレス\n
+                ダイン様に ちょっとだけ\n
+                [210]づけたんじゃない?[WAIT][CLEAR]"
+  [0x5513] Op_SetFlagsList [0x03E9]
+  [0x5517] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9A  @ Offset 0x5519 (Buffer 0x0201B519)
+; ----------------------------------------------------------------------------
+  [0x5519] DialogMessage style=0, len=49:
+                "アレスが墓参様から[0FC][1E5]をのぉ、、、\n
+                [3ED]来はドラゴンマスターかもしれんて\n
+                ふぉっ ふぉっ ふぉっ[WAIT][CLEAR]"
+  [0x5581] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9B  @ Offset 0x5583 (Buffer 0x0201B583)
+; ----------------------------------------------------------------------------
+  [0x5583] DialogMessage style=0, len=99:
+                "おお アレス アレスではないか!!\n
+                よくぞ 元気で[1BC]って来たのぉ\n
+                おや そちらのかたは、、、[WAIT][08:00]こ これは たまげた!\n
+                ガレオン様では ありませんか!![WAIT][08:00]ダイン様のふるさと\n
+                ブルグへようこそ![WAIT][CLEAR]"
+  [0x564F] Op_SetFlagsList [0x03EA]
+  [0x5653] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9C  @ Offset 0x5655 (Buffer 0x0201B655)
+; ----------------------------------------------------------------------------
+  [0x5655] DialogMessage style=0, len=43:
+                "それにしても ガレオン様が\n
+                ブルグへ いらっしゃるのは\n
+                英丘に[166]しぶりのことですな[WAIT][CLEAR]"
+  [0x56B1] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x56B5] DialogMessage style=0, len=10:
+                "[PORTRAIT:47]、、、そうだな[WAIT][CLEAR]"
+  [0x56CF] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9D  @ Offset 0x56D1 (Buffer 0x0201B6D1)
+; ----------------------------------------------------------------------------
+  [0x56D1] DialogMessage style=0, len=47:
+                "なんと [3E7]ろしいことじゃ、、、\n
+                ガレオン様は ダイン様の\n
+                [1E7][1E8]じゃったハズなのにのぉ、、、[WAIT][CLEAR]"
+  [0x5735] Op_IfPartyMemberJump member=4, count=1 -> Entry_9F (0x5763)
+  [0x5739] Op_IfPartyMemberJump member=5, count=1 -> Entry_9E (0x573F)
+  [0x573D] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9E  @ Offset 0x573F (Buffer 0x0201B73F)
+; ----------------------------------------------------------------------------
+  [0x573F] DialogMessage style=0, len=14:
+                "[PORTRAIT:29][248]せないわ ガレオン![WAIT][CLEAR]"
+  [0x5761] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_9F  @ Offset 0x5763 (Buffer 0x0201B763)
+; ----------------------------------------------------------------------------
+  [0x5763] DialogMessage style=0, len=19:
+                "[PORTRAIT:23]ガレオン\n
+                いったい なぜ、、、?[WAIT][CLEAR]"
+  [0x578F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_36  @ Offset 0x5791 (Buffer 0x0201B791)
+; ----------------------------------------------------------------------------
+  [0x5791] DialogMessage style=0, len=65:
+                "ダイン様も 今のガレオン様には\n
+                きっと [150]をいためられるはずじゃ[WAIT][08:00]アレスや 考え[180]されるように\n
+                迎ってみてはどうかのぉ、、、[WAIT][CLEAR]"
+  [0x5819] Op_IfPartyMemberJump member=6, count=0 -> Entry_F9 (0x7374)
+  [0x581D] DialogMessage style=0, len=39:
+                "[PORTRAIT:36]そういう[1C6][14B]ならいいんだが\n
+                どう見ても アイツは\n
+                [198][1D0][3EF]だからなぁ、、、[WAIT][CLEAR]"
+  [0x5871] Op_SetFlagsList [0x0411]
+  [0x5875] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_37  @ Offset 0x5877 (Buffer 0x0201B877)
+; ----------------------------------------------------------------------------
+  [0x5877] DialogMessage style=0, len=48:
+                "[1C7][0ED][0EE]のお[12A]長が なぜ こんな\n
+                [3E7]ろしいことをなさるのか、、、\n
+                ダイン様も [1ED]しかろうにのぉ[WAIT][CLEAR]"
+  [0x58DD] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_38  @ Offset 0x58DF (Buffer 0x0201B8DF)
+; ----------------------------------------------------------------------------
+  [0x58DF] DialogMessage style=0, len=41:
+                "[0ED][0EE]といえども [197]わらぬままでは\n
+                いられぬということなのか?[WAIT][08:00]それとも、、、[WAIT][CLEAR]"
+  [0x5937] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_39  @ Offset 0x5939 (Buffer 0x0201B939)
+; ----------------------------------------------------------------------------
+  [0x5939] DialogMessage style=0, len=43:
+                "ひょっとしたら ガレオン様には\n
+                長に迎えない気情が\n
+                おありなのかもしれんのぉ、、、[WAIT][CLEAR]"
+  [0x5995] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A0  @ Offset 0x5997 (Buffer 0x0201B997)
+; ----------------------------------------------------------------------------
+  [0x5997] Op_IfAllFlagsJump [0x029E] -> Entry_34 (0x5FAA)
+  [0x599C] Op_IfEventFlagJump flag=0x0054 -> Entry_A9 (0x5EF8)
+  [0x59A0] Op_IfEventFlagJump flag=0x008C -> Entry_A8 (0x5E5E)
+  [0x59A4] Op_IfEventFlagJump flag=0x0039 -> Entry_A7 (0x5DD0)
+  [0x59A8] Op_IfAllFlagsJump [0x03EE] -> Entry_A6 (0x5D78)
+  [0x59AD] Op_IfEventFlagJump flag=0x0038 -> Entry_A5 (0x5C66)
+  [0x59B1] Op_IfPartyMemberJump member=8, count=0 -> Entry_A4 (0x5BBA)
+  [0x59B5] Op_IfEventFlagJump flag=0x0010 -> Entry_A3 (0x5B90)
+  [0x59B9] Op_IfAllFlagsJump [0x03ED] -> Entry_A2 (0x5B1C)
+  [0x59BE] Op_IfSwitchJump switch=0x0003 -> Entry_A1 (0x59F8)
+  [0x59C2] DialogMessage style=0, len=23:
+                "ゴートの肉を[21E]に行くと\n
+                [21F][220]サイスに[105]るよ[WAIT][CLEAR]"
+  [0x59F6] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A1  @ Offset 0x59F8 (Buffer 0x0201B9F8)
+; ----------------------------------------------------------------------------
+  [0x59F8] DialogMessage style=0, len=30:
+                "やあ アレス\n
+                ヴェーンの魔法使い様の儀式なんて\n
+                [136][197]だな[WAIT][CLEAR]"
+  [0x5A3A] Op_IfPartyMemberJump member=3, count=0 -> Entry_F9 (0x7374)
+  [0x5A3E] DialogMessage style=0, len=28:
+                "[PORTRAIT:20][136][197]かもしれないが\n
+                それ[221][222]に雄[3F7]なことだと思うね[WAIT][CLEAR]"
+  [0x5A7C] DialogMessage style=0, len=17:
+                "[PORTRAIT:58][0FD][188]で迎うかな フツー、、、[WAIT][CLEAR]"
+  [0x5AA4] DialogMessage style=0, len=38:
+                "でも [12A][1AF]に行くのが、、、\n
+                ルーナはともかく ラムスだろ?\n
+                [136][224][225]かぁ?[WAIT][CLEAR]"
+  [0x5AF6] DialogMessage style=0, len=13:
+                "[PORTRAIT:44]どういう意[226]だよ!![WAIT][CLEAR]"
+  [0x5B16] Op_SetFlagsList [0x03ED]
+  [0x5B1A] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A2  @ Offset 0x5B1C (Buffer 0x0201BB1C)
+; ----------------------------------------------------------------------------
+  [0x5B1C] DialogMessage style=0, len=54:
+                "ラムス 村[1DE]が迎ってたぜ[WAIT][08:00]『[19C]しは ラムスも [136]長になって\n
+                 村のことを考えるように』[WAIT][08:00]ってな、、、[WAIT][CLEAR]"
+  [0x5B8E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A3  @ Offset 0x5B90 (Buffer 0x0201BB90)
+; ----------------------------------------------------------------------------
+  [0x5B90] DialogMessage style=0, len=17:
+                "おや? もう儀式は終わりかい?[WAIT][CLEAR]"
+  [0x5BB8] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A4  @ Offset 0x5BBA (Buffer 0x0201BBBA)
+; ----------------------------------------------------------------------------
+  [0x5BBA] DialogMessage style=0, len=82:
+                "あれ?\n
+                ラムスはどっか行っちまったのか\n
+                まったく どうしようもないなぁ[WAIT][08:00]あんな なまけ[153]は見たことがないよ\n
+                なあ そう思うだろ?\n
+                英丘に もう ブツブツ、、、[WAIT][CLEAR]"
+  [0x5C64] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A5  @ Offset 0x5C66 (Buffer 0x0201BC66)
+; ----------------------------------------------------------------------------
+  [0x5C66] DialogMessage style=0, len=93:
+                "おや アレスじゃないか?\n
+                ラムスは [12A][1AF]じゃないのかい?[WAIT][08:00]まったく あのなまけ[153]ときたら\n
+                フラッと村を[227]びだして\n
+                いったい どこで [194]をしてるのか?[WAIT][08:00]ホントにもう あきれちまうな[WAIT][CLEAR]"
+  [0x5D26] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x5D2A] DialogMessage style=0, len=33:
+                "[PORTRAIT:11]ラムスは メリビアで\n
+                お[228]を[2D8]いたのよ\n
+                [3FA][150]に [3D7]いているわ[WAIT][CLEAR]"
+  [0x5D72] Op_SetFlagsList [0x03EE]
+  [0x5D76] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A6  @ Offset 0x5D78 (Buffer 0x0201BD78)
+; ----------------------------------------------------------------------------
+  [0x5D78] DialogMessage style=0, len=40:
+                "ラムスが[228]をねぇ、、、\n
+                あんな なまけ[153]が\n
+                [22B][22C]なんてやれるとは思えないね![WAIT][CLEAR]"
+  [0x5DCE] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A7  @ Offset 0x5DD0 (Buffer 0x0201BDD0)
+; ----------------------------------------------------------------------------
+  [0x5DD0] DialogMessage style=0, len=67:
+                "とんでもないことになったなぁ\n
+                あまり[1F2]ち[18A]むなよ アレス[WAIT][08:00]それにしても ラムスのヤツは\n
+                こんな[167]だってのに\n
+                [194]やってんだか、、、[WAIT][CLEAR]"
+  [0x5E5C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A8  @ Offset 0x5E5E (Buffer 0x0201BE5E)
+; ----------------------------------------------------------------------------
+  [0x5E5E] DialogMessage style=0, len=73:
+                "ア アレス!\n
+                お お[112] ガレオン様の\n
+                知りあいなんだろ?[WAIT][08:00]じゃ [13C]だけは助けてくれって\n
+                お[38D]いしてくれよ!\n
+                よ よろしく備むぜ! な! な![WAIT][CLEAR]"
+  [0x5EF6] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_A9  @ Offset 0x5EF8 (Buffer 0x0201BEF8)
+; ----------------------------------------------------------------------------
+  [0x5EF8] DialogMessage style=0, len=85:
+                "ドラゴンマスターになったんなら\n
+                [0FD][188]の[105][0FE][137]の村を\n
+                いちばんに [0EB]ってくれるよな![WAIT][08:00]この ブルグ村にいれば\n
+                [22D][120]なんだろ そうだろ?\n
+                なぁ そうだと迎ってくれよぉ![WAIT][CLEAR]"
+  [0x5FA8] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_34  @ Offset 0x5FAA (Buffer 0x0201BFAA)
+; ----------------------------------------------------------------------------
+  [0x5FAA] DialogMessage style=0, len=61:
+                "[1B6][1F0][1F1]も [0E8][0E9]アルテナも\n
+                どうでもいいからよ\n
+                お[112]の村を [0EB]ってくれ![WAIT][08:00]なぁ 備むぜ\n
+                ドラゴンマスター アレス様ぁ![WAIT][CLEAR]"
+  [0x602A] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AA  @ Offset 0x602C (Buffer 0x0201C02C)
+; ----------------------------------------------------------------------------
+  [0x602C] Op_IfAllFlagsJump [0x02A5] -> Entry_21 (0x65A9)
+  [0x6031] Op_IfAllFlagsJump [0x029E] -> Entry_B3 (0x64D7)
+  [0x6036] Op_IfEventFlagJump flag=0x0054 -> Entry_B2 (0x646F)
+  [0x603A] Op_IfAllFlagsJump [0x0412] -> Entry_B1 (0x6413)
+  [0x603F] Op_IfEventFlagJump flag=0x0039 -> Entry_B0 (0x635D)
+  [0x6043] Op_IfAllFlagsJump [0x03FA] -> Entry_AF (0x6311)
+  [0x6048] Op_IfEventFlagJump flag=0x0038 -> Entry_AE (0x61ED)
+  [0x604C] Op_IfAllFlagsJump [0x03F9] -> Entry_AD (0x61B7)
+  [0x6051] Op_IfEventFlagJump flag=0x0010 -> Entry_AB (0x608D)
+  [0x6055] DialogMessage style=0, len=24:
+                "ゴートの肉に行くんだって?\n
+                気をつけるんだよ[WAIT][CLEAR]"
+  [0x608B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AB  @ Offset 0x608D (Buffer 0x0201C08D)
+; ----------------------------------------------------------------------------
+  [0x608D] Op_IfPartyMemberJump member=3, count=0 -> Entry_AC (0x60E3)
+  [0x6091] DialogMessage style=0, len=17:
+                "お[1BC]り みんなケガはないかい?[WAIT][CLEAR]"
+  [0x60B9] DialogMessage style=0, len=17:
+                "[PORTRAIT:56]これくらい へっちゃらだよ![WAIT][CLEAR]"
+  [0x60E1] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AC  @ Offset 0x60E3 (Buffer 0x0201C0E3)
+; ----------------------------------------------------------------------------
+  [0x60E3] DialogMessage style=0, len=36:
+                "[196]長とも よく元気で[1BC]って来たね\n
+                おや 魔法使い様はどうしたんだい?[WAIT][CLEAR]"
+  [0x6131] DialogMessage style=0, len=25:
+                "[PORTRAIT:55]なんか [1B7]しいんだってさ\n
+                もう[1BC]っちゃったよ[WAIT][CLEAR]"
+  [0x6169] DialogMessage style=0, len=33:
+                "そうかい\n
+                まあ[216][1DC]とやらなくては\n
+                行けないことがあるんだろうね[WAIT][CLEAR]"
+  [0x61B1] Op_SetFlagsList [0x03F9]
+  [0x61B5] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AD  @ Offset 0x61B7 (Buffer 0x0201C1B7)
+; ----------------------------------------------------------------------------
+  [0x61B7] DialogMessage style=0, len=23:
+                "ゆっくり[22E]むといいよ\n
+                [11D]りが[210]いんだからね[WAIT][CLEAR]"
+  [0x61EB] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AE  @ Offset 0x61ED (Buffer 0x0201C1ED)
+; ----------------------------------------------------------------------------
+  [0x61ED] DialogMessage style=0, len=37:
+                "[196]長とも 勇気だったかい?\n
+                おや そちらの方は、、、\n
+                [0A:1E]ガレオン様!?[WAIT][CLEAR]"
+  [0x623D] DialogMessage style=0, len=16:
+                "[PORTRAIT:55]オバチャン 知ってんのか?[WAIT][CLEAR]"
+  [0x6263] DialogMessage style=0, len=51:
+                "ずっと[155]さい[0E0]に [12A][1AC]だけ\n
+                ダイン様とこの村に来たことがあってね\n
+                まさか またお行いできるとはねぇ[WAIT][CLEAR]"
+  [0x62CF] Op_IfPartyMemberJump member=9, count=0 -> Entry_F9 (0x7374)
+  [0x62D3] DialogMessage style=0, len=25:
+                "[PORTRAIT:48]そうだな、、、\n
+                あの[0E0]は ダインがいた、、、[WAIT][CLEAR]"
+  [0x630B] Op_SetFlagsList [0x03FA]
+  [0x630F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_AF  @ Offset 0x6311 (Buffer 0x0201C311)
+; ----------------------------------------------------------------------------
+  [0x6311] DialogMessage style=0, len=34:
+                "ダイン様はいらっしゃいませんが\n
+                ごゆっくりなさっていってください[WAIT][CLEAR]"
+  [0x635B] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B0  @ Offset 0x635D (Buffer 0x0201C35D)
+; ----------------------------------------------------------------------------
+  [0x635D] DialogMessage style=0, len=85:
+                "ルーナが さらわれるなんて、、、\n
+                あぁ アレス、、、\n
+                [24D] なんて迎ったらいいのか、、、[WAIT][08:00]アレスと[12A][1AF]に [0E3]から\n
+                [1BC]って来たときの ルーナは\n
+                英丘に [156]せそうだったわ[WAIT][CLEAR]"
+  [0x640D] Op_SetFlagsList [0x0412]
+  [0x6411] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B1  @ Offset 0x6413 (Buffer 0x0201C413)
+; ----------------------------------------------------------------------------
+  [0x6413] DialogMessage style=0, len=42:
+                "アレス、、、\n
+                [1DF]く ルーナを助けてあげて![WAIT][08:00]ルーナには\n
+                あなたしかいないのよ![WAIT][CLEAR]"
+  [0x646D] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B2  @ Offset 0x646F (Buffer 0x0201C46F)
+; ----------------------------------------------------------------------------
+  [0x646F] DialogMessage style=0, len=48:
+                "アレスは [19C]しもあきらめないのね\n
+                アレスなら きっと ルーナを\n
+                [1B3]り[257]せるわ がんばってね![WAIT][CLEAR]"
+  [0x64D5] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B3  @ Offset 0x64D7 (Buffer 0x0201C4D7)
+; ----------------------------------------------------------------------------
+  [0x64D7] DialogMessage style=0, len=64:
+                "アレスは ルーナのために\n
+                敷のかぎり がんばっているのね[WAIT][08:00]その気[19B]ち\n
+                きっとルーナにも とどくわ\n
+                だから あきらめないでね[WAIT][CLEAR]"
+  [0x655D] DialogMessage style=0, len=34:
+                "[PORTRAIT:56]アレスは\n
+                あきらめたりなんかしない\n
+                きっと ルーナを助けるさ![WAIT][CLEAR]"
+  [0x65A7] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_21  @ Offset 0x65A9 (Buffer 0x0201C5A9)
+; ----------------------------------------------------------------------------
+  [0x65A9] DialogMessage style=0, len=64:
+                "アレスと ルーナの[150]は\n
+                つながっているもの[WAIT][08:00]アレスが あきらめなければ\n
+                ルーナも ぜったいに\n
+                あきらめたりなんかしないわよ[WAIT][CLEAR]"
+  [0x662F] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B4  @ Offset 0x6631 (Buffer 0x0201C631)
+; ----------------------------------------------------------------------------
+  [0x6631] Op_IfAllFlagsJump [0x029E] -> Entry_BC (0x6B76)
+  [0x6636] Op_IfEventFlagJump flag=0x0054 -> Entry_BB (0x6ABC)
+  [0x663A] Op_IfEventFlagJump flag=0x0089 -> Entry_BA (0x6A18)
+  [0x663E] Op_IfEventFlagJump flag=0x0039 -> Entry_B9 (0x6970)
+  [0x6642] Op_IfAllFlagsJump [0x03EC] -> Entry_B8 (0x6910)
+  [0x6647] Op_IfEventFlagJump flag=0x0038 -> Entry_B7 (0x6808)
+  [0x664B] Op_IfAllFlagsJump [0x03EB] -> Entry_B6 (0x67AA)
+  [0x6650] Op_IfEventFlagJump flag=0x0010 -> Entry_B5 (0x66B4)
+  [0x6654] DialogMessage style=0, len=44:
+                "[11D]りも[210]いってのに ここ[22F][10A]は\n
+                サイスから来る長がいないんだよな\n
+                どうしたんだろう?[WAIT][CLEAR]"
+  [0x66B2] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B5  @ Offset 0x66B4 (Buffer 0x0201C6B4)
+; ----------------------------------------------------------------------------
+  [0x66B4] DialogMessage style=0, len=74:
+                "やあ ルーナ\n
+                [10D]の[10E][10F]は もう おしまいかい?[WAIT][08:00]あんたほど[10D]のうまい[205]っこは\n
+                サイスの[21F][220]にも いやしないよ\n
+                [11D]りの[10A]を [1D4]しみにしてるからね[WAIT][CLEAR]"
+  [0x674E] Op_IfPartyMemberJump member=2, count=0 -> Entry_F9 (0x7374)
+  [0x6752] DialogMessage style=0, len=38:
+                "[PORTRAIT:12]ありがとう おじさん\n
+                でも アレスったら[10E][10F]を\n
+                さぼってばっかりなのよ[WAIT][CLEAR]"
+  [0x67A4] Op_SetFlagsList [0x03EB]
+  [0x67A8] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B6  @ Offset 0x67AA (Buffer 0x0201C7AA)
+; ----------------------------------------------------------------------------
+  [0x67AA] DialogMessage style=0, len=43:
+                "ルーナほど [10D]のうまい[205]っこは\n
+                なかなか いやしないよ\n
+                アレスは英丘に [156]せ[153]だね[WAIT][CLEAR]"
+  [0x6806] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B7  @ Offset 0x6808 (Buffer 0x0201C808)
+; ----------------------------------------------------------------------------
+  [0x6808] DialogMessage style=0, len=89:
+                "そちらは [1C7][0ED][0EE]のガレオン様ッ!?\n
+                アレス お[112]ガレオン様の[3D8][19F]に\n
+                なることができたのか!?[WAIT][08:00]そいつは スゴイ!\n
+                わざわざ [0E1][0E2]の[0E3]にでたかいが\n
+                あったってもんじゃないか![WAIT][CLEAR]"
+  [0x68C0] DialogMessage style=0, len=34:
+                "[PORTRAIT:59]アレスは\n
+                [3D8][19F]なんかじゃないぞ!\n
+                ちょっと[14B][20E]ってるだけだい![WAIT][CLEAR]"
+  [0x690A] Op_SetFlagsList [0x03EC]
+  [0x690E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B8  @ Offset 0x6910 (Buffer 0x0201C910)
+; ----------------------------------------------------------------------------
+  [0x6910] DialogMessage style=0, len=44:
+                "なんてもったいない!\n
+                ガレオン様と知りあえたんだったら\n
+                [3D8][19F]にしてもらえばいいのに![WAIT][CLEAR]"
+  [0x696E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_B9  @ Offset 0x6970 (Buffer 0x0201C970)
+; ----------------------------------------------------------------------------
+  [0x6970] DialogMessage style=0, len=43:
+                "魔法[0D5][0D6]ガレオンだって!?\n
+                アレス、、、 お[112] まさか\n
+                [1F6]間なんじゃないだろうなぁ[WAIT][CLEAR]"
+  [0x69CC] DialogMessage style=0, len=34:
+                "[PORTRAIT:57]なんてこというんだよ!\n
+                ルーナが さらわれたって\n
+                いうのにさ![WAIT][CLEAR]"
+  [0x6A16] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_BA  @ Offset 0x6A18 (Buffer 0x0201CA18)
+; ----------------------------------------------------------------------------
+  [0x6A18] DialogMessage style=0, len=47:
+                "アレス お[112] 魔法[0D5][0D6]ガレオンと\n
+                [0EC]っているんだってな、、、\n
+                なんていう[1E6]気だ 見[180]したよ[WAIT][CLEAR]"
+  [0x6A7C] DialogMessage style=0, len=28:
+                "[PORTRAIT:56]ルーナがさらわれたんだモン\n
+                とうぜんだよな アレス[WAIT][CLEAR]"
+  [0x6ABA] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_BB  @ Offset 0x6ABC (Buffer 0x0201CABC)
+; ----------------------------------------------------------------------------
+  [0x6ABC] DialogMessage style=0, len=89:
+                "お[112] ルーナを[1B3]り[257]すために\n
+                ドラゴンマスターになったのかい\n
+                ふぇ＾ たいしたモンだねぇ、、、[WAIT][08:00]その[231]敷があれば ガレオンなんかに\n
+                [232]けるわけがないな\n
+                がんばれよ アレス![WAIT][CLEAR]"
+  [0x6B74] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_BC  @ Offset 0x6B76 (Buffer 0x0201CB76)
+; ----------------------------------------------------------------------------
+  [0x6B76] DialogMessage style=0, len=80:
+                "ルーナを助けるために\n
+                [1B4][1C8]まで行って来たんだって!?\n
+                ふぇ＾ たいしたモンだねぇ、、、[WAIT][08:00]その[231]敷があれば ガレオンなんかに\n
+                [232]けるわけがないぜ アレスよ![WAIT][CLEAR]"
+  [0x6C1C] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_BD, Entry_BE  @ Offset 0x6C1E (Buffer 0x0201CC1E)
+; ----------------------------------------------------------------------------
+  [0x6C1E] Op_IfAllFlagsClearJump [0x0040] -> Entry_C2 (0x6D0A)
+  [0x6C23] Op_SfxPlay sfx=26, arg=0
+  [0x6C27] DialogMessage style=4, len=17:
+                "\n
+                サードニックスを 見つけた![WAIT][CLEAR]"
+  [0x6C4F] Op_IfItemQtyJump item=186 -> Entry_BF (0x6C57)
+  [0x6C52] Op_GiveTakeItem item=186, count=1
+  [0x6C55] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_BF  @ Offset 0x6C57 (Buffer 0x0201CC57)
+; ----------------------------------------------------------------------------
+  [0x6C57] DialogMessage style=4, len=27:
+                "だが、、、\n
+                [19B]ち雄がいっぱいだったので\n
+                あきらめた[WAIT][CLEAR]"
+  [0x6C93] Op_ChestOpen
+  [0x6C94] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_C0  @ Offset 0x6C96 (Buffer 0x0201CC96)
+; ----------------------------------------------------------------------------
+  [0x6C96] Op_IfAllFlagsClearJump [0x0040] -> Entry_C2 (0x6D0A)
+  [0x6C9B] Op_SfxPlay sfx=26, arg=0
+  [0x6C9F] DialogMessage style=4, len=17:
+                "\n
+                ビートナックルを 見つけた![WAIT][CLEAR]"
+  [0x6CC7] Op_IfItemQtyJump item=37 -> Entry_BF (0x6C57)
+  [0x6CCA] Op_GiveTakeItem item=37, count=1
+  [0x6CCD] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_C1  @ Offset 0x6CCF (Buffer 0x0201CCCF)
+; ----------------------------------------------------------------------------
+  [0x6CCF] Op_IfAllFlagsClearJump [0x0040] -> Entry_C2 (0x6D0A)
+  [0x6CD4] Op_SfxPlay sfx=26, arg=0
+  [0x6CD8] DialogMessage style=4, len=18:
+                "\n
+                サンダーブレードを 見つけた![WAIT][CLEAR]"
+  [0x6D02] Op_IfItemQtyJump item=19 -> Entry_BF (0x6C57)
+  [0x6D05] Op_GiveTakeItem item=19, count=1
+  [0x6D08] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_C2  @ Offset 0x6D0A (Buffer 0x0201CD0A)
+; ----------------------------------------------------------------------------
+  [0x6D0A] DialogMessage style=4, len=18:
+                "\n
+                カギが かかっていて[2D8]かない![WAIT][CLEAR]"
+  [0x6D34] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_C3  @ Offset 0x6D36 (Buffer 0x0201CD36)
+; ----------------------------------------------------------------------------
+  [0x6D36] Op_SfxPlay sfx=26, arg=0
+  [0x6D3A] DialogMessage style=4, len=15:
+                "\n
+                ヒールガムを 見つけた![WAIT][CLEAR]"
+  [0x6D5E] Op_IfItemQtyJump item=221 -> Entry_BF (0x6C57)
+  [0x6D61] Op_GiveTakeItem item=221, count=1
+  [0x6D64] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_C4, Entry_C5, Entry_C6, Entry_C7, Entry_C8  @ Offset 0x6D66 (Buffer 0x0201CD66)
+; ----------------------------------------------------------------------------
+  [0x6D66] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6D72] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6D7E] Op_WaitFrames count=0
+  [0x6D80] CharaControl SetPosDir chara=120, pos=(0, 0), dir=1
+  [0x6D8C] CharaControl SetPosDir chara=122, pos=(0, 0), dir=1
+  [0x6D98] Op_WaitFrames count=0
+  [0x6D9A] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6DA6] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6DB2] Op_WaitFrames count=0
+  [0x6DB4] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6DC0] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6DCC] Op_WaitFrames count=0
+  [0x6DCE] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6DDA] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6DE6] Op_WaitFrames count=0
+  [0x6DE8] CharaControl SetPosDir chara=120, pos=(0, 0), dir=1
+  [0x6DF4] CharaControl SetPosDir chara=122, pos=(0, 0), dir=1
+  [0x6E00] Op_WaitFrames count=0
+  [0x6E02] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6E0E] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6E1A] Op_WaitFrames count=0
+  [0x6E1C] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6E28] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6E34] Op_WaitFrames count=0
+  [0x6E36] CharaControl SetPosDir chara=120, pos=(0, 0), dir=1
+  [0x6E42] CharaControl SetPosDir chara=122, pos=(0, 0), dir=1
+  [0x6E4E] Op_WaitFrames count=0
+  [0x6E50] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6E5C] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6E68] Op_WaitFrames count=0
+  [0x6E6A] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_C9  @ Offset 0x6E6B (Buffer 0x0201CE6B)
+; ----------------------------------------------------------------------------
+  [0x6E6B] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6E77] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6E83] Op_WaitFrames count=0
+  [0x6E85] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6E91] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6E9D] Op_WaitFrames count=0
+  [0x6E9F] CharaControl SetPosDir chara=120, pos=(0, 0), dir=1
+  [0x6EAB] CharaControl SetPosDir chara=122, pos=(0, 0), dir=1
+  [0x6EB7] Op_WaitFrames count=0
+  [0x6EB9] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6EC5] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6ED1] Op_WaitFrames count=0
+  [0x6ED3] CharaControl SetPosDir chara=120, pos=(0, 0), dir=2
+  [0x6EDF] CharaControl SetPosDir chara=122, pos=(0, 0), dir=2
+  [0x6EEB] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_CA  @ Offset 0x6EEC (Buffer 0x0201CEEC)
+; ----------------------------------------------------------------------------
+  [0x6EEC] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6EF8] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6F04] Op_WaitFrames count=0
+  [0x6F06] CharaControl SetPosDir chara=120, pos=(0, 1), dir=1
+  [0x6F12] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x6F1E] Op_WaitFrames count=0
+  [0x6F20] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6F2C] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6F38] Op_WaitFrames count=0
+  [0x6F3A] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6F46] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6F52] Op_WaitFrames count=0
+  [0x6F54] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6F60] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6F6C] Op_WaitFrames count=0
+  [0x6F6E] CharaControl SetPosDir chara=120, pos=(0, 1), dir=1
+  [0x6F7A] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x6F86] Op_WaitFrames count=0
+  [0x6F88] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6F94] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6FA0] Op_WaitFrames count=0
+  [0x6FA2] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6FAE] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6FBA] Op_WaitFrames count=0
+  [0x6FBC] CharaControl SetPosDir chara=120, pos=(0, 1), dir=1
+  [0x6FC8] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x6FD4] Op_WaitFrames count=0
+  [0x6FD6] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6FE2] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x6FEE] Op_WaitFrames count=0
+  [0x6FF0] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_CB  @ Offset 0x6FF1 (Buffer 0x0201CFF1)
+; ----------------------------------------------------------------------------
+  [0x6FF1] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x6FFD] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7009] Op_WaitFrames count=0
+  [0x700B] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x7017] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7023] Op_WaitFrames count=0
+  [0x7025] CharaControl SetPosDir chara=120, pos=(0, 1), dir=1
+  [0x7031] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x703D] Op_WaitFrames count=0
+  [0x703F] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x704B] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7057] Op_WaitFrames count=0
+  [0x7059] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x7065] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7071] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_CC  @ Offset 0x7072 (Buffer 0x0201D072)
+; ----------------------------------------------------------------------------
+  [0x7072] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x707E] CharaControl SetPosDir chara=121, pos=(0, 1), dir=2
+  [0x708A] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7096] Op_WaitFrames count=0
+  [0x7098] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x70A4] CharaControl SetPosDir chara=121, pos=(0, 1), dir=2
+  [0x70B0] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x70BC] Op_WaitFrames count=0
+  [0x70BE] CharaControl SetPosDir chara=120, pos=(0, 1), dir=1
+  [0x70CA] CharaControl SetPosDir chara=121, pos=(0, 1), dir=1
+  [0x70D6] CharaControl SetPosDir chara=122, pos=(0, 1), dir=1
+  [0x70E2] Op_WaitFrames count=0
+  [0x70E4] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x70F0] CharaControl SetPosDir chara=121, pos=(0, 1), dir=2
+  [0x70FC] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x7108] Op_WaitFrames count=0
+  [0x710A] CharaControl SetPosDir chara=120, pos=(0, 1), dir=2
+  [0x7116] CharaControl SetPosDir chara=121, pos=(0, 1), dir=2
+  [0x7122] CharaControl SetPosDir chara=122, pos=(0, 1), dir=2
+  [0x712E] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_CD, Entry_CE, Entry_CF, Entry_D0, Entry_D1, Entry_D2, Entry_D3, Entry_D4, Entry_D5, Entry_D6, Entry_D7, Entry_D8, Entry_D9, Entry_DA, Entry_DB, Entry_DC  @ Offset 0x712F (Buffer 0x0201D12F)
+; ----------------------------------------------------------------------------
+  [0x712F] CharaControl SetPosDir chara=120, pos=(0, 0), dir=255
+  [0x713B] Op_WaitFrames count=0
+  [0x713D] CharaControl SetPosDir chara=120, pos=(0, 1), dir=255
+  [0x7149] Op_WaitFrames count=0
+  [0x714B] Op_ScriptReturn
+
+; ----------------------------------------------------------------------------
+; Entry_DD, Entry_DE, Entry_DF, Entry_E0, Entry_E1, Entry_E2, Entry_E3, Entry_E4, Entry_E5, Entry_E6, Entry_E7, Entry_E8, Entry_E9, Entry_EA, Entry_EB, Entry_EC, Entry_ED, Entry_EE, Entry_EF, Entry_F0  @ Offset 0x714C (Buffer 0x0201D14C)
+; ----------------------------------------------------------------------------
+  [0x714C] Op_IfAllFlagsJump [0x0220] -> Entry_F5 (0x72E4)
+  [0x7151] Op_IfAllFlagsJump [0x0004] -> Entry_F4 (0x7266)
+  [0x7156] DialogMessage style=0, len=51:
+                "おや いらっしゃい アレス\n
+                [238][239]を[235]いに来たのかね?[WAIT][08:00][136]したモンじゃないが\n
+                気をつけて使うんだよ[WAIT][CLEAR]"
+  [0x71C2] Op_DialogChoice e0=Entry_F1 (0x71E4), e1=Entry_F2 (0x720A), text="[237]"
+
+; ----------------------------------------------------------------------------
+; Entry_F1  @ Offset 0x71E4 (Buffer 0x0201D1E4)
+; ----------------------------------------------------------------------------
+  [0x71E4] Op_SaveUiTrigger mode=1
+  [0x71E6] Op_IfSaveLoadedJump -> Entry_F3 (0x7230)
+  [0x71E8] DialogMessage style=0, len=13:
+                "う＾ん 気にいらんか?[WAIT][CLEAR]"
+  [0x7208] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_F2  @ Offset 0x720A (Buffer 0x0201D20A)
+; ----------------------------------------------------------------------------
+  [0x720A] DialogMessage style=0, len=15:
+                "そうか\n
+                まあ また来てくれ[WAIT][CLEAR]"
+  [0x722E] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_F3  @ Offset 0x7230 (Buffer 0x0201D230)
+; ----------------------------------------------------------------------------
+  [0x7230] DialogMessage style=0, len=23:
+                "まいど、、、\n
+                また いつでも よっとくれ![WAIT][CLEAR]"
+  [0x7264] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_F4  @ Offset 0x7266 (Buffer 0x0201D266)
+; ----------------------------------------------------------------------------
+  [0x7266] DialogMessage style=0, len=43:
+                "いらっしゃい アレス\n
+                たいしたモンじゃないが、、、\n
+                ワシが [289]った[238][239]を[235]うかね?[WAIT][CLEAR]"
+  [0x72C2] Op_DialogChoice e0=Entry_F1 (0x71E4), e1=Entry_F2 (0x720A), text="[237]"
+
+; ----------------------------------------------------------------------------
+; Entry_F5  @ Offset 0x72E4 (Buffer 0x0201D2E4)
+; ----------------------------------------------------------------------------
+  [0x72E4] DialogMessage style=0, len=52:
+                "、、、おお アレスじゃないか!\n
+                よく 来たね[WAIT][08:00]しばらく見ないうちに\n
+                ずいぶんと たくましくなったな[WAIT][CLEAR]"
+  [0x7352] Op_DialogChoice e0=Entry_F1 (0x71E4), e1=Entry_F2 (0x720A), text="[237]"
+
+; ----------------------------------------------------------------------------
+; Entry_F6, Entry_F7, Entry_F8, Entry_F9  @ Offset 0x7374 (Buffer 0x0201D374)
+; ----------------------------------------------------------------------------
+  [0x7374] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_FA, Entry_FB, Entry_FC, Entry_FD, Entry_FE  @ Offset 0x7376 (Buffer 0x0201D376)
+; ----------------------------------------------------------------------------
+  [0x7376] CharaControl len=14: 53 02 00 02 06 04 03 3f 03 3f 03 3f 00 1f
+  [0x7386] Op_WaitCharsStop
+  [0x7387] CharaControl len=7: 4d 03 00 04 01 02 fd
+  [0x7390] Op_WaitCharsStop
+  [0x7391] Op_SceneChangePlain mode=0
+  [0x7393] Op_WaitSceneIdle
+  [0x7394] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_FF  @ Offset 0x7396 (Buffer 0x0201D396)
+; ----------------------------------------------------------------------------
+  [0x7396] Op_IfEventFlagJump flag=0x0015 -> Entry_F9 (0x7374)
+  [0x739A] Op_IfEventFlagJump flag=0x0010 -> Entry_2E (0x1C25)
+  [0x739E] Op_IfSwitchJump switch=0x0006 -> Entry_F9 (0x7374)
+  [0x73A2] Op_IfSwitchJump switch=0x0003 -> Entry_FE (0x7376)
+  [0x73A6] CharaControl SetPosDir chara=3, pos=(62, 90), dir=2
+  [0x73AD] CharaControl SetPosDir chara=4, pos=(65, 89), dir=0
+  [0x73B4] CharaControl SetPosDir chara=5, pos=(71, 82), dir=6
+  [0x73BB] CharaControl SetPosDir chara=6, pos=(70, 92), dir=0
+  [0x73C2] CharaControl SetPosDir chara=7, pos=(64, 94), dir=0
+  [0x73C9] CharaControl SetPosDir chara=9, pos=(66, 78), dir=4
+  [0x73D0] CharaControl SetPosDir chara=12, pos=(56, 85), dir=2
+  [0x73D7] CharaControl SetPosDir chara=13, pos=(59, 81), dir=2
+  [0x73DE] CharaControl SetPosDir chara=14, pos=(59, 92), dir=0
+  [0x73E5] CharaControl SetPosDir chara=17, pos=(74, 87), dir=6
+  [0x73EC] Op_SceneChangePlain mode=0
+  [0x73EE] Op_WaitSceneIdle
+  [0x73EF] Op_ScriptStop mode=1

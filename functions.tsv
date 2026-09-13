@@ -118,7 +118,7 @@ status	isa	module	addr	asm_lines	name	note
 1	thumb	map_view	0x0800526c	68	ScreenFade_Update	✅ 2026-09-01 codex: 每帧刷新混合寄存器并按 signed step 推进 ScreenFade 进度/完成位; ROM 140B, fncheck OK
 0	thumb	map_view	0x080052f8	94	sub_80052F8	⏸ 2026-09-11 claude_1: 语义/结构已还原 (四层循环 2x2 分块贴图), 归一化指令流全对; 剩 3 组寄存器分配差 (0x030047E8/4690/4620 的池常量载入被合并成 ldr rX,[pc]+ldr rX,[rX], 目标是两寄存器两步) + i 循环 preheader 中 i*2 的调度位置; ptrAt(47E8) 可修 1 组但扰动 preheader; 最佳候选 .scratch/claude_1/Va_k_i2.c / p1.c; 套件 permuter/sub_80052F8/ (compile.sh 已试 -g, 对本函数无影响); 注意 idiff.py 归一化寄存器会掩盖此类差异, 须用 .scratch/claude_1/bytecheck.py 做字节判定
 0	thumb	map_view	0x080053b4	274	sub_80053B4	⏸ 语义/结构已全解(见 progress.md sub_80053B4); 候选差59字节: dst偏移=row*64+col*2, case块人写不一致勿合并, srcY1须溢出[sp+4]; 卡点=内层循环 tile*8/dstoff/dst-addr 的 r1/r2/r3 角色轮换+池常量组织; 最佳候选 .scratch/claude-53b4/best675.c, permuter/sub_80053B4/ 链式爬山 10325→675
-0	thumb	map_view	0x080055e8	685	sub_80055E8	⏸ 612指令+r8/sb; 语义已全解(MapZone子系统); 待攻
+0	thumb	map_view	0x080055e8	685	sub_80055E8	⏸ 进行中(nova2): 语义已全解(MapZone子系统+贴墙滑动); fndiff最优10865(v1000); 剩38条差异: 对角case asrs/lsrs、accept段Y中心未外提、栈槽后移1格; 见 docs/handoffs/MATCH-80055E8-20260913-a.md
 1	thumb	map_view	0x08005b2c	71	MapTile_At	
 1	thumb	map_view	0x08005bb4	98	MapTile_CollisionBits	
 0	thumb	map_view	0x08005c70	955	Viewport_UpdateScroll	

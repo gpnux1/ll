@@ -1,0 +1,407 @@
+================================================================================
+ Lunar Legend (GBA) - Script VM Disassembly
+ Total Decompressed Size: 5107 bytes (0x13F3)
+ Total Entries: 256 (Unique Entry Points: 4)
+================================================================================
+
+--- [Entry Point Table (0x0000 .. 0x01FF)] ---
+  E_00: 0x0200 | E_01: 0x0CE1 | E_02: 0x13EF | E_03: 0x13EF | E_04: 0x13EF | E_05: 0x13EF | E_06: 0x13EF | E_07: 0x13EF
+  E_08: 0x13EF | E_09: 0x13EF | E_0A: 0x13EF | E_0B: 0x13EF | E_0C: 0x13EF | E_0D: 0x13EF | E_0E: 0x13EF | E_0F: 0x13EF
+  E_10: 0x13EF | E_11: 0x13EF | E_12: 0x13EF | E_13: 0x13EF | E_14: 0x13EF | E_15: 0x13EF | E_16: 0x13EF | E_17: 0x13EF
+  E_18: 0x13EF | E_19: 0x13EF | E_1A: 0x13EF | E_1B: 0x13EF | E_1C: 0x13EF | E_1D: 0x13EF | E_1E: 0x13EF | E_1F: 0x13EF
+  E_20: 0x13EF | E_21: 0x13EF | E_22: 0x13EF | E_23: 0x13EF | E_24: 0x13EF | E_25: 0x13EF | E_26: 0x13EF | E_27: 0x13EF
+  E_28: 0x13EF | E_29: 0x13EF | E_2A: 0x13EF | E_2B: 0x13EF | E_2C: 0x13EF | E_2D: 0x13EF | E_2E: 0x13EF | E_2F: 0x13EF
+  E_30: 0x13EF | E_31: 0x13EF | E_32: 0x13EF | E_33: 0x13EF | E_34: 0x13EF | E_35: 0x13EF | E_36: 0x13EF | E_37: 0x13EF
+  E_38: 0x13EF | E_39: 0x13EF | E_3A: 0x13EF | E_3B: 0x13EF | E_3C: 0x13EF | E_3D: 0x13EF | E_3E: 0x13EF | E_3F: 0x13EF
+  E_40: 0x13EF | E_41: 0x13EF | E_42: 0x13EF | E_43: 0x13EF | E_44: 0x13EF | E_45: 0x13EF | E_46: 0x13EF | E_47: 0x13EF
+  E_48: 0x13EF | E_49: 0x13EF | E_4A: 0x13EF | E_4B: 0x13EF | E_4C: 0x13EF | E_4D: 0x13EF | E_4E: 0x13EF | E_4F: 0x13EF
+  E_50: 0x13EF | E_51: 0x13EF | E_52: 0x13EF | E_53: 0x13EF | E_54: 0x13EF | E_55: 0x13EF | E_56: 0x13EF | E_57: 0x13EF
+  E_58: 0x13EF | E_59: 0x13EF | E_5A: 0x13EF | E_5B: 0x13EF | E_5C: 0x13EF | E_5D: 0x13EF | E_5E: 0x13EF | E_5F: 0x13EF
+  E_60: 0x13EF | E_61: 0x13EF | E_62: 0x13EF | E_63: 0x13EF | E_64: 0x13EF | E_65: 0x13EF | E_66: 0x13EF | E_67: 0x13EF
+  E_68: 0x13EF | E_69: 0x13EF | E_6A: 0x13EF | E_6B: 0x13EF | E_6C: 0x13EF | E_6D: 0x13EF | E_6E: 0x13EF | E_6F: 0x13EF
+  E_70: 0x13EF | E_71: 0x13EF | E_72: 0x13EF | E_73: 0x13EF | E_74: 0x13EF | E_75: 0x13EF | E_76: 0x13EF | E_77: 0x13EF
+  E_78: 0x13EF | E_79: 0x13EF | E_7A: 0x13EF | E_7B: 0x13EF | E_7C: 0x13EF | E_7D: 0x13EF | E_7E: 0x13EF | E_7F: 0x13EF
+  E_80: 0x13EF | E_81: 0x13EF | E_82: 0x13EF | E_83: 0x13EF | E_84: 0x13EF | E_85: 0x13EF | E_86: 0x13EF | E_87: 0x13EF
+  E_88: 0x13EF | E_89: 0x13EF | E_8A: 0x13EF | E_8B: 0x13EF | E_8C: 0x13EF | E_8D: 0x13EF | E_8E: 0x13EF | E_8F: 0x13EF
+  E_90: 0x13EF | E_91: 0x13EF | E_92: 0x13EF | E_93: 0x13EF | E_94: 0x13EF | E_95: 0x13EF | E_96: 0x13EF | E_97: 0x13EF
+  E_98: 0x13EF | E_99: 0x13EF | E_9A: 0x13EF | E_9B: 0x13EF | E_9C: 0x13EF | E_9D: 0x13EF | E_9E: 0x13EF | E_9F: 0x13EF
+  E_A0: 0x13EF | E_A1: 0x13EF | E_A2: 0x13EF | E_A3: 0x13EF | E_A4: 0x13EF | E_A5: 0x13EF | E_A6: 0x13EF | E_A7: 0x13EF
+  E_A8: 0x13EF | E_A9: 0x13EF | E_AA: 0x13EF | E_AB: 0x13EF | E_AC: 0x13EF | E_AD: 0x13EF | E_AE: 0x13EF | E_AF: 0x13EF
+  E_B0: 0x13EF | E_B1: 0x13EF | E_B2: 0x13EF | E_B3: 0x13EF | E_B4: 0x13EF | E_B5: 0x13EF | E_B6: 0x13EF | E_B7: 0x13EF
+  E_B8: 0x13EF | E_B9: 0x13EF | E_BA: 0x13EF | E_BB: 0x13EF | E_BC: 0x13EF | E_BD: 0x13EF | E_BE: 0x13EF | E_BF: 0x13EF
+  E_C0: 0x13EF | E_C1: 0x13EF | E_C2: 0x13EF | E_C3: 0x13EF | E_C4: 0x13EF | E_C5: 0x13EF | E_C6: 0x13EF | E_C7: 0x13EF
+  E_C8: 0x13EF | E_C9: 0x13EF | E_CA: 0x13EF | E_CB: 0x13EF | E_CC: 0x13EF | E_CD: 0x13EF | E_CE: 0x13EF | E_CF: 0x13EF
+  E_D0: 0x13EF | E_D1: 0x13EF | E_D2: 0x13EF | E_D3: 0x13EF | E_D4: 0x13EF | E_D5: 0x13EF | E_D6: 0x13EF | E_D7: 0x13EF
+  E_D8: 0x13EF | E_D9: 0x13EF | E_DA: 0x13EF | E_DB: 0x13EF | E_DC: 0x13EF | E_DD: 0x13EF | E_DE: 0x13EF | E_DF: 0x13EF
+  E_E0: 0x13EF | E_E1: 0x13EF | E_E2: 0x13EF | E_E3: 0x13EF | E_E4: 0x13EF | E_E5: 0x13EF | E_E6: 0x13EF | E_E7: 0x13EF
+  E_E8: 0x13EF | E_E9: 0x13EF | E_EA: 0x13EF | E_EB: 0x13EF | E_EC: 0x13EF | E_ED: 0x13EF | E_EE: 0x13EF | E_EF: 0x13EF
+  E_F0: 0x13EF | E_F1: 0x13EF | E_F2: 0x13EF | E_F3: 0x13EF | E_F4: 0x13EF | E_F5: 0x13EF | E_F6: 0x13EF | E_F7: 0x13EF
+  E_F8: 0x13EF | E_F9: 0x13EF | E_FA: 0x13F1 | E_FB: 0x13F1 | E_FC: 0x13F1 | E_FD: 0x13F1 | E_FE: 0x13F1 | E_FF: 0x13F1
+
+================================================================================
+--- [Script Bytecode Disassembly Stream] ---
+================================================================================
+
+; ----------------------------------------------------------------------------
+; Entry_00  @ Offset 0x0200 (Buffer 0x02016200)
+; ----------------------------------------------------------------------------
+  [0x0200] Op_ClearSwitchTail
+  [0x0201] Op_LoadMap mapNpcSet=130, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x0208] Op_OpenWindow
+  [0x0209] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x0210] Op_SceneChangePlain mode=0
+  [0x0212] Op_WaitSceneIdle
+  [0x0213] Op_BgmPlay song=65339, arg=0
+  [0x0217] Op_DialogText x=6, y=7, len=53, text="     いつの[0E0]からだろう
+   『[0E1][0E2]の[0E3]』という迎[0E5]が
+ [0E6]をとらえて [0E7]さなくなったのは、、、[0A:FA][CLEAR]"
+  [0x0287] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x028E] Op_DialogText x=7, y=8, len=35, text="アルテナの[0E8][0E9]様を[0EB]って[0EC]った[0ED][0EE]
+   ドラゴンマスター ダイン[0A:FA][CLEAR]"
+  [0x02DA] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x02E1] Op_DialogText x=7, y=8, len=37, text="あの長も こんな[0F0]に[0F1]い雲上を[0F4]見て
+    [0E3][0F6]ったんだろうか、、、[0A:FA][CLEAR]"
+  [0x0331] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x0338] Op_DialogText x=7, y=8, len=36, text="そして いつか[0E6]も行くのだろうか
+あの[0F8]の[0F9]れる[0FA]てを目[0FC]して、、、[0A:FA][CLEAR]"
+  [0x0386] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x038D] Op_DialogText x=9, y=9, len=15, text="[0E6][0FD][0FE]の[0E1][0E2]の[0E3]へと、、、[0A:FA][CLEAR]"
+  [0x03B1] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x03B8] Op_LoadMap mapNpcSet=11, moveCmdSet=0, spawn=(15, 46), dir=6
+  [0x03BF] Op_LoadCutsceneAnim 00 00 00 00
+  [0x03C4] Op_LoadCutsceneAnim 04 00 01 01
+  [0x03C9] Op_LoadCutsceneAnim 18 00 04 00
+  [0x03CE] Op_LoadCutsceneAnim 29 00 05 00
+  [0x03D3] Op_LoadCutsceneAnim 2a 00 06 00
+  [0x03D8] Op_LoadCutsceneAnim 03 00 07 04
+  [0x03DD] Op_LoadCutsceneAnim 0d 00 08 00
+  [0x03E2] Op_LoadCutsceneAnim 0e 00 09 00
+  [0x03E7] Op_LoadCutsceneAnim 00 00 0b 64
+  [0x03EC] Op_LoadCutsceneAnim 04 00 0c 65
+  [0x03F1] Op_LoadCutsceneAnim 0d 00 0e 64
+  [0x03F6] Op_LoadCutsceneAnim 00 00 0f 64
+  [0x03FB] Op_LoadCutsceneAnim 07 00 10 00
+  [0x0400] Op_LoadCutsceneAnim 14 00 11 02
+  [0x0405] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 01 00
+  [0x0415] CharaControl len=14: 53 01 01 01 01 00 00 00 00 00 00 00 01 00
+  [0x0425] CharaControl len=14: 53 02 01 02 02 00 00 00 00 00 00 00 01 00
+  [0x0435] CharaControl len=14: 53 04 03 04 04 00 0a 2e 00 00 00 00 01 00
+  [0x0445] Op_WaitCharsStop
+  [0x0446] CharaControl SetPosDir chara=0, pos=(13, 46), dir=6
+  [0x044D] CharaControl SetPosDir chara=4, pos=(10, 46), dir=2
+  [0x0454] CharaControl SetPosDir chara=1, pos=(35, 46), dir=6
+  [0x045B] CharaControl len=3: 48 01 0a
+  [0x0460] CharaControl SetPosDir chara=2, pos=(35, 46), dir=6
+  [0x0467] Op_WaitCharsStop
+  [0x0468] Op_RestartCharaAnim chara=4, anim=7
+  [0x046B] Op_RestartCharaAnim chara=0, anim=8
+  [0x046E] Op_RestartCharaAnim chara=1, anim=1
+  [0x0471] Op_BgmFadeOut speed=30
+  [0x0473] Op_WaitFrames count=30
+  [0x0475] Op_BgmStop
+  [0x0476] Op_CloseWindow
+  [0x0477] Op_BgmPlay song=65287, arg=0
+  [0x047B] Op_SceneChangePlain mode=0
+  [0x047D] Op_WaitSceneIdle
+  [0x047E] DialogMessage style=0, len=16:
+                "[PORTRAIT:1]ドラゴンマスター か、、、[WAIT][CLEAR]"
+  [0x04A4] Op_RestartCharaAnim chara=0, anim=16
+  [0x04A7] Op_WaitCharaAnim chara=0
+  [0x04A9] Op_RestartCharaAnim chara=0, anim=16
+  [0x04AC] Op_WaitCharaAnim chara=0
+  [0x04AE] Op_RestartCharaAnim chara=0, anim=4
+  [0x04B1] DialogMessage style=0, len=7:
+                "[PORTRAIT:3]うわっ![0A:14][CLEAR]"
+  [0x04C5] Op_RestartCharaAnim chara=0, anim=5
+  [0x04C8] CharaControl len=7: 4d 00 02 02 02 14 fd
+  [0x04D1] Op_WaitCharsStop
+  [0x04D2] Op_SfxPlay sfx=55, arg=0
+  [0x04D6] Op_RestartCharaAnim chara=0, anim=6
+  [0x04D9] CharaControl len=6: 4d 00 01 00 0a fd
+  [0x04E1] Op_WaitCharsStop
+  [0x04E2] DialogMessage style=0, len=9:
+                "[PORTRAIT:4]いたた、、、[WAIT][CLEAR]"
+  [0x04FA] Op_RestartCharaAnim chara=0, anim=0
+  [0x04FD] CharaControl len=4: 68 00 0d 2e
+  [0x0503] Op_WaitCharsStop
+  [0x0504] Op_RestartCharaAnim chara=0, anim=8
+  [0x0507] DialogMessage style=0, len=22:
+                "[PORTRAIT:55]おーい! アレスー!\n
+                アレスったらぁ![WAIT][CLEAR]"
+  [0x0539] Op_RestartCharaAnim chara=0, anim=14
+  [0x053C] CharaControl len=4: 68 01 10 2e
+  [0x0542] Op_WaitCharsStop
+  [0x0543] Op_SceneChangeFade mode=0
+  [0x0545] Op_BgmFadeOut speed=30
+  [0x0547] Op_WaitFrames count=30
+  [0x0549] Op_WaitSceneIdle
+  [0x054A] Op_BgmStop
+  [0x054B] Op_LoadMap mapNpcSet=135, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x0552] Op_BgmPlay song=65305, arg=0
+  [0x0556] Op_SceneChangePlain mode=0
+  [0x0558] Op_WaitSceneIdle
+  [0x0559] Op_WaitFrames count=120
+  [0x055B] DialogMessage style=0, len=8:
+                "[PORTRAIT:1]やあ ナル[WAIT][CLEAR]"
+  [0x0571] DialogMessage style=0, len=28:
+                "「やあ」じゃないっての!\n
+                オレ あちこち[0FF]したんだぞ[WAIT][CLEAR]"
+  [0x05AF] Op_WaitFrames count=120
+  [0x05B1] Op_SceneChangeFade mode=0
+  [0x05B3] Op_BgmFadeOut speed=30
+  [0x05B5] Op_WaitFrames count=30
+  [0x05B7] Op_WaitSceneIdle
+  [0x05B8] Op_BgmStop
+  [0x05B9] Op_LoadMap mapNpcSet=11, moveCmdSet=0, spawn=(15, 46), dir=6
+  [0x05C0] Op_BgmPlay song=65287, arg=0
+  [0x05C4] Op_LoadCutsceneAnim 00 00 00 00
+  [0x05C9] Op_LoadCutsceneAnim 04 00 01 01
+  [0x05CE] Op_LoadCutsceneAnim 02 00 02 02
+  [0x05D3] Op_LoadCutsceneAnim 08 00 03 02
+  [0x05D8] Op_LoadCutsceneAnim 18 00 04 00
+  [0x05DD] Op_LoadCutsceneAnim 29 00 05 00
+  [0x05E2] Op_LoadCutsceneAnim 2a 00 06 00
+  [0x05E7] Op_LoadCutsceneAnim 03 00 07 04
+  [0x05EC] Op_LoadCutsceneAnim 0d 00 08 00
+  [0x05F1] Op_LoadCutsceneAnim 0e 00 09 00
+  [0x05F6] Op_LoadCutsceneAnim 0f 00 0a 02
+  [0x05FB] Op_LoadCutsceneAnim 00 00 0b 64
+  [0x0600] Op_LoadCutsceneAnim 04 00 0c 65
+  [0x0605] Op_LoadCutsceneAnim 02 00 0d 66
+  [0x060A] Op_LoadCutsceneAnim 0d 00 0e 64
+  [0x060F] Op_LoadCutsceneAnim 00 00 0f 64
+  [0x0614] Op_LoadCutsceneAnim 07 00 10 00
+  [0x0619] Op_LoadCutsceneAnim 14 00 11 02
+  [0x061E] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x062E] CharaControl len=14: 53 01 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x063E] CharaControl len=14: 53 02 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x064E] CharaControl len=14: 53 04 03 00 00 00 00 00 00 00 00 00 00 00
+  [0x065E] CharaControl SetPosDir chara=100, pos=(0, 0), dir=104
+  [0x066A] CharaControl SetPosDir chara=101, pos=(0, 0), dir=128
+  [0x0679] CharaControl SetPosDir chara=102, pos=(0, 25), dir=80
+  [0x0685] CharaControl SetPosDir chara=104, pos=(0, 0), dir=80
+  [0x0691] Op_RestartCharaAnim chara=0, anim=14
+  [0x0694] Op_RestartCharaAnim chara=1, anim=1
+  [0x0697] Op_RestartCharaAnim chara=2, anim=2
+  [0x069A] Op_RestartCharaAnim chara=4, anim=7
+  [0x069D] Op_SceneChangePlain mode=0
+  [0x069F] Op_WaitSceneIdle
+  [0x06A0] Op_RestartCharaAnim chara=0, anim=8
+  [0x06A3] CharaControl len=4: 46 01 14 0a
+  [0x06A9] Op_WaitCharsStop
+  [0x06AA] CharaControl len=4: 68 01 0f 2e
+  [0x06B0] Op_WaitCharsStop
+  [0x06B1] DialogMessage style=0, len=189:
+                "[PORTRAIT:55]『[100]らが[0ED][0EE]\n
+                 ドラゴンマスター ダインの[101][102]を\n
+                 たたえん』か、、、[WAIT][08:00]ホントにアレスったら\n
+                このオッチャンのことが好きなんだなぁ[WAIT][08:00]まあ [0E1][0E2]の[0E3]に[105]るのが\n
+                アレスの[0F4]ってのは知ってるけどさ[WAIT][08:00]こんな[107]ぼけた[108]を\n
+                [109][10A][109][10A][10B]めてて よく[10C]きないよなぁ[WAIT][08:00]あっ そうだ!\n
+                ルーナが アレスのこと さがしてたぞ[WAIT][08:00][10D]の[10E][10F]すんだろ?\n
+                [1DF]く行かないと\n
+                また おこられるぞぉ![WAIT][CLEAR]"
+  [0x0831] DialogMessage style=0, len=7:
+                "[PORTRAIT:1]そうだね[WAIT][CLEAR]"
+  [0x0845] Op_RestartCharaAnim chara=0, anim=11
+  [0x0848] Op_RestartCharaAnim chara=1, anim=12
+  [0x084B] CharaControl len=4: 68 00 12 2e
+  [0x0851] CharaControl len=4: 68 01 10 2e
+  [0x0857] Op_WaitCharsStop
+  [0x0858] Op_RestartCharaAnim chara=0, anim=14
+  [0x085B] DialogMessage style=0, len=15:
+                "[PORTRAIT:55]あれ? ラムスじゃないか[WAIT][CLEAR]"
+  [0x087F] CharaControl len=4: 68 02 15 2e
+  [0x0885] Op_WaitCharsStop
+  [0x0886] Op_RestartCharaAnim chara=2, anim=3
+  [0x0889] CharaControl len=6: 4d 02 01 00 3c fd
+  [0x0891] Op_WaitCharsStop
+  [0x0892] Op_SceneChangeFade mode=0
+  [0x0894] Op_BgmFadeOut speed=30
+  [0x0896] Op_WaitFrames count=30
+  [0x0898] Op_WaitSceneIdle
+  [0x0899] Op_BgmStop
+  [0x089A] Op_LoadMap mapNpcSet=136, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x08A1] Op_BgmPlay song=65305, arg=0
+  [0x08A5] Op_SceneChangePlain mode=0
+  [0x08A7] Op_WaitSceneIdle
+  [0x08A8] Op_WaitFrames count=120
+  [0x08AA] DialogMessage style=0, len=32:
+                "やっぱりここにいたんだな アレス\n
+                あとは ルーナだけか、、、[WAIT][CLEAR]"
+  [0x08F0] Op_WaitFrames count=120
+  [0x08F2] Op_SceneChangeFade mode=0
+  [0x08F4] Op_BgmFadeOut speed=30
+  [0x08F6] Op_WaitFrames count=30
+  [0x08F8] Op_WaitSceneIdle
+  [0x08F9] Op_BgmStop
+  [0x08FA] Op_LoadMap mapNpcSet=11, moveCmdSet=0, spawn=(15, 46), dir=6
+  [0x0901] Op_BgmPlay song=65287, arg=0
+  [0x0905] Op_LoadCutsceneAnim 00 00 00 00
+  [0x090A] Op_LoadCutsceneAnim 04 00 01 01
+  [0x090F] Op_LoadCutsceneAnim 02 00 02 02
+  [0x0914] Op_LoadCutsceneAnim 08 00 03 02
+  [0x0919] Op_LoadCutsceneAnim 18 00 04 00
+  [0x091E] Op_LoadCutsceneAnim 29 00 05 00
+  [0x0923] Op_LoadCutsceneAnim 2a 00 06 00
+  [0x0928] Op_LoadCutsceneAnim 03 00 07 04
+  [0x092D] Op_LoadCutsceneAnim 0d 00 08 00
+  [0x0932] Op_LoadCutsceneAnim 0e 00 09 00
+  [0x0937] Op_LoadCutsceneAnim 0f 00 0a 02
+  [0x093C] Op_LoadCutsceneAnim 00 00 0b 64
+  [0x0941] Op_LoadCutsceneAnim 04 00 0c 65
+  [0x0946] Op_LoadCutsceneAnim 02 00 0d 66
+  [0x094B] Op_LoadCutsceneAnim 0d 00 0e 64
+  [0x0950] Op_LoadCutsceneAnim 00 00 0f 64
+  [0x0955] Op_LoadCutsceneAnim 07 00 10 00
+  [0x095A] Op_LoadCutsceneAnim 14 00 11 02
+  [0x095F] CharaControl len=14: 53 00 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x096F] CharaControl len=14: 53 01 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x097F] CharaControl len=14: 53 02 01 00 00 00 00 00 00 00 00 00 00 00
+  [0x098F] CharaControl len=14: 53 04 03 00 00 00 00 00 00 00 00 00 00 00
+  [0x099F] CharaControl SetPosDir chara=100, pos=(0, 0), dir=144
+  [0x09AB] CharaControl SetPosDir chara=101, pos=(0, 0), dir=128
+  [0x09BA] CharaControl SetPosDir chara=102, pos=(0, 0), dir=168
+  [0x09C6] CharaControl SetPosDir chara=104, pos=(0, 0), dir=80
+  [0x09D2] CharaControl len=4: 46 01 0a 0a
+  [0x09D8] Op_RestartCharaAnim chara=0, anim=14
+  [0x09DB] Op_RestartCharaAnim chara=1, anim=12
+  [0x09DE] Op_RestartCharaAnim chara=2, anim=10
+  [0x09E1] Op_RestartCharaAnim chara=4, anim=7
+  [0x09E4] Op_SceneChangePlain mode=0
+  [0x09E6] Op_WaitSceneIdle
+  [0x09E7] DialogMessage style=0, len=15:
+                "[PORTRAIT:55]ルーナがどうかしたのか?[WAIT][CLEAR]"
+  [0x0A0B] Op_RestartCharaAnim chara=2, anim=17
+  [0x0A0E] DialogMessage style=0, len=49:
+                "[PORTRAIT:43]ああ [110]いで[0E8][0E9][111]の[112]に\n
+                みんなを[113]めなくちゃいけないんだ\n
+                ヴェーンから魔法使いが来て、、、[WAIT][CLEAR]"
+  [0x0A76] DialogMessage style=0, len=24:
+                "[PORTRAIT:5]ヴェーン!?\n
+                あの魔法修[119]ヴェーンから!?[WAIT][CLEAR]"
+  [0x0AAC] DialogMessage style=0, len=20:
+                "[PORTRAIT:56]すっげぇ! 見に行こうぜ アレス![WAIT][CLEAR]"
+  [0x0ADA] Op_RestartCharaAnim chara=2, anim=10
+  [0x0ADD] DialogMessage style=0, len=20:
+                "[PORTRAIT:44]ちょっと!\n
+                ちゃんと聞いてくれよ![WAIT][CLEAR]"
+  [0x0B0B] DialogMessage style=0, len=14:
+                "[PORTRAIT:4]あ ああ ごめん、、、[WAIT][CLEAR]"
+  [0x0B2D] DialogMessage style=0, len=174:
+                "[PORTRAIT:43]ボクは[11B][11C][11D]を見に来たのかと\n
+                思ったんだけど [110]に村の長を\n
+                [120][121][113]めてくれって迎い[105]してさ[WAIT][08:00][122]さんも ヴェーンの魔法使いが\n
+                迎うことだから 元[124]するわけにも\n
+                いかないって[WAIT][08:00]みんな [0E8][0E9][111]の[112]に[113]まってる\n
+                あとはアレスとルーナだけなんだ[WAIT][08:00]アレスはここにいるだろうと思ったけど\n
+                ルーナがどこにいるのか、、、\n
+                アレス ルーナを[0FF]してきてくれよ[WAIT][CLEAR]"
+  [0x0C8F] Op_RestartCharaAnim chara=2, anim=13
+  [0x0C92] CharaControl len=4: 68 02 23 2e
+  [0x0C98] Op_WaitCharsStop
+  [0x0C99] DialogMessage style=0, len=11:
+                "[PORTRAIT:55]アレス 行こうぜ[WAIT][CLEAR]"
+  [0x0CB5] Op_RestartCharaAnim chara=0, anim=15
+  [0x0CB8] CharaControl len=4: 68 00 23 2e
+  [0x0CBE] CharaControl len=4: 68 01 23 2c
+  [0x0CC4] Op_WaitCharsStop
+  [0x0CC5] Op_SetSwitch switch=0x0015
+  [0x0CC8] Op_SetSwitch switch=0x0076
+  [0x0CCB] Op_SetEventFlag flag=0x0000
+  [0x0CCE] Op_SetEventFlag flag=0x0006
+  [0x0CD1] Op_SceneChangeFade mode=2
+  [0x0CD3] Op_WaitSceneIdle
+  [0x0CD4] Op_SaveOp 1
+  [0x0CD6] Op_SaveOp 2
+  [0x0CD8] Op_SaveOp 3
+  [0x0CDA] Op_SaveOp 4
+  [0x0CDC] Op_SaveOp 5
+  [0x0CDE] Op_SaveOp 6
+  [0x0CE0] Op_ScriptReturnChunk
+
+; ----------------------------------------------------------------------------
+; Entry_01  @ Offset 0x0CE1 (Buffer 0x02016CE1)
+; ----------------------------------------------------------------------------
+  [0x0CE1] Op_SceneChangeFade mode=2
+  [0x0CE3] Op_WaitSceneIdle
+  [0x0CE4] Op_LoadMap mapNpcSet=131, moveCmdSet=0, spawn=(0, 0), dir=0
+  [0x0CEB] Op_BgmPlay song=65343, arg=0
+  [0x0CEF] Op_SceneChangePlain mode=0
+  [0x0CF1] Op_WaitSceneIdle
+  [0x0CF2] Op_OpenWindow
+  [0x0CF3] Op_DialogText x=1, y=16, len=69, text="[125][0A:08][126][0A:08]に[0A:08][127][0A:08]く[0A:08][2EF][0A:08]き[0A:08][129][0A:08]よ[0A:08]り[0A:08] [12A][0A:08][12B][0A:08]の[0A:08]光[0A:08]が[0A:08][12D][0A:08]い[0A:08][12E][0A:08]り[0A:08]る[0A:08]
+[12F][0A:08]の[0A:08][10A][0A:08][130][0A:08]し[0A:08]に[0A:08]も[0A:08][131][0A:08]た[0A:08][132][0A:08]か[0A:08]な[0A:08]光[0A:FA][CLEAR]"
+  [0x0D83] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0D8A] Op_DialogText x=1, y=16, len=13, text="や[0A:08]が[0A:08]て[0A:08]、[0A:08]、[0A:08]、[0A:FA][CLEAR]"
+  [0x0DAA] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0DB1] Op_DialogText x=1, y=16, len=48, text="[133][0A:08][134][0A:08]た[0A:08]る[0A:08][135][0A:08]の[0A:08][136][0A:08][137][0A:08]に[0A:08][163][0A:08]わ[0A:08]れ[0A:08]て[0A:08]い[0A:08]た[0A:08][129][0A:08]に[0A:08]
+[139][0A:08]が[0A:08]生[0A:08]ま[0A:08]れ[0A:08]た[0A:FA][CLEAR]"
+  [0x0E17] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0E1E] Op_DialogText x=1, y=16, len=30, text="そ[0A:08]れ[0A:08]は [0A:08]ま[0A:08]ご[0A:08]う[0A:08]気[0A:08]な[0A:08]き[0A:08][13C][0A:08]の[0A:08][140][0A:08]生[0A:08]え[0A:FA][CLEAR]"
+  [0x0E60] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0E67] Op_DialogText x=1, y=16, len=68, text="[13E][0A:08]た[0A:08]く[0A:08][165][0A:08]い[0A:08]た[0A:08][0F0][0A:08]は[0A:08][17A][0A:08]や[0A:08]か[0A:08]な[0A:08][134][0A:08][0F0][0A:08]と[0A:08]な[0A:08]り[0A:08]
+[165][0A:08]い[0A:08]た[0A:08][136][0A:08][137][0A:08]に[0A:08]は[0A:08][181][0A:08]い[0A:08]が[0A:08]も[0A:08]た[0A:08]ら[0A:08]さ[0A:08]れ[0A:08]た[0A:FA][CLEAR]"
+  [0x0EF5] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0EFC] Op_DialogText x=1, y=16, len=3, text=" [0A:14][CLEAR]"
+  [0x0F08] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x0F0F] Op_SysEffect subOp=0xC8, arg=0x03
+  [0x0F12] Op_WaitFrames count=30
+  [0x0F14] Op_DialogSetup 00 00 00 1f 1f 00
+  [0x0F1B] Op_DialogText x=1, y=16, len=13, text="[0E8][0A:08][0E9][0A:08]ア[0A:08]ル[0A:08]テ[0A:08]ナ[0A:FA][CLEAR]"
+  [0x0F3B] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0F42] Op_DialogText x=1, y=16, len=54, text="こ[0A:08]の[0A:08][129][0A:08]「[0A:08]ル[0A:08]ナ[0A:08]」[0A:08]に[0A:08][13C][0A:08]の[0A:08][142][0A:08][143][0A:08]を[0A:08][144][0A:08]え[0A:08]
+長[0A:08][1DC][0A:08]を[0A:08][145][0A:08]い[0A:08]た[0A:08][146][0A:08]し[0A:08]き[0A:08][0E8][0A:08][0E9][0A:FA][CLEAR]"
+  [0x0FB4] Op_DialogSetup 01 00 10 1f 04 00
+  [0x0FBB] Op_DialogText x=1, y=16, len=60, text="ア[0A:08]ル[0A:08]テ[0A:08]ナ[0A:08]の[0A:08][147][0A:08][148][0A:08]を[0A:08][149][0A:08]け[0A:08]
+長[0A:08][1DC][0A:08]は[0A:08]魔[0A:08]法[0A:08]に[0A:08]よ[0A:08]る[0A:08]平[0A:08][17A][0A:08]な[0A:08]生[0A:08][101][0A:08]を[0A:08][14B][0A:08]に[0A:08][14C][0A:08]れ[0A:08]た[0A:FA][CLEAR]"
+  [0x1039] Op_DialogSetup 01 00 10 1f 04 00
+  [0x1040] Op_DialogText x=1, y=16, len=63, text="い[0A:08]つ[0A:08]し[0A:08]か[0A:08]長[0A:08][1DC][0A:08]は [0A:08]ア[0A:08]ル[0A:08]テ[0A:08]ナ[0A:08]を[0A:08][0E9][0A:08]と[0A:08]し[0A:08]て[0A:08][14D][0A:08]め[0A:08]
+[14E][0A:08]り[0A:08]を[0A:08][14F][0A:08]げ[0A:08]る[0A:08]よ[0A:08]う[0A:08]に[0A:08]な[0A:08]っ[0A:08]た[0A:FA][CLEAR]"
+  [0x10C4] Op_DialogSetup 01 00 10 1f 04 00
+  [0x10CB] Op_DialogText x=1, y=16, len=3, text=" [0A:14][CLEAR]"
+  [0x10D7] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x10DE] Op_SysEffect subOp=0xC8, arg=0x04
+  [0x10E1] Op_WaitFrames count=30
+  [0x10E3] Op_DialogSetup 00 00 00 1f 1f 00
+  [0x10EA] Op_DialogText x=1, y=16, len=34, text="長[0A:08][1DC][0A:08]の[0A:08][150][0A:08]に [0A:08]雄[0A:08]を[0A:08][152][0A:08]す[0A:08]こ[0A:08]と[0A:08]と[0A:08]な[0A:08]っ[0A:08]た[0A:08][153][0A:FA][CLEAR]"
+  [0x1134] Op_DialogSetup 01 00 10 1f 04 00
+  [0x113B] Op_DialogText x=1, y=16, len=58, text="[154][0A:08]に[0A:08]雄[0A:08]を[0A:08]知[0A:08]ら[0A:08]れ[0A:08]る[0A:08]で[0A:08]も[0A:08]な[0A:08]く[0A:08]
+[155][0A:08]さ[0A:08]な[0A:08][156][0A:08]せ[0A:08]を[0A:08][0EB][0A:08]っ[0A:08]て[0A:08]生[0A:08]き[0A:08]て[0A:08]い[0A:08]っ[0A:08]た[0A:08][153][0A:FA][CLEAR]"
+  [0x11B5] Op_DialogSetup 01 00 10 1f 04 00
+  [0x11BC] Op_DialogText x=1, y=16, len=59, text="[189][0A:08]っ[0A:08]た[0A:08][158][0A:08]の[0A:08]り[0A:08]は[0A:08]違[0A:08]え[0A:08]ど[0A:08]
+長[0A:08]は [0A:08][144][0A:08]え[0A:08]ら[0A:08]れ[0A:08]た[0A:08][10A][0A:08][1DC][0A:08]を[0A:08][15A][0A:08][12A][0A:08][1D9][0A:08]生[0A:08]き[0A:08]て[0A:08]い[0A:08]く[0A:FA][CLEAR]"
+  [0x1238] Op_DialogSetup 01 00 10 1f 04 00
+  [0x123F] Op_DialogText x=1, y=16, len=51, text="そ[0A:08]し[0A:08]て [0A:08][10A][0A:08][1DC][0A:08][15C][0A:08]た[0A:08]な[0A:08]雄[0A:08]談[0A:08]が[0A:08]
+こ[0A:08]の[0A:08][129][0A:08]の[0A:08][15F][0A:08][160][0A:08]に[0A:08][161][0A:08]ま[0A:08]れ[0A:08]て[0A:08]ゆ[0A:08]く[0A:FA][CLEAR]"
+  [0x12AB] Op_DialogSetup 01 00 10 1f 04 00
+  [0x12B2] Op_DialogText x=1, y=16, len=40, text="今[0A:08][1EE][0A:08]談[0A:08]ら[0A:08]れ[0A:08]し[0A:08]雄[0A:08]談[0A:08]も [0A:08]そ[0A:08]ん[0A:08]な[0A:08]話[0A:08]の[0A:08][12A][0A:08]つ[0A:08]、[0A:08]、[0A:08]、[0A:FA][CLEAR]"
+  [0x1308] Op_DialogSetup 01 00 10 1f 04 00
+  [0x130F] Op_DialogText x=1, y=16, len=3, text=" [0A:14][CLEAR]"
+  [0x131B] Op_DialogSetup 01 00 00 1f 1f 00
+  [0x1322] Op_SysEffect subOp=0xC8, arg=0x05
+  [0x1325] Op_WaitFrames count=30
+  [0x1327] Op_DialogSetup 00 00 00 1f 1f 00
+  [0x132E] Op_DialogText x=1, y=16, len=53, text="[1FF][0A:08][166][0A:08]の[0A:08][167][0A:08]の[0A:08][168][0A:08]方[0A:08]
+今[0A:08]は[0A:08]た[0A:08]だ [0A:08][0E8][0A:08][0E9][0A:08]の[0A:08][16A][0A:08]の[0A:08]み[0A:08]が[0A:08]そ[0A:08]の[0A:08][16B][0A:08][16C][0A:08]を[0A:08]知[0A:08]る[0A:FA][CLEAR]"
+  [0x139E] Op_DialogSetup 01 00 10 1f 04 00
+  [0x13A5] Op_DialogText x=1, y=16, len=19, text="[0F1][0A:08]い[0A:08][16D][0A:08]の[0A:08]雄[0A:08]談[0A:08]、[0A:08]、[0A:08]、[0A:FA][CLEAR]"
+  [0x13D1] Op_DialogSetup 01 00 10 1f 04 00
+  [0x13D8] Op_DialogText x=1, y=16, len=3, text=" [0A:14][CLEAR]"
+  [0x13E4] Op_CloseWindow
+  [0x13E5] Op_SceneChangeFade mode=0
+  [0x13E7] Op_BgmFadeOut speed=30
+  [0x13E9] Op_WaitFrames count=30
+  [0x13EB] Op_WaitSceneIdle
+  [0x13EC] Op_BgmStop
+  [0x13ED] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_02, Entry_03, Entry_04, Entry_05, Entry_06, Entry_07, Entry_08, Entry_09, Entry_0A, Entry_0B, Entry_0C, Entry_0D, Entry_0E, Entry_0F, Entry_10, Entry_11, Entry_12, Entry_13, Entry_14, Entry_15, Entry_16, Entry_17, Entry_18, Entry_19, Entry_1A, Entry_1B, Entry_1C, Entry_1D, Entry_1E, Entry_1F, Entry_20, Entry_21, Entry_22, Entry_23, Entry_24, Entry_25, Entry_26, Entry_27, Entry_28, Entry_29, Entry_2A, Entry_2B, Entry_2C, Entry_2D, Entry_2E, Entry_2F, Entry_30, Entry_31, Entry_32, Entry_33, Entry_34, Entry_35, Entry_36, Entry_37, Entry_38, Entry_39, Entry_3A, Entry_3B, Entry_3C, Entry_3D, Entry_3E, Entry_3F, Entry_40, Entry_41, Entry_42, Entry_43, Entry_44, Entry_45, Entry_46, Entry_47, Entry_48, Entry_49, Entry_4A, Entry_4B, Entry_4C, Entry_4D, Entry_4E, Entry_4F, Entry_50, Entry_51, Entry_52, Entry_53, Entry_54, Entry_55, Entry_56, Entry_57, Entry_58, Entry_59, Entry_5A, Entry_5B, Entry_5C, Entry_5D, Entry_5E, Entry_5F, Entry_60, Entry_61, Entry_62, Entry_63, Entry_64, Entry_65, Entry_66, Entry_67, Entry_68, Entry_69, Entry_6A, Entry_6B, Entry_6C, Entry_6D, Entry_6E, Entry_6F, Entry_70, Entry_71, Entry_72, Entry_73, Entry_74, Entry_75, Entry_76, Entry_77, Entry_78, Entry_79, Entry_7A, Entry_7B, Entry_7C, Entry_7D, Entry_7E, Entry_7F, Entry_80, Entry_81, Entry_82, Entry_83, Entry_84, Entry_85, Entry_86, Entry_87, Entry_88, Entry_89, Entry_8A, Entry_8B, Entry_8C, Entry_8D, Entry_8E, Entry_8F, Entry_90, Entry_91, Entry_92, Entry_93, Entry_94, Entry_95, Entry_96, Entry_97, Entry_98, Entry_99, Entry_9A, Entry_9B, Entry_9C, Entry_9D, Entry_9E, Entry_9F, Entry_A0, Entry_A1, Entry_A2, Entry_A3, Entry_A4, Entry_A5, Entry_A6, Entry_A7, Entry_A8, Entry_A9, Entry_AA, Entry_AB, Entry_AC, Entry_AD, Entry_AE, Entry_AF, Entry_B0, Entry_B1, Entry_B2, Entry_B3, Entry_B4, Entry_B5, Entry_B6, Entry_B7, Entry_B8, Entry_B9, Entry_BA, Entry_BB, Entry_BC, Entry_BD, Entry_BE, Entry_BF, Entry_C0, Entry_C1, Entry_C2, Entry_C3, Entry_C4, Entry_C5, Entry_C6, Entry_C7, Entry_C8, Entry_C9, Entry_CA, Entry_CB, Entry_CC, Entry_CD, Entry_CE, Entry_CF, Entry_D0, Entry_D1, Entry_D2, Entry_D3, Entry_D4, Entry_D5, Entry_D6, Entry_D7, Entry_D8, Entry_D9, Entry_DA, Entry_DB, Entry_DC, Entry_DD, Entry_DE, Entry_DF, Entry_E0, Entry_E1, Entry_E2, Entry_E3, Entry_E4, Entry_E5, Entry_E6, Entry_E7, Entry_E8, Entry_E9, Entry_EA, Entry_EB, Entry_EC, Entry_ED, Entry_EE, Entry_EF, Entry_F0, Entry_F1, Entry_F2, Entry_F3, Entry_F4, Entry_F5, Entry_F6, Entry_F7, Entry_F8, Entry_F9  @ Offset 0x13EF (Buffer 0x020173EF)
+; ----------------------------------------------------------------------------
+  [0x13EF] Op_ScriptStop mode=1
+
+; ----------------------------------------------------------------------------
+; Entry_FA, Entry_FB, Entry_FC, Entry_FD, Entry_FE, Entry_FF  @ Offset 0x13F1 (Buffer 0x020173F1)
+; ----------------------------------------------------------------------------
+  [0x13F1] Op_ScriptStop mode=1

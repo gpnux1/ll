@@ -143,7 +143,7 @@ void AnimSlot_Step(s16 slot)
     }
 }
 // @ 0x08007ADC
-s32 sub_8007ADC(u16 arg0, u16 arg1)
+s32 sub_8007ADC(s16 arg0, s16 arg1)
 {
     u16 i;
     s16 sx;

@@ -121,7 +121,9 @@ void ScreenFade_Apply();
 void ScreenFade_Update();
 void sub_80052F8();
 void sub_80053B4(u16, u16);
-void sub_80055E8(u16 *, u16 *, u8, u8); // 按方向码 1..8 (gWalkDirVectors) 步进相机目标坐标, 含瓦片碰撞+滑动+实体阻挡检查
+/* 返回 1 = 坐标已步进(未受阻挡), 0 = 未移动(对话/传送锁步、被瓦片或实体挡住, 或本帧被区域脚本接管)。
+ * 原 ROM 两条出口都显式写 r0 (movs r0,#0 / movs r0,#1), 故返回类型不能是 void。 */
+s32 sub_80055E8(u16 *, u16 *, u8, u8); // 按方向码 1..8 (gWalkDirVectors) 步进相机目标坐标, 含瓦片碰撞+滑动+实体阻挡检查
 #define MovePlayer sub_80055E8
 u16 *MapTile_At(s16, s16);
 u16 MapTile_CollisionBits(u16 *, u16, u16);
@@ -136,7 +138,10 @@ u8 *AnimSlot_Parse(u16, u8 *);
 u8 *AnimSlot_ParseLoop(u16, u8 *);
 void AnimSlot_Step(s16); // UpdateSpriteAnim: 推进精灵动画槽帧计数, 并把当前帧图块拷进 0x02006000 图块缓存
 #define UpdateSpriteAnim AnimSlot_Step
-s32 sub_8007ADC(u16, u16); // 算 (x,y) 16x16 足迹覆盖的至多 4 个瓦片坐标, 在 gMapZoneHeader 的 cells 表查区域; 命中写
+/* 形参必须是 s16 而非 u16: 唯一调用方 sub_80055E8 在两处调用点都用 `asrs #0x10`
+ * 做**符号**扩展后传参 (u16 形参会生成 lsrs)。函数体内只做 `sx = arg0`,
+ * 故 u16→s16 不改变 sub_8007ADC 自身的字节 (fncheck 244B 仍 OK)。 */
+s32 sub_8007ADC(s16, s16); // 算 (x,y) 16x16 足迹覆盖的至多 4 个瓦片坐标, 在 gMapZoneHeader 的 cells 表查区域; 命中写
                            // gMapZoneType/gMapZoneEntryIdx 返回 1
 #define MapZone_FindAt sub_8007ADC
 s32 sub_8007BD0(
