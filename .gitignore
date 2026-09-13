@@ -19,7 +19,7 @@ gccdump*
 # docs/*.md
 *.json
 Screenshots
-scripts
+# scripts
 scripts/ida/
 scripts/data/
 data/raw_data

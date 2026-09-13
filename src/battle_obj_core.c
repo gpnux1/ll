@@ -9,6 +9,153 @@
 #include "save.h"
 #include "sound.h"
 
+
+/* === 战斗 ObjHead 图形加载族 (原 src/battle_gfx_load.c, 2026-09-13 并入本 TU:
+   ROM 内 .text 与本文件相邻 [0x0801A3C4,0x0801A884) 紧接本文件, 两文件 include 集
+   完全一致, 合并后函数顺序 = ROM 顺序, 全量 make+SHA1 复验通过) === */
+
+// @ 0x0801A3C4
+extern u8 *gUnk_087EBE00[];
+
+void ObjGfxLoad_Step(ObjHead *obj)
+{
+    switch (obj->kindFlags & 0xF)
+    {
+        case 1:
+            LZ77UnCompVram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->vramBank << 5) + 0x06010000 + (obj->gfxPos << 12)));
+            break;
+        case 2:
+            LZ77UnCompWram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x020212C0));
+            break;
+        case 3:
+            LZ77UnCompWram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x02020E00));
+            break;
+        case 6:
+            if (obj->gfxPos == 0)
+            {
+                DmaFill16(3, 0, (void *)0x0600C000, 0x4000);
+                DmaWait(3);
+            }
+        case 4:
+            LZ77UnCompWram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x0202B2C0));
+            break;
+        case 5:
+            LZ77UnCompWram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x020302C0));
+            break;
+        case 7:
+            if (obj->gfxPos == 0)
+            {
+                DmaFill16(3, 0, (void *)0x0600C000, 0x20);
+                DmaWait(3);
+            }
+            LZ77UnCompVram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x0600C020));
+            break;
+        case 8:
+            if (obj->gfxPos == 0)
+            {
+                DmaFill16(3, 0, (void *)0x06008000, 0x20);
+                DmaWait(3);
+            }
+            LZ77UnCompVram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x06008020));
+            break;
+        case 9:
+            LZ77UnCompWram(gUnk_087EBE00[obj->gfxBaseIdx + obj->gfxPos],
+                           (void *)((obj->gfxPos << 12) + 0x02037C28));
+            break;
+    }
+
+    obj->gfxPos++;
+    if (obj->gfxPos >= obj->gfxTotal)
+    {
+        sub_801A684(obj);
+        if ((obj->kindFlags & 0xF) != 9)
+            obj->kindFlags = 0xF7FF & obj->kindFlags;
+    }
+}
+
+// @ 0x0801A5EC
+void ObjGfxLoad_Copy(ObjHead *dst, ObjHead *src)
+{
+    dst->cmdBase0 = src->cmdBase0;
+    dst->cmdBase1 = src->cmdBase1;
+    dst->jumpTable0 = src->jumpTable0;
+    dst->jumpTable1 = src->jumpTable1;
+    dst->kindFlags = src->kindFlags;
+    dst->f_28 = src->f_28;
+    dst->f_1A = src->f_1A;
+    dst->frameIdx = src->frameIdx;
+    dst->f_1E = src->f_1E;
+    dst->palSlot = src->palSlot;
+    dst->f_2A = src->f_2A;
+    dst->f_2B = src->f_2B;
+    dst->f_2C = src->f_2C;
+    dst->f_2D = src->f_2D;
+    dst->f_2E = src->f_2E;
+    dst->scriptPtr = src->scriptPtr;
+    dst->palBitsPtr = src->palBitsPtr;
+    dst->gfxTotal = src->gfxTotal;
+    dst->gfxPos = src->gfxPos;
+    dst->vramBank = src->vramBank;
+    dst->f_2F = src->f_2F;
+    dst->gfxBaseIdx = src->gfxBaseIdx;
+}
+// @ 0x0801A684
+/* 从脚本头 scriptPtr 重算命令流/跳转表四指针 (+0x0..0xC), 清帧游标后按 kind 分发。 */
+void sub_801A684(ObjHead *head)
+{
+    const u16 *data;
+    u32 off0;
+    u32 off1;
+    u16 type;
+    u32 palBits;
+    u8 pal;
+    u8 zero8;
+    u16 zero16;
+    u8 copied;
+
+    do
+    {
+        data = head->scriptPtr;
+        off0 = (u32)data + data[0];
+        head->cmdBase0 = (u16 *)off0;
+        off1 = (u32)data + data[1];
+        head->cmdBase1 = (u16 *)off1;
+        head->jumpTable0 = head->cmdBase0 + 2;
+        head->jumpTable1 = head->cmdBase1 + 2;
+
+        // Keep GCC2's byte zero ahead of the independent halfword zero.
+        zero8 = off0 & ~off0;
+        zero16 = 0;
+        head->f_1A = zero16;
+        head->frameIdx = zero16;
+        head->f_1E = head->vramBank;
+        copied = head->f_2F;
+        head->palSlot = copied;
+        head->f_28 = zero8;
+    } while (0);
+
+    type = (head->kindFlags & 0xF) - 6;
+    if (type <= 2)
+    {
+        sub_801A6F4(head);
+    }
+    else
+    {
+        palBits = (u32)head->palBitsPtr;
+        pal = head->palSlot;
+        sub_804C2FC(palBits, pal, sub_801B954(head));
+    }
+}
+// @ 0x0801A6F4
+INCLUDE_ASM("asm/nonmatchings", sub_801A6F4);
+
 // @ 0x0801A884
 INCLUDE_ASM("asm/nonmatchings", sub_801A884);
 // @ 0x0801AD0C
@@ -105,6 +252,9 @@ typedef struct Unk_8021064
 
 extern Unk_8021064 gUnk_03000670[];
 extern u8 gUnk_0861C664[];
+extern const u8 gUnk_0861A004[];  /* 字体表内空块 tile (表项3); 数字弹出 DMA 源, 兼作 -0x60 折叠基准 */
+extern const u8 gUnk_0861A484[];  /* 字体表内空块 tile (表项39); sub_801D710 kind!=0 图形路径源 */
+extern const u8 gUnk_08619FE4[];  /* 字体表内表项2; sub_801D710 kind!=0 图形路径源 */
 // @ 0x0801B81C
 void sub_801B81C(ObjHead *obj, u8 arg1, u8 arg2, u16 arg3, u8 arg4, u32 arg5, u32 arg6, u16 arg7, u16 arg8, u16 arg9)
 {
@@ -240,10 +390,6 @@ INCLUDE_ASM("asm/nonmatchings", sub_801B964);
 INCLUDE_ASM("asm/nonmatchings", sub_801BE34);
 // @ 0x0801C484
 INCLUDE_ASM("asm/nonmatchings", sub_801C484);
-// @ 0x0801CA08
-INCLUDE_ASM("asm/nonmatchings", sub_801CA08);
-// @ 0x0801CBA4
-INCLUDE_ASM("asm/nonmatchings", sub_801CBA4);
 // @ 0x0801CE80
 typedef struct Unk_08393B28
 {
@@ -251,15 +397,75 @@ typedef struct Unk_08393B28
     u32 field_4;
     u16 field_8;
     u16 field_A;
-    u8 pad_C[4];
+    u16 field_C; /* sub_801CA08/801CE80 复制到 obj->f_B4 */
+    u16 field_E; /* 同上 → obj->f_B6 */
     u16 field_10;
     u8 pad_12[2];
 } Unk_08393B28;
 
 extern Unk_08393B28 gUnk_08393B28[];
+
+// @ 0x0801CA08
+/* 战斗对象主头 (headA) 动画切换: kind 选择 animPtr+0x1A 基索引内的动画
+ * (variantClass!=0 时 case0/5 改取基索引+2 的变色变体), 查 gUnk_08393B28[idx] 取图形
+ * 参数, 尾部经 sub_801B81C 写入 headA; case3/4 额外把表项 +0xC/+0xE 复制到
+ * f_B4/f_B6, 并把 animPtr[0x23]/[0x24] 写入 f_C3; variantClass==5 时 flag 追加 0x20。 */
+void sub_801CA08(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
+{
+    u8 *p = obj->animPtr;
+    u16 flag;
+    u16 idx;
+
+    switch (kind)
+    {
+    case 0:
+        idx = *(u16 *)(p + 0x1A) + kind;
+        flag = 0x409;
+        if (obj->variantClass != 0)
+            idx = *(u16 *)(p + 0x1A) + 2;
+        break;
+    case 5:
+        idx = *(u16 *)(p + 0x1A);
+        flag = 0x401;
+        if (obj->variantClass != 0)
+            idx += 2;
+        break;
+    case 1:
+        idx = *(u16 *)(p + 0x1A) + kind;
+        flag = 0x409;
+        break;
+    case 2:
+        idx = *(u16 *)(p + 0x1A) + kind;
+        flag = 0x409;
+        break;
+    case 3:
+        idx = *(u16 *)(p + 0x1A) + (kind + arg5);
+        flag = 2;
+        obj->f_B4 = gUnk_08393B28[idx].field_C;
+        obj->f_B6 = gUnk_08393B28[idx].field_E;
+        obj->f_C3 = p[0x23];
+        break;
+    case 4:
+        idx = *(u16 *)(p + 0x1A) + (kind + arg5);
+        flag = 2;
+        obj->f_B4 = gUnk_08393B28[idx].field_C;
+        obj->f_B6 = gUnk_08393B28[idx].field_E;
+        obj->f_C3 = p[0x24];
+        break;
+    }
+    if (obj->variantClass == 5)
+        flag |= 0x20;
+    sub_801B81C(&obj->headA, obj->headA.f_2B, obj->headA.f_2C, f2a, f35,
+                gUnk_08393B28[idx].field_0, gUnk_08393B28[idx].field_4,
+                gUnk_08393B28[idx].field_8, gUnk_08393B28[idx].field_A, flag);
+}
+// @ 0x0801CBA4
+INCLUDE_ASM("asm/nonmatchings", sub_801CBA4);
 extern u8 gUnk_08393A3C[];
 extern u8 gUnk_08393A40[];
 extern u8 gUnk_083987EC[];
+extern u8 gUnk_0839DF5C[]; /* 强度斜坡 {1,2,3,4,4,3,2,1} (sub_801CF90 渐变 LUT) */
+void *memcpy(void *, const void *, unsigned long);
 
 void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
 {
@@ -273,12 +479,12 @@ void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
     switch (kind)
     {
         case 0:
-            idx = obj->f_AB ? *(u16 *)(p + 6) : *(u16 *)p;
+            idx = obj->variantClass ? *(u16 *)(p + 6) : *(u16 *)p;
             entry = &gUnk_08393B28[idx];
             flag = 0x409;
             break;
         case 6:
-            idx = obj->f_AB ? *(u16 *)(p + 6) : *(u16 *)p;
+            idx = obj->variantClass ? *(u16 *)(p + 6) : *(u16 *)p;
             entry = &gUnk_08393B28[idx];
             flag = 0x401;
             break;
@@ -319,7 +525,91 @@ void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
     sub_801B81C(&obj->headA, obj->headA.f_2B, obj->headA.f_2C, f2a, f35, entry->field_0, entry->field_4, entry->field_8, entry->field_A, flag);
 }
 // @ 0x0801CF90
-INCLUDE_ASM("asm/nonmatchings", sub_801CF90);
+/* 战斗对象 UI 槽位更新 (BattleTask_Run 对 [0x03000244] 池 0xC8 步长逐槽调用):
+ * 在 x=arg1*5+5/4, y=0x10/0x11/0x12 处画 3 个 3 位数/子图 (hp、mp、8018FC0)。
+ * 调色板参数: state&0x80 时三者同取 flashLevel; 否则先 sub_801D12C(obj,0) 步进, 再由
+ * substate 派生 (1/2 直取, 其余看 mp==maxMp 置 3)。state&2 时以强度斜坡
+ * gUnk_0839DF5C 与阈值 *(u16*)&obj->animPtr (低半字) 生成 0x80 字节渐变 LUT
+ * 写入 0x02021040+arg1*0x80 (5 槽 DMA 上传区), 随后清 state 的 bit1; 末尾
+ * state&1 时清 bit0。 */
+void sub_801CF90(BattleObj *obj, u8 arg1)
+{
+    u8 tbl[8];
+    u8 palA;
+    u8 palB;
+    u32 sel;
+    u8 flag;
+    u16 i;
+    u8 j;
+    int newVar;
+    u8 k;
+    u8 *dst;
+    u16 *p70;
+    u16 *p72;
+    u16 v70;
+
+    memcpy(tbl, gUnk_0839DF5C, 8);
+    if (obj->state & 0x80)
+    {
+        sel = (palA = (palB = obj->flashLevel));
+        flag = 0;
+    }
+    else
+    {
+        sub_801D12C(obj, 0);
+        palA = obj->substate;
+        palB = 0;
+        if (palA == 1)
+        {
+            palB = 1;
+            sel = 1;
+        }
+        else
+        {
+            if (palA == 2)
+            {
+                palB = 2;
+                sel = 2;
+            }
+            else
+            {
+                p70 = (u16 *)((u8 *)obj + 0x70); /* &mp (裸指针形态为字节匹配所需) */
+                p72 = (u16 *)((u8 *)obj + 0x72); /* &maxMp */
+                v70 = *p70;
+                sel = 0;
+                if (v70 == *p72)
+                {
+                    sel = 3;
+                }
+            }
+        }
+        flag = 3;
+    }
+    sub_8018EA8(obj->hp, (arg1 * 5) + 5, 0x10, palA, flag);
+    sub_8018EA8(obj->mp, (arg1 * 5) + 5, 0x11, sel, flag);
+    sub_8018FC0(arg1, (arg1 * 5) + 4, 0x12, palB, palA, sel, flag);
+    if (obj->state & 2)
+    {
+        dst = (u8 *)(0x02021040 + (arg1 * 0x80));
+        for (i = 0; i < 4; i++)
+        {
+            for (j = 0; j < 8; j++)
+            {
+                for (k = 0; k < 4; k++)
+                {
+                    newVar = ((((i * 8) + (k * 2)) >= *(u16 *)&obj->animPtr) ? (0xF0) : (tbl[j] << 4))
+                           + ((((i * 8) + (k * 2)) >= (*(u16 *)&obj->animPtr + 1)) ? (0xF) : (tbl[j]));
+                    *dst++ = newVar;
+                }
+            }
+        }
+        obj->state &= ~2;
+    }
+    if (obj->state & 1)
+    {
+        obj->state &= ~1;
+    }
+}
 // @ 0x0801D12C
 void sub_801D12C(BattleObj *obj, u8 state)
 {
@@ -332,11 +622,11 @@ void sub_801D12C(BattleObj *obj, u8 state)
             case 0:
             case 1:
             case 2:
-                value = obj->f_AB;
+                value = obj->variantClass;
                 switch (value)
                 {
                     case 0:
-                        if (obj->f_6C == obj->f_6E)
+                        if (obj->hp == obj->maxHp)
                             state = 3;
                         break;
                     case 1:
@@ -356,7 +646,7 @@ void sub_801D12C(BattleObj *obj, u8 state)
             case 4:
                 break;
             case 5:
-                value = obj->f_AB;
+                value = obj->variantClass;
                 switch (value)
                 {
                     case 0:
@@ -376,7 +666,7 @@ void sub_801D12C(BattleObj *obj, u8 state)
                 }
                 break;
         }
-        obj->f_A2 = state;
+        obj->substate = state;
     }
 }
 // @ 0x0801D19C
@@ -393,11 +683,11 @@ u16 sub_801D19C(BattleObj *obj, u8 kind)
             case 0:
             case 1:
             case 2:
-                ab = obj->f_AB;
+                ab = obj->variantClass;
                 switch (ab)
                 {
                     case 0:
-                        if (obj->f_6C == obj->f_6E)
+                        if (obj->hp == obj->maxHp)
                             v = 6;
                         break;
                     case 1:
@@ -417,7 +707,7 @@ u16 sub_801D19C(BattleObj *obj, u8 kind)
             case 4:
                 break;
             case 5:
-                ab = obj->f_AB;
+                ab = obj->variantClass;
                 switch (ab)
                 {
                     case 1:
@@ -481,9 +771,128 @@ void sub_801D468(void)
     gUnk_03000668 = j;
 }
 // @ 0x0801D568
-INCLUDE_ASM("asm/nonmatchings", sub_801D568);
+/* 伤害数字弹出 (战斗结算把伤害写入 obj->dmgAmount 后, 由 sub_801DEDC/sub_801DF90/
+ * sub_8020B04 触发): 槽位 tile 基号 = gUnk_0300068C*4+0x158。数值夹 ≤999 拆百/十/个,
+ * 前导零以 0xFFFF 哨兵抑制 ((s16) 读为 -1 → 字体表空块表项 39); 每块 DMA3 32B 到
+ * OBJ VRAM 0x06010000+槽*32 并忙等, 字体基址从 gUnk_0861A004 运行时折叠 -0x60
+ * (= gUnk_08619FA4, 表项 39..49)。尾部把 {dmgAmount 原始值, posX-16, posY-8} 记入
+ * gUnk_03000670[count] 并 count++ (渲染 sub_801D984, 回收 sub_801DAA0)。
+ * 注意: case 1 的具名下标 idx 与字体基址的 -0x60 折叠写法为字节匹配所需, 勿改。 */
+void sub_801D568(BattleObj *arg0)
+{
+    int idx;
+    u16 digits[3];
+    u16 slot;
+    u16 num;
+    u16 i;
+
+    slot = gUnk_0300068C * 4 + 0x158;
+    num = arg0->dmgAmount;
+    if (num > 999)
+        num = 999;
+    digits[0] = num / 100;
+    digits[1] = (num - (s16)digits[0] * 100) / 10;
+    digits[2] = num - ((s16)digits[0] * 100 + (s16)digits[1] * 10);
+
+    DmaCopy32(3, gUnk_0861A004, 0x06010000 + slot * 32, 32);
+    DmaWait(3);
+    slot++;
+
+    for (i = 0; i <= 2; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            if ((s16)digits[0] == 0)
+                digits[0] = 0xFFFF | digits[0];
+            break;
+        case 1:
+            idx = 1;
+            if ((s16)digits[idx] == 0 && (s16)digits[0] <= 0)
+                digits[idx] = 0xFFFF | digits[idx];
+            break;
+        case 2:
+            break;
+        }
+        DmaCopy32(3, gUnk_0861A004 - 0x60 + ((s16)digits[i] + 40) * 32, 0x06010000 + (slot + i) * 32, 32);
+        DmaWait(3);
+    }
+
+    gUnk_03000670[gUnk_0300068C].field_0 = arg0->dmgAmount;
+    gUnk_03000670[gUnk_0300068C].field_2 = arg0->posX - 16;
+    gUnk_03000670[gUnk_0300068C].field_3 = arg0->posY - 8;
+    gUnk_0300068C++;
+}
+
 // @ 0x0801D710
-INCLUDE_ASM("asm/nonmatchings", sub_801D710);
+// 弹出数字重绘/重登记 (VRAM 重载后由 sub_801DE44 清零 gUnk_0300068C 后逐对象调用):
+// kind==0 重画 arg0->f_B2 的 3 位十进制 (前导零以 0xFFFF 哨兵→字体表空块表项39 抑制;
+// digits 的读均用 (s16) 视图使哨兵=-1, |= 的读-改-写保持 u16; 字体基址在源码里从
+// gUnk_0861A004 运行时折叠 -0x60)。kind!=0 画固定图形 [空][空][表项12][表项2]
+// (tile2 源 = gUnk_0861A484-0x360, tile3 = gUnk_08619FE4)。两路都把 {f_B2 原始值,
+// f_BF-16, f_C0-8} 重新记入 gUnk_03000670[count] 并 count++。消费者 sub_801D984
+// 渲染为 32x8 OBJ (CharNo = 0x158+4*i), sub_801DAA0 计时回收。
+// 注意: case 1 的具名下标 idx 是必须的 —— 常量下标会改变 IR 伪寄存器清单,
+// 全局性地改变寄存器 home (合并候选 permuter/sub_801D710/candidates/final_readable.c)。
+void sub_801D710(BattleObj *arg0, u8 kind)
+{
+    int idx;
+    u16 digits[3];
+    u16 slot;
+    u16 num;
+    u16 i;
+
+    slot = gUnk_0300068C * 4 + 0x158;
+    num = arg0->dmgAmount;
+    if (kind == 0)
+    {
+        if (num > 999)
+            num = 999;
+        digits[0] = num / 100;
+        digits[1] = (num - (s16)digits[0] * 100) / 10;
+        digits[2] = num - ((s16)digits[0] * 100 + (s16)digits[1] * 10);
+
+        DmaCopy32(3, gUnk_0861A004, 0x06010000 + slot * 32, 32);
+        DmaWait(3);
+        slot++;
+
+        for (i = 0; i <= 2; i++)
+        {
+            switch (i)
+            {
+            case 0:
+                if ((s16)digits[0] == 0)
+                    digits[0] = 0xFFFF | digits[0];
+                break;
+            case 1:
+                idx = 1;
+                if ((s16)digits[idx] == 0 && (s16)digits[0] <= 0)
+                    digits[idx] = 0xFFFF | digits[idx];
+                break;
+            case 2:
+                break;
+            }
+            DmaCopy32(3, gUnk_0861A004 - 0x60 + ((s16)digits[i] + 40) * 32, 0x06010000 + (slot + i) * 32, 32);
+            DmaWait(3);
+        }
+    }
+    else
+    {
+        DmaCopy32(3, gUnk_0861A484, 0x06010000 + slot * 32, 32);
+        DmaWait(3);
+        DmaCopy32(3, gUnk_0861A484, 0x06010000 + (slot + 1) * 32, 32);
+        DmaWait(3);
+        DmaCopy32(3, gUnk_0861A484 - 0x360, 0x06010000 + (slot + 2) * 32, 32);
+        DmaWait(3);
+        DmaCopy32(3, gUnk_08619FE4, 0x06010000 + (slot + 3) * 32, 32);
+        DmaWait(3);
+    }
+
+    gUnk_03000670[gUnk_0300068C].field_0 = arg0->dmgAmount;
+    gUnk_03000670[gUnk_0300068C].field_2 = arg0->posX - 16;
+    gUnk_03000670[gUnk_0300068C].field_3 = arg0->posY - 8;
+    gUnk_0300068C++;
+}
 // @ 0x0801D984
 u8 sub_801D984(u8 arg)
 {
@@ -591,13 +1000,13 @@ void sub_801DB3C(BattleObj *arg0, u8 arg1, u16 arg2)
         else
             delta = (u8)sub_801EC3C(arg0, 1) >> 1;
         t1 = &gUnk_0839B2B0[arg2];
-        sub_801B81C(&arg0->headB, arg0->f_BF, (u8)(arg0->f_C0 - delta), 0xAD << 2, 0xE,
+        sub_801B81C(&arg0->headB, arg0->posX, (u8)(arg0->posY - delta), 0xAD << 2, 0xE,
                     t1->field_0, t1->field_4 + (arg1 << 5), (u16)(0x543 + t1->field_8), t1->field_A, 4);
     }
     else
     {
         t2 = &gUnk_08393B28[arg2];
-        sub_801B81C(&arg0->headB, arg0->f_BF, arg0->f_C0, 0xC0 << 2, 0xE,
+        sub_801B81C(&arg0->headB, arg0->posX, arg0->posY, 0xC0 << 2, 0xE,
                     t2->field_0, t2->field_4, t2->field_8, t2->field_A, 4);
     }
     arg0->headB.f_2A = 3;
@@ -624,7 +1033,7 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
     ListNode_InitKey((UnkNode *)&gUnk_030006A0[buf[i]], arg1);
     ListNode_InsertSorted((UnkNode *)0x03000690, (UnkNode *)&gUnk_030006A0[buf[i]]);
     sub_8045F94((u8 *)arg0, 8);
-    arg0->f_B2 = 0;
+    arg0->dmgAmount = 0;
     sub_804E7EC(arg0);
     if (arg0->slot <= 6)
     {
@@ -658,10 +1067,10 @@ void sub_801DD04(BattleObj *obj, u8 idx, u16 val)
     *pp = 0;
     *np = 0;
 
-    obj->f_AB = 0;
-    obj->f_B2 = 0;
-    obj->f_6C = val;
-    obj->f_BC = 0;
+    obj->variantClass = 0;
+    obj->dmgAmount = 0;
+    obj->hp = val;
+    obj->fxKind = 0;
 
     if (*(u8 *)0x030006F0)
         (*(u8 *)0x030006F0)--;
@@ -738,7 +1147,7 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
     u8 *anim;
     int off;
     u16 sub;
-    s8 kind = arg0->f_BC;
+    s8 kind = arg0->fxKind;
     switch (kind)
     {
     case 0:
@@ -771,7 +1180,7 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
         for (i = 0; i < count; i++)
         {
             BattleObj *p = (BattleObj *)(i * 0xC8 + (u32)arg1);
-            if (p->slot != 0xFF && p->f_AB != 8)
+            if (p->slot != 0xFF && p->variantClass != 8)
                 sub_801D568(p);
         }
         gUnk_0300068D = 0;
@@ -785,7 +1194,7 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
     Unk_08393B28 *entry;
     int off;
     u8 *anim;
-    s8 kind = arg0->f_BC;
+    s8 kind = arg0->fxKind;
     switch (kind)
     {
     case 0:
@@ -793,7 +1202,7 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
         break;
     case 1:
         anim = arg0->animPtr;
-        off = arg0->f_C2 * 2;
+        off = arg0->animSubIdx * 2;
         anim += 8;
         entry = &gUnk_08393B28[*(u16 *)(anim + off)];
         break;
@@ -814,7 +1223,7 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
         for (i = 0; i < count; i++)
         {
             BattleObj *p = (BattleObj *)(i * 0xC8 + (u32)arg1);
-            if (p->slot != 0xFF && p->f_AB != 8)
+            if (p->slot != 0xFF && p->variantClass != 8)
                 sub_801D568(p);
         }
         gUnk_0300068D = 0;
@@ -927,7 +1336,7 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
     for (i = 0; i <= 6; i++)
         flags[i] = 0;
 
-    switch ((s8)arg0->f_BC)
+    switch ((s8)arg0->fxKind)
     {
     case 0:
         idx = *(u16 *)(arg0->animPtr + 0x1A) + 3;
@@ -943,14 +1352,14 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
     switch (*(u16 *)((u8 *)entry + 0x10))
     {
     case 0:
-        if (*(s16 *)&arg1->f_6C - *(s16 *)&arg1->f_B2 <= 0)
+        if (*(s16 *)&arg1->hp - *(s16 *)&arg1->dmgAmount <= 0)
         {
-            arg1->f_6C = *(u16 *)((u8 *)entry + 0x10);
+            arg1->hp = *(u16 *)((u8 *)entry + 0x10);
             wrapped = 1;
         }
         else
         {
-            arg1->f_6C -= arg1->f_B2;
+            arg1->hp -= arg1->dmgAmount;
             wrapped = 0;
         }
         flags[0] = wrapped;
@@ -966,16 +1375,16 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
             BattleObj *member = (BattleObj *)(i * 0xC8 + (u32)arg1);
             if (member->slot == 0xFF)
                 continue;
-            if (member->f_AB == 8)
+            if (member->variantClass == 8)
                 continue;
-            if (*(s16 *)&member->f_6C - *(s16 *)&member->f_B2 <= 0)
+            if (*(s16 *)&member->hp - *(s16 *)&member->dmgAmount <= 0)
             {
-                member->f_6C = 0;
+                member->hp = 0;
                 wrapped = 1;
             }
             else
             {
-                member->f_6C -= member->f_B2;
+                member->hp -= member->dmgAmount;
                 wrapped = 0;
             }
             flags[i] = wrapped;
@@ -1005,7 +1414,7 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
 }
 // @ 0x0801E690
 /* 同 sub_801E4D4 的效果扣减引擎 (arg0[0xBC]→animPtr 查 gUnk_08393B28→field_10 模式分派),
- * 差异仅在查表入口: mode0=*(u16*)(animPtr+2), mode1=*(u16*)(animPtr+8+f_C2*2)
+ * 差异仅在查表入口: mode0=*(u16*)(animPtr+2), mode1=*(u16*)(animPtr+8+animSubIdx*2)
  * (即 animPtr+0x3A 处的 u8 索引; 与已匹配 sub_801DF90 的 dispatch 字节同构)。
  * ROM 中无任何调用者(死代码)。 */
 u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
@@ -1023,14 +1432,14 @@ u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
     for (i = 0; i <= 6; i++)
         flags[i] = 0;
 
-    switch ((s8)arg0->f_BC)
+    switch ((s8)arg0->fxKind)
     {
     case 0:
         entry = &gUnk_08393B28[*(u16 *)(arg0->animPtr + 2)];
         break;
     case 1:
         anim = arg0->animPtr;
-        off = arg0->f_C2 * 2;
+        off = arg0->animSubIdx * 2;
         anim += 8;
         entry = &gUnk_08393B28[*(u16 *)(anim + off)];
         break;
@@ -1039,14 +1448,14 @@ u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
     switch (*(u16 *)((u8 *)entry + 0x10))
     {
     case 0:
-        if (*(s16 *)&arg1->f_6C - *(s16 *)&arg1->f_B2 <= 0)
+        if (*(s16 *)&arg1->hp - *(s16 *)&arg1->dmgAmount <= 0)
         {
-            arg1->f_6C = *(u16 *)((u8 *)entry + 0x10);
+            arg1->hp = *(u16 *)((u8 *)entry + 0x10);
             wrapped = 1;
         }
         else
         {
-            arg1->f_6C -= arg1->f_B2;
+            arg1->hp -= arg1->dmgAmount;
             wrapped = 0;
         }
         flags[0] = wrapped;
@@ -1062,16 +1471,16 @@ u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
             BattleObj *member = (BattleObj *)(i * 0xC8 + (u32)arg1);
             if (member->slot == 0xFF)
                 continue;
-            if (member->f_AB == 8)
+            if (member->variantClass == 8)
                 continue;
-            if (*(s16 *)&member->f_6C - *(s16 *)&member->f_B2 <= 0)
+            if (*(s16 *)&member->hp - *(s16 *)&member->dmgAmount <= 0)
             {
-                member->f_6C = 0;
+                member->hp = 0;
                 wrapped = 1;
             }
             else
             {
-                member->f_6C -= member->f_B2;
+                member->hp -= member->dmgAmount;
                 wrapped = 0;
             }
             flags[i] = wrapped;
@@ -1196,7 +1605,7 @@ void sub_801ED40(BattleObj *obj, u8 arg1)
     }
     else if (obj->slot <= 0x70)
     {
-        if (obj->f_AB == 4)
+        if (obj->variantClass == 4)
         {
             v = gUnk_03000744;
         }
@@ -1230,7 +1639,7 @@ void sub_801ED40(BattleObj *obj, u8 arg1)
 }
 // @ 0x0801EE6C
 /* BattleObj 白色着色清除 (sub_801ED40 的逆操作): 撤销对象精灵的白色 tint。
- * v 槽基址与 sub_801ED40 同源 (slot>0x0B 且 f_AB==4 → gUnk_03000744, 否则 headA->palSlot);
+ * v 槽基址与 sub_801ED40 同源 (slot>0x0B 且 variantClass==4 → gUnk_03000744, 否则 headA->palSlot);
  * sub_804B7B0(v, headA 字节2) 清除 tint 记录; kindFlags bit15 若在则清 0;
  * slot==0x77 额外 sub_804B834(palSlot,1,3,-11,5) (特殊背景的补充恢复)。 */
 void sub_801EE6C(BattleObj *ptr)
@@ -1238,7 +1647,7 @@ void sub_801EE6C(BattleObj *ptr)
     u8 v;
     u8 b;
 
-    if (ptr->slot > 0x0B && ptr->f_AB == 4)
+    if (ptr->slot > 0x0B && ptr->variantClass == 4)
     {
         v = gUnk_03000744;
     }
@@ -1312,9 +1721,103 @@ void sub_801FEBC(BattleObj *arg0, u16 arg1, u8 arg2)
 // @ 0x0801FF40
 INCLUDE_ASM("asm/nonmatchings", sub_801FF40);
 // @ 0x080200E8
-INCLUDE_ASM("asm/nonmatchings", sub_80200E8);
+void sub_80200E8(BattleObj *obj, PlayerStats *stats, u8 arg2)
+{
+    u8 i;
+    s16 v;
+
+    obj->maxHp = stats->max_hp;
+    obj->maxMp = stats->max_mp;
+    obj->hp = stats->hp;
+    obj->mp = stats->mp;
+    obj->atc = stats->base_atc + stats->equip_atc;
+    obj->def = stats->base_def + stats->equip_def;
+    obj->agl = stats->base_agl + stats->equip_agl;
+    obj->men = stats->base_men + stats->equip_men;
+    obj->res = stats->base_res + stats->equip_res;
+    obj->noa = stats->noa;
+    obj->lv = stats->lv;
+    obj->variantClass = 0;
+    obj->statMods[0] = 0;
+    obj->statMods[1] = 0;
+    obj->statMods[2] = 0;
+    obj->statMods[3] = 0;
+    obj->statMods[4] = 0;
+    obj->equipSlots[0] = stats->equip_slot1;
+    obj->equipSlots[1] = stats->equip_slot2;
+    obj->equipSlots[2] = stats->equip_slot3;
+    obj->equipSlots[3] = stats->equip_slot4;
+    obj->equipSlots[4] = stats->equip_slot5;
+    obj->equipSlots[5] = stats->equip_slot6;
+    sub_8048B5C((u8 *)obj, stats->field_unk[1]);
+    for (i = 0; i <= 7; i++)
+    {
+        v = stats->skills[i];
+        if (v != 0xFF && v != 0x26)
+            obj->skills[i] = v - 1;
+        else
+            obj->skills[i] |= 0xFF;
+    }
+    sub_8045BF4(obj);
+    obj->pad_AC[0] = arg2;
+    sub_8045EB8((u8 *)obj);
+    sub_801D12C(obj, 0);
+    obj->f_C3 = 0x10;
+    obj->pad_C4[0] = 0x10;
+}
 // @ 0x08020228
-INCLUDE_ASM("asm/nonmatchings", sub_8020228);
+// 敌方战斗对象属性装载 (玩家侧姊妹 = sub_80200E8): 按 obj->slot 索引 gUnk_083987EC
+// 敌人属性表 (0x2C 字节/项): animPtr=表项指针, lv=(u8)表项[0], variantClass=0,
+// maxHp/hp=表项[2] (双写), maxMp/mp=表项[4] (双写), atc/def/agl/men/res=表项[6..0xE],
+// noa=(u8)表项[0x10], statMods[0..4]=0, f_C3=表项[0x23],
+// pad_C4[0]=gUnk_08393A3C[表项[0x20]]*8, lv 加 sub_8047FCC((u8)sub_80187A8())。
+// slot>0x70 (特效/空槽): 清 statMods[0..4] 后转 sub_802031C(arg0, obj)。尾部 +0xAC=arg2。
+// 注意: lv 的和值须经具名 int 临时承接 (直接写入会改变加法目的寄存器的分配)。
+void sub_8020228(u8 *arg0, BattleObj *arg1, u8 arg2)
+{
+    u8 *entry;
+    s32 ret;
+    int sum;
+
+    if (arg1->slot <= 0x70)
+    {
+        entry = &gUnk_083987EC[arg1->slot * 0x2C];
+        arg1->animPtr = entry;
+        arg1->lv = *(u16 *)(entry + 0);
+        arg1->variantClass = 0;
+        arg1->maxHp = *(u16 *)(entry + 2);
+        arg1->maxMp = *(u16 *)(entry + 4);
+        arg1->hp = *(u16 *)(entry + 2);
+        arg1->mp = *(u16 *)(entry + 4);
+        arg1->atc = *(u16 *)(entry + 6);
+        arg1->def = *(u16 *)(entry + 8);
+        arg1->agl = *(u16 *)(entry + 0xA);
+        arg1->men = *(u16 *)(entry + 0xC);
+        arg1->res = *(u16 *)(entry + 0xE);
+        arg1->noa = *(u16 *)(entry + 0x10);
+        arg1->statMods[0] = 0;
+        arg1->statMods[1] = 0;
+        arg1->statMods[2] = 0;
+        arg1->statMods[3] = 0;
+        arg1->statMods[4] = 0;
+        arg1->f_C3 = *(entry + 0x23);
+        arg1->pad_C4[0] = gUnk_08393A3C[*(u16 *)(entry + 0x20)] * 8;
+        ret = sub_8047FCC((u8)sub_80187A8());
+        sum = ret + arg1->lv;
+        arg1->lv = sum;
+    }
+    else
+    {
+        arg1->statMods[0] = 0;
+        arg1->statMods[1] = 0;
+        arg1->statMods[2] = 0;
+        arg1->statMods[3] = 0;
+        arg1->statMods[4] = 0;
+        sub_802031C(arg0, arg1);
+    }
+
+    arg1->pad_AC[0] = arg2;
+}
 // @ 0x0802031C
 INCLUDE_ASM("asm/nonmatchings", sub_802031C);
 // @ 0x08020648
@@ -1398,7 +1901,7 @@ void sub_802093C(BattleObj *arg0)
     if (arg0->slot > 0xB)
     {
         ptr = arg0->animPtr;
-        val = *(s8 *)&arg0->f_BC;
+        val = *(s8 *)&arg0->fxKind;
         switch (val)
         {
             case 0:
@@ -1472,7 +1975,7 @@ void sub_8020A0C(BattleObj *arg0, u8 arg1)
 {
     u16 newval;
     Unk_0839B2A4 *tbl = gUnk_0839B2A4;
-    sub_801B81C(&arg0->headB, arg0->f_BF, arg0->f_C0, 0xDA << 1, 0xE, tbl[0].field_0,
+    sub_801B81C(&arg0->headB, arg0->posX, arg0->posY, 0xDA << 1, 0xE, tbl[0].field_0,
                 tbl[0].field_4 + (arg1 << 5), (u16)(0x541 + tbl[0].field_8), tbl[0].field_A, 2);
     arg0->headB.f_2A = 3;
     newval = 0x2000 | arg0->state;
@@ -1602,14 +2105,14 @@ u8 sub_8020BC0(BattleObj *arg0)
     s32 diff;
     u16 *ptr;
 
-    ptr = &arg0->f_6C;
-    diff = *(s16 *)&arg0->f_6C - *(s16 *)&arg0->f_B2;
+    ptr = &arg0->hp;
+    diff = *(s16 *)&arg0->hp - *(s16 *)&arg0->dmgAmount;
     if (diff <= 0)
     {
         *ptr = 0;
         return 1;
     }
-    *ptr -= arg0->f_B2;
+    *ptr -= arg0->dmgAmount;
     return 0;
 }
 
@@ -1664,4 +2167,202 @@ void sub_8020CC4(void *arg0, u8 arg1, u8 arg2, u16 arg3, u8 arg4, u16 arg5, u16 
                 gUnk_08393B28[arg5].field_8, gUnk_08393B28[arg5].field_A, arg6);
     newval = 0x2000 | *(u16 *)((u8 *)arg0 + 0xB0);
     *(u16 *)((u8 *)arg0 + 0xB0) = newval;
+}
+/* ---- 场景对象 API (0x08020D50..0x080210C0) 自 scene_obj_fx.c 迁入 (2026-09-13 defcdgg-zcode):
+ * 本段是 scene_obj_fx.c 的连续前缀, 链接序 battle_obj_core.o → scene_obj_fx.o 不变, ROM 布局不受影响。
+ * 对象参数由 void 指针 / u8 指针 / Unk_8020F4C 指针统一为 BattleObj 指针; Unk_8020F4C 是 BattleObj 的冗余别名视图, 已删除
+ * (field_24=headA.kindFlags, field_2A=headA.f_1E, field_35=headA.palSlot, field_36=headA.f_2A,
+ * field_37/38=headA.f_2B/f_2C, field_B0=state, field_BB/BC/BD/BE=memberIdx/fxKind/f_BD/slot)。 ---- */
+
+// @ 0x08020D50
+void sub_8020D50(BattleObj *arg0, u8 arg1)
+{
+    u16 newval;
+    if (arg0->slot > 0xA)
+        return;
+    *(u8 *)((u32)arg0 + 0xA3) = sub_804BBDC(sub_801D19C(arg0, arg1), 1, 0x1F, 0x1F, 0x1F, 0x10, 0, 3);
+    newval = 0x80 | arg0->state;
+    arg0->state = newval;
+}
+// @ 0x08020DA0
+void sub_8020DA0(BattleObj *arg0, u8 arg1)
+{
+    u16 *reg;
+    if (arg0->slot > 0xA)
+        return;
+    reg = &arg0->state;
+    if (!(*reg & 0x80))
+        return;
+    sub_804BD54(sub_801D19C(arg0, arg1), 1);
+    *reg = 0xFF7F & *reg;
+}
+// @ 0x08020DE4
+void sub_8020DE4(void)
+{
+    gUnk_0300071C = 0;
+}
+
+// @ 0x08020DF0
+void sub_8020DF0(BattleObj *arg0)
+{
+    u8 i;
+    u32 ret;
+    u8 val;
+    u8 flag;
+    val = arg0->f_BD;
+    flag = 1;
+    if (val <= 4)
+    {
+        flag = 0;
+    }
+    ret = sub_8046480((u8 *)arg0, gUnk_03000730_arr, flag);
+    gUnk_0300073D = ret;
+    gUnk_0300073C = 0;
+    for (i = 0; i < (u8)ret; i++)
+    {
+        if (gUnk_03000730_arr[i] & 0xF0)
+        {
+            gUnk_0300073C++;
+        }
+    }
+}
+// @ 0x08020E54
+u32 *sub_8020E54(void)
+{
+    return &gUnk_03000730;
+}
+// @ 0x08020E5C
+u8 sub_8020E5C(void)
+{
+    return gUnk_0300073D;
+}
+// @ 0x08020E68
+u32 sub_8020E68(void)
+{
+    return gUnk_0300062C;
+}
+// @ 0x08020E74
+void sub_8020E74(void)
+{
+    u8 i;
+    for (i = 0; i <= 10; i++)
+    {
+        gUnk_03000748[i] = 0;
+    }
+}
+// @ 0x08020E90
+void sub_8020E90(BattleObj *arg0)
+{
+    if (arg0->slot <= 10)
+    {
+        gUnk_03000748[arg0->slot] = 1;
+    }
+}
+// @ 0x08020EAC
+u8 sub_8020EAC(BattleObj *arg0)
+{
+    u8 result;
+
+    result = 0;
+    if (arg0->slot <= 10)
+    {
+        result = gUnk_03000748[arg0->slot];
+    }
+    return result;
+}
+// @ 0x08020EC8
+void sub_8020EC8(void)
+{
+    u8 i;
+
+    gUnk_03000763 = 0;
+    for (i = 0; i <= 10; i++)
+    {
+        gUnk_03000758[i] = 0;
+    }
+}
+// @ 0x08020EEC
+void sub_8020EEC(u8 value)
+{
+    gUnk_03000758[gUnk_03000763] = value;
+    gUnk_03000763++;
+}
+
+extern u32 gUnk_087ED6A8[];
+
+// @ 0x08020F08
+void sub_8020F08(void)
+{
+    u8 i;
+    for (i = 0; i < gUnk_03000763; i++)
+    {
+        sub_804C2FC(gUnk_087ED6A8[gUnk_03000758[i]], i + 1, 1);
+    }
+}
+// @ 0x08020F4C
+void sub_8020F4C(BattleObj *arg0)
+{
+    arg0->memberIdx = 0;
+    arg0->fxKind = 0xFF;
+    arg0->state = 0;
+    arg0->slot = 0xB;
+    arg0->headA.f_2A = 0;
+    gUnk_03000618 = 0;
+    gUnk_0300061A = 0;
+    gUnk_0300061C = 0;
+    gUnk_0300061E = 0;
+    gUnk_03000620 = 0;
+    gUnk_03000622 = 0;
+    gUnk_03000624 = 0;
+    sub_801FA10(arg0, 0x31);
+}
+// @ 0x08020FB8
+void sub_8020FB8(BattleObj *ptr, u16 arg1, u16 arg2, u16 arg3, u8 arg4)
+{
+    ptr->state = ptr->state & 0xFF0F;
+    ptr->state = 0x10 | ptr->state;
+    gUnk_03000618 = arg3;
+    gUnk_0300061A = 0;
+    gUnk_0300061C = ptr->headA.f_2B;
+    gUnk_0300061E = ptr->headA.f_2C;
+    gUnk_03000620 = arg1 - ptr->headA.f_2B;
+    gUnk_03000622 = arg2 - ptr->headA.f_2C;
+    gUnk_03000624 = arg4;
+}
+// @ 0x0802103C
+void sub_802103C(BattleObj *arg0, u8 arg1, u16 arg2)
+{
+    u16 *ptr;
+
+    ptr = &arg0->state;
+    *ptr = (*ptr & 0xFF0F) | 0x60 | arg2;
+    arg0->f_BD = arg1;
+}
+
+// @ 0x08021064
+void sub_8021064(u8 arg0)
+{
+    u8 i;
+    gUnk_0300068C = 0;
+    gUnk_0300068E = 1;
+    gUnk_0300068D = 0;
+    for (i = 0; i < 7; i++)
+    {
+        gUnk_03000670[i].field_0 = 0;
+        gUnk_03000670[i].field_2 = 0;
+        gUnk_03000670[i].field_3 = 0;
+    }
+    sub_804C2FC((u32)(gUnk_0861C664 + arg0 * 0x20), 0xF, 1);
+}
+
+// @ 0x080210C0
+void sub_80210C0(BattleObj *arg0, u8 arg1)
+{
+    u16 newval;
+    Unk_0839B2A4 *tbl = gUnk_0839B2A4;
+    sub_801B81C(&arg0->headB, arg0->posX, arg0->posY, 0xDA << 1, 0xE, tbl[0].field_0,
+                tbl[0].field_4 + (arg1 << 5), (u16)(0x541 + tbl[0].field_8), tbl[0].field_A, 2);
+    arg0->headB.f_2A = 3;
+    newval = 0x2000 | arg0->state;
+    arg0->state = newval;
 }

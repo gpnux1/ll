@@ -89,11 +89,16 @@ gUnk_08393B28_entries = 0x08393B28;   /* 同址别名: u16 视图 (offset 0x10 �
 gUnk_083988A8 = 0x083988A8;    /* 24-byte 动画条目表 (sub_801CBA4 用) */
 gUnk_0839D5BC = 0x0839D5BC;
 gUnk_0839DBF6 = 0x0839DBF6;
+gUnk_0839DF5C = 0x0839DF5C;   /* 强度斜坡 {1,2,3,4,4,3,2,1} (sub_801CF90 渐变 LUT) */
 gUnk_03000730_arr = 0x03000730;
 gScriptLocalSlots = 0x03000ED8;   /* gUnk_03000ED8 的 u16[] 视图别名: 脚本 VM 8 个 u16 局部槽 (sub_80526A0) */
 gUnk_0861A5E4 = 0x0861A5E4;
 gUnk_0861C664 = 0x0861C664;
 gUnk_08619FA4 = 0x08619FA4;
+gUnk_0861A004 = 0x0861A004;   /* 数字字体表内空块 tile (表项3): sub_801D568/801D710 前导 tile DMA 源 */
+gUnk_0861C744 = 0x0861C744;   /* 战斗对象 5 槽 tile 属性 LUT (sub_801D214 尾调 sub_804C2FC 源) */
+gUnk_0861A484 = 0x0861A484;   /* 数字字体表内空块 tile (表项39): sub_801D710 kind!=0 图形路径源 */
+gUnk_08619FE4 = 0x08619FE4;   /* 数字字体表内表项2: sub_801D710 kind!=0 图形路径源 */
 gUnk_08619AA4 = 0x08619AA4;
 gUnk_08393A74 = 0x08393A74;
 gUnk_08393A54 = 0x08393A54;
@@ -747,7 +752,6 @@ SECTIONS {
         src/menu.o(.text);
         src/text_engine.o(.text);
         src/sio_link.o(.text);
-        src/battle_gfx_load.o(.text);
         src/battle_obj_core.o(.text);
         src/scene_obj_fx.o(.text);
         src/event_actor.o(.text);

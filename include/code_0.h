@@ -406,8 +406,8 @@ void sub_8018A58(u8);
 void sub_8018BF8();
 void sub_8018D9C();
 u32 sub_8018E34();
-void sub_8018EA8();
-void sub_8018FC0();
+void sub_8018EA8(u16, u8, u8, unsigned int, u8); /* 3 位数图块显示: (值, x, y, 调色板高, 调色板低); 唯一 C 调用者 sub_801CF90 (其余为 asm) */
+void sub_8018FC0(u8, u8, u8, u8, u8, u8, u8); /* 图块绘制 (槽号, x, y, 调色板3参, 标志); 唯一 C 调用者 sub_801CF90 */
 void Bg0_InitClear();
 void sub_80191CC();
 void DialogCtx_Clear3();
@@ -497,33 +497,48 @@ typedef struct ObjHead
  * 语义: +0x00 12B UnkNode (key=+0x38 值), 两个 ObjHead 图形/脚本头, +0xB0 状态字, +0xBE 槽号。 */
 typedef struct BattleObj
 {
-    UnkNode node;                          /* +0x00 key/prev/next (key 由 +0x38 值填充) */
+    UnkNode node;                          /* +0x00 key/prev/next (key 由 +0x38=headA.f_2C 值填充) */
     ObjHead headA;                         /* +0x0C 主头 (sub_801B81C(obj+0xC), 801B8AC(obj+0xC)) */
     ObjHead headB;                         /* +0x3C 次头 (sub_801B81C(obj+0x3C), 801B8AC(obj+0x3C)) */
-    u16 f_6C;                              /* +0x6C 剩余计数值 ((s16) 比较, 每帧扣 f_B2, 扣空登记 030006F8 池) */
-    u16 f_6E;                              /* +0x6E (sub_801D12C/D19C 与 f_6C 判等) */
-    u8 pad_70[0x88 - 0x70];                /* +0x70..+0x87 未验证 */
-    u8 *animPtr;                           /* +0x88 动画/图形数据块指针 ([+2]/[+8+idx*2]/[+0x1A]/[+0x20] 为 u16 索引入口; 多处 *(u8**) 消费) */
-    u8 pad_8C[0xA2 - 0x8C];                /* +0x8C..+0xA1 未验证 */
-    u8 f_A2;                               /* +0xA2 子状态 (sub_801D12C 写入) */
-    u8 pad_A3[0xAB - 0xA3];                /* +0xA3..+0xAA 未验证 */
-    u8 f_AB;                               /* +0xAB tint 分流: ==4 时取 gUnk_03000744 (sub_801ED40/sub_801EE6C) */
-    u8 pad_AC[0xB0 - 0xAC];                /* +0xAC..+0xAF 未验证 */
-    u16 state;                             /* +0xB0 bits0-3=kind, bits4-7=子态(0x10/0x20/0x60), 0x400=不入链, 0x2000=跳跃 */
-    u16 f_B2;                              /* +0xB2 扣减步长 ((s16) 读; 原注释"步长等") */
-    u16 f_B4;                              /* +0xB4 (sub_801CE80/event_hub 写入) */
-    u16 f_B6;                              /* +0xB6 (sub_801CE80 写入) */
-    u8 pad_B8[0xBB - 0xB8];                /* +0xB8..+0xBA 未验证 */
-    u8 f_BB;                               /* +0xBB 辅助 */
-    u8 f_BC;                               /* +0xBC 辅助 */
-    u8 f_BD;                               /* +0xBD (sub_802103C 写入 arg1) */
-    u8 slot;                               /* +0xBE 槽号 (≤0xB; 0xFF=空) */
-    u8 f_BF;                               /* +0xBF 朝向/参数 */
-    u8 f_C0;                               /* +0xC0 朝向/参数 */
-    u8 pad_C1;                             /* +0xC1 */
-    u8 f_C2;                               /* +0xC2 动画副索引 (animPtr+8+idx*2 选表项; sub_801E690/sub_801E848) */
-    u8 f_C3;                               /* +0xC3 (sub_802093C 写入) */
-    u8 pad_C4[0xC8 - 0xC4];                /* +0xC4..+0xC7 事件值等 (未逐一验证) */
+    u16 hp;                                /* +0x6C 当前 HP (E3: sub_80200E8 ← PlayerStats.hp; 801E4D4/E690/8020BC0: hp-=dmgAmount, (s16)≤0 清 0 并死亡入队 030006F8; 801D12C/D19C 与 maxHp 判等选状态; 读 8047024/804A368/802DE04) */
+    u16 maxHp;                             /* +0x6E 最大 HP (E3: ← stats.max_hp (sub_80200E8); 804A368 中毒伤 = maxHp/10) */
+    u16 mp;                                /* +0x70 当前 MP (E2: ← stats.mp (sub_80200E8); 与 hp/maxHp 同批读 (8047024/804A368)) */
+    u16 maxMp;                             /* +0x72 最大 MP (E2: ← stats.max_mp (sub_80200E8)) */
+    u16 atc;                               /* +0x74 攻击 = stats.base_atc+equip_atc (E3: sub_80200E8 字节对求和) */
+    u16 def;                               /* +0x76 防御 = base_def+equip_def (同上) */
+    u16 agl;                               /* +0x78 敏捷 = base_agl+equip_agl (同上) */
+    u16 men;                               /* +0x7A 精神 = base_men+equip_men (同上) */
+    u16 res;                               /* +0x7C 抗性 = base_res+equip_res (同上) */
+    u16 statMods[5];                       /* +0x7E..0x87 能力修正值 [0..4]↔atc/def/agl/men/res: sub_8046F0C case5-9 与 +0x74..0x7C 成对相加截断 u16; sub_8048D40(战斗开始/我方) 与 sub_80200E8(装载) 连清 5×u16; sub_8048CEC 以 [0]/[1] 非零作状态标记 */
+    u8 *animPtr;                           /* +0x88 动画/图形数据块指针 ([+2]/[+8+idx*2]/[+0x1A]/[+0x20] 为 u16 索引入口; u8 [+0x23]/[+0x24] 为 f_C3 源 (sub_801CA08 case3/4); 多处 *(u8**) 消费; 低 16 位在 slot≤6 复用为计数/阈值 (sub_80209C8 每次+=4, sub_8048B5C 写 0x20/arg1, sub_801DC20 清 0, sub_801CF90 作渐变阈值 0-32)) */
+    u8 field_8C;                           /* +0x8C (sub_80200E8 不写; sub_802192C 以 u32 视图读 +0x98 跨本区) */
+    u8 equipSlots[6];                      /* +0x8D..0x92 ← stats.equip_slot1..6 (E3: sub_80200E8 逐字节搬运; 0xB3=空槽哨兵, sub_8048B5C 判 equip5/6 是否为空) */
+    u8 pad_93[0x99 - 0x93];                /* +0x93..0x98 未验证 (sub_80200E8 不写) */
+    u8 skills[8];                          /* +0x99..0xA0 ← stats.skills[i]-1, 0xFF=空/无效 (E3: sub_80200E8 8 字节循环, 0xFF 与 0x26 视为空) */
+    u8 pad_A1;                             /* +0xA1 未验证 */
+    u8 substate;                           /* +0xA2 子状态 (sub_801D12C 写状态机值; sub_801CF90 逐帧消费) */
+    u8 flashLevel;                         /* +0xA3 闪烁/混色档 (sub_8020D50 写 sub_804BBDC 混色结果并置 state bit7; sub_801CF90 读取) */
+    u8 pad_A4[0xA9 - 0xA4];                /* +0xA4..0xA8 未验证 */
+    u8 noa;                                /* +0xA9 ← stats.noa (E2: sub_80200E8) */
+    u8 lv;                                 /* +0xAA 等级 ← stats.lv (E2: sub_80200E8) */
+    u8 variantClass;                       /* +0xAB 形态/类别: 0=基础动画, 非0→动画取变色变体(基索引+2, 801CA08/801CE80), 8=死亡(全场效果跳过 801DEDC/DF90/E4D4/E690), ==5→flag|0x20 (801CA08), 背景对象复用: ==4→调色基址取 gUnk_03000744 (801ED40/801EE6C); 出场清 0 (801B964/80200E8/801DD04), 战斗脚本可写 7 (8033E2C/8038920/8039724) */
+    u8 pad_AC[0xB0 - 0xAC];                /* +0xAC..0xAF (+0xAC ← sub_80200E8 arg2; sub_8022710 以 obj+0xAC+r6 变址读) */
+    u16 state;                             /* +0xB0 bits0-3=kind, bits4-7=子态(0x10/0x20/0x60), 0x400=不入链, 0x2000=跳跃; bit0=逐帧清 (801CF90), bit1=请求重建渐变LUT (801CF90 清), bit7=调色板取 flashLevel (801CF90) */
+    u16 dmgAmount;                         /* +0xB2 待结算伤害/数值累计 (E3: 中毒=maxHp/10 (804A368) → sub_801D568 弹 3 位数字 (显示夹 ≤999; 9999 上限 803B484) → hp-=本值 (801E4D4/E690/8020BC0); 战斗脚本族 8040EE8/8041308/80416F0/80419E0/8041EDC/80422B8/8042784/8042B90/8042E70/8043554/8043938/8043B5C/8043F90 直写; 入队清 0 后逐帧 +1 作概率权重 (801FF40/8020AE4: (n+1)*40 vs rand%101, n>4 才可被选)) */
+    u16 f_B4;                              /* +0xB4 动画表项 +0xC 装载 (801CA08 case3/4, 801CE80 case1/5); 战斗对象运算大量读写 (语义未定) */
+    u16 f_B6;                              /* +0xB6 同上 = 表项 +0xE */
+    u16 statusAil;                         /* +0xB8 异常状态位域 (bit0=中毒: 804A368 ands 1 → 中毒结算分支; 另读 801EEE4/801F3FC/804A148/804AA2C) */
+    u8 pad_BA[0xBB - 0xBA];                /* +0xBA 未验证 */
+    u8 memberIdx;                          /* +0xBB 出场 = sub_80487CC(memberId) = 队伍位次 0-5 (0x03004A88[] 查表; 0xA1/0xA7 特例 → 2); 801FF40 副代表选取按本值判重; 敌群路径写 r8-5; 动画流可写 (均 801B964) */
+    u8 fxKind;                             /* +0xBC 效果/攻击型别 (s8): 0/1 选 animPtr 偏移模式 (801DEDC/DF90/E4D4/E690/802093C); 出场 =0xFF (801B964); sub_804CEE0 写 0/1, 80466F0 写 */
+    u8 f_BD;                               /* +0xBD 出场清 0 (801B964); 常见值 0-5 (8023820 ×7, 80230BC=5, 802103C=arg1, 80466F0); >4 时 sub_8020DF0 转全体扫描; 读 801EA70/801F884/802192C/804E2AC (语义未定) */
+    u8 slot;                               /* +0xBE 槽号 (≤0xB 玩家侧, ≤0x70 敌方, 0x71+ 特效/特殊; 0xFF=空) */
+    u8 posX;                               /* +0xBF 屏幕坐标 X (E3: 出场 ← 阵型表 tbl[id*4+2] (801B964); 801D568 弹数字锚 X-16; headB 装配 (801DB3C/8020A0C/80210C0); 802B608 拷到 0x03000828; 移动族大量读写) */
+    u8 posY;                               /* +0xC0 屏幕坐标 Y (同上: tbl[id*4+3]; 弹数字 Y-8; 0x03000829) */
+    u8 pad_C1;                             /* +0xC1 出场清 0 (801B964) */
+    u8 animSubIdx;                         /* +0xC2 动画副索引 (animPtr+8+idx*2 选表项; 801DF90/801E690/803F444) */
+    u8 f_C3;                               /* +0xC3 动画附属参数 (801CA08 case3/4 写 animPtr[0x23]/[0x24]; 出场=0x10 (80200E8); 80264C0/803E58C/803ED34/8040690/80419E0/8042E70 等战斗对象逐帧大量读取; 语义未定) */
+    u8 pad_C4[0xC8 - 0xC4];                /* +0xC4..0xC7 (出场 +0xC4=0x10 (80200E8); 8020228/802031C 写) */
 } BattleObj;
 
 void ObjGfxLoad_Copy(ObjHead *, ObjHead *);
@@ -551,14 +566,14 @@ u8 sub_801C484(void *);
 void sub_801CA08(BattleObj *, u8, u16, u8, u8);
 void sub_801CBA4(BattleObj *, u8, u16, u8, u8);
 void sub_801CE80(BattleObj *, u8, u16, u8, u8);
-void sub_801CF90();
+void sub_801CF90(BattleObj *, u8);
 void sub_801D12C(BattleObj *, u8);
 u16 sub_801D19C(BattleObj *, u8);
-u8 sub_801D214(u8 *, u8); // 唯一调用点 sub_8018070: (gObjPoolPtr, 本帧结果) -> u8
+u8 sub_801D214(BattleObj *, u8); // 唯一调用点 sub_8018070: (gObjPoolPtr, 本帧结果) -> u8; 5 槽 tile 属性装载 + DMA 上传
 u8 sub_801D378(u8 *, u8);
 void sub_801D468();
 void sub_801D568(BattleObj *);
-void sub_801D710();
+void sub_801D710(BattleObj *, u8); // 弹出重绘/重登记: kind==0 重画 f_B2 数字(0x158+4*count tile区), kind!=0 画固定图形; 尾部重记 gUnk_03000670[count] 并 count++
 u8 sub_801D984(u8); // OAM 缓冲自绘: 按 0x0300068C 循环把 0x03000670[i] 逐字段写入 gOamBuffer[r6] (r6 递减), 返回递减后的槽号
 u32 sub_801DAA0(); // PollSceneTimer: 场景计时状态机 (0x0300068E 0..0x22++), 走完→重置+返回1
 void sub_801DB3C(BattleObj *, u8, u16);
@@ -573,7 +588,7 @@ u8 sub_801E040(void);
 u8 sub_801E1D8(void);
 void sub_801E30C();
 u32 sub_801E4D4(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 返回 7 项标志数组中是否存在回绕项
-u32 sub_801E690(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 同 E4D4, 查表入口改 animPtr+2 / animPtr+8+f_C2*2
+u32 sub_801E690(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 同 E4D4, 查表入口改 animPtr+2 / animPtr+8+animSubIdx*2
 u8 sub_801E848();
 void sub_801EA70();
 u32 sub_801EC3C(BattleObj *, u8); // 返回字节值 (0x20 / (x&0x1F)<<3 / 小常量); 调用方需 (u8) 截断
@@ -587,8 +602,8 @@ void sub_801FA10(BattleObj *, u8);
 void sub_801FAB8();
 void sub_801FEBC(BattleObj *, u16, u8);
 s8 sub_801FF40(u8);
-void sub_80200E8(u8 *, u8 *, u8);
-void sub_8020228(u8 *, u8 *, u8);
+void sub_80200E8(BattleObj *, PlayerStats *, u8); // 战斗对象数值装载: arg1=&gPartyStats[n] (调用点 sub_801B964, lsls#6 步长 0x40), arg2=ROM 表 0x08393B14[memberId] → obj+0xAC
+void sub_8020228(u8 *, BattleObj *, u8); // 敌方对象属性装载: 按 slot 索引 gUnk_083987EC (0x2C/项) 装 HP/MP/五维/lv/animPtr; slot>0x70 清 statMods 转 sub_802031C; 尾部 +0xAC=arg2
 void sub_802031C();
 void sub_8020648();
 u8 sub_8020798();
@@ -615,24 +630,24 @@ u8 sub_8020BF0(BattleObj *);
 u8 sub_8020C2C(void);
 void sub_8020C58(BattleObj *, u32);
 void sub_8020CC4(void *, u8, u8, u16, u8, u16, u16);
-void sub_8020D50(void *, u8);
-void sub_8020DA0(void *, u8);
+void sub_8020D50(BattleObj *, u8);
+void sub_8020DA0(BattleObj *, u8);
 void sub_8020DE4();
-void sub_8020DF0(u8 *);
+void sub_8020DF0(BattleObj *);
 u32 *sub_8020E54();
 u8 sub_8020E5C();
 u32 sub_8020E68();
 void sub_8020E74();
-void sub_8020E90(u8 *);
-u8 sub_8020EAC(u8 *);
+void sub_8020E90(BattleObj *);
+u8 sub_8020EAC(BattleObj *);
 void sub_8020EC8();
 void sub_8020EEC(u8);
 void sub_8020F08();
-void sub_8020F4C();
-void sub_8020FB8(void *, u16, u16, u16, u8);
-void sub_802103C(u8 *, u8, u16);
+void sub_8020F4C(BattleObj *);
+void sub_8020FB8(BattleObj *, u16, u16, u16, u8);
+void sub_802103C(BattleObj *, u8, u16);
 void sub_8021064(u8);
-void sub_80210C0(void *, u8);
+void sub_80210C0(BattleObj *, u8);
 void MenuSlot_ResetAll();
 void sub_8021184(u8, u8 *); // 战斗对象槽号/状态同步: arg1+0xBE 槽号→idx, switch((s8)arg0) case 0/3/6/7 更新 gUnk_030007xx 系列
 void sub_80212B4();

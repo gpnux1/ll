@@ -42,17 +42,26 @@ def load_tsv(path):
 
 
 def split_code_s(path):
-    """name -> 函数块文本 (从 *_func_start 行起到下一个 *_func_start 前)。"""
+    """name -> 函数块文本 (从 *_func_start 行起到下一个 *_func_start 前)。
+    同时返回 addr -> (块文本, code.s 旧标签) 供 ll.cfg 改名后按地址回退。"""
     content = open(path, encoding="utf-8", errors="replace").read()
     starts = [(m.start(1), m.group(2)) for m in FUNC_START_RE.finditer(content)]
     blocks = {}
+    addr_blocks = {}
     for i, (pos, name) in enumerate(starts):
         if i + 1 < len(starts):
             end = starts[i + 1][0]
         else:
             end = len(content) - (1 if content.endswith("\n") else 0)
         blocks[name] = content[pos:end]
-    return blocks
+        # 地址注释在 func_start 的下一行: <label>: @ 0x08012790
+        head = content[pos:pos + 400].splitlines()
+        for line in head[1:3]:
+            ma = re.search(r"@\s*(0x[0-9a-fA-F]+)", line)
+            if ma:
+                addr_blocks[int(ma.group(1), 16)] = (content[pos:end], name)
+                break
+    return blocks, addr_blocks
 
 
 def main():
@@ -64,10 +73,25 @@ def main():
 
     addr2name = load_llcfg(LLCFG)
     rows = load_tsv(TSV)
-    blocks = split_code_s(CODES)
+    blocks, addr_blocks = split_code_s(CODES)
+
+    # code.s 旧标签 -> ll.cfg 当前名 (地址是主键; 引用统一改写, code.s 本体不动)
+    old2new = {}
+    for a, (_, label) in addr_blocks.items():
+        if a in addr2name and label != addr2name[a]:
+            old2new[label] = addr2name[a]
+    ref_re = (
+        re.compile(r"\b(" + "|".join(sorted(map(re.escape, old2new), key=len, reverse=True)) + r")\b")
+        if old2new
+        else None
+    )
+
+    def canon(text):
+        return ref_re.sub(lambda m: old2new[m.group(1)], text) if ref_re else text
 
     errors = []
     drift = []
+    renamed = []
     expected = {}
     for status, isa, module, addr, tsv_name in rows:
         name = addr2name.get(addr)
@@ -80,10 +104,15 @@ def main():
         if name in expected:
             errors.append(f"重复 addr 0x{addr:08x}: {name}")
             continue
-        if name not in blocks:
+        blk = blocks.get(name)
+        if blk is None and addr in addr_blocks:
+            # code.s 标签未跟上 ll.cfg 语义名: 按地址取块并改写标签 (地址是主键)
+            blk, old_label = addr_blocks[addr]
+            renamed.append((addr, old_label, name))
+        if blk is None:
             errors.append(f"code.s 无函数块: {name} (0x{addr:08x})")
             continue
-        expected[name] = (folder, HEADER + blocks[name] + FOOTER)
+        expected[name] = (folder, HEADER + canon(blk) + FOOTER)
 
     dup_addr = [hex(a) for a, c in Counter(r[3] for r in rows).items() if c > 1]
     errors += [f"TSV 重复 addr {a}" for a in dup_addr]
@@ -137,6 +166,8 @@ def main():
 
     mode = "dry-run: " if args.dry_run else ""
     print(f"{mode}目标 {len(expected)} 个 .s | 写入 {written} | 未变 {unchanged} | 删除 {deleted}")
+    for addr, old, new in renamed:
+        print(f"renamed: 0x{addr:08x} code.s='{old}' -> '{new}'")
     for addr, old, new in drift:
         print(f"drift: 0x{addr:08x} tsv='{old}' ll.cfg='{new}'" + ("  [--sync 回写]" if not args.dry_run and not args.sync else ""))
     if errors:
