@@ -7856,3 +7856,231 @@ fncheck OK, 全量 make + sha1 通过。MATCH-801E4D4 handoff 的"套用形状�
   (r3 直落尾块) ②limit 三元式。case 1 无 E4D4 的 s32 t 两语句问题 (本函数 idx 无加法链)。
 - 签名 void sub_801E690() → u32 sub_801E690(BattleObj*, BattleObj*) (code_0.h:577)。
 - 剩余: 同族最后一个 sub_801E30C (237 行, status=0), 预计同套路。
+
+**追加 7 (gpnux, 2026-09-13): sub_801EA70 匹配 (战斗目标选取, 458B)**
+
+bytecmp 460B 全等 + fncheck OK + 全量 make/sha1 通过 (808/1059, 76.3%)。
+- 语义: arg1=GetObjPool() 池基址(0xC8 步长); 结果写 obj->f_BD=目标池索引
+  (消费者 801F884/802192C/804E2AC 按 pool+f_BD*0xC8 取目标)。顶层 slot>0xA →
+  804CEE0 / 804DD70(特效槽); slot<=0xA 按 801F76C(obj) 动作类别 0-3 重选:
+  case0/3 玩家侧+vc==5 → 扫 pool[0..4] 找 slot==obj->slot 的同伴位次 i,
+  交 804C8E0 剔除后随机取回; 否则 80489E8(mode1/mode0) 收集候选 + Rng%n 随取。
+- 形状 (两个 2000+ 分的坑): ①外层必须 `if(slot<=0xA){switch...; return;} ` 再跟
+  槽号尾部 (早退 return / goto 都会翻块序) ②case3 的扫描循环必须留在
+  `if(pool[f_BD].slot<=0xA)` 块内, 挪出去会被甩到函数尾部。16 种 if/else 极性组合
+  等价 (全 0); (u8)(vc-7)>1 ≡ vc!=7&&vc!=8; 801F76C 的 switch 有无 (u8) cast 等价。
+- 共享文件: code_0.h:604 `void sub_801F76C();` → `u8 sub_801F76C(BattleObj *);`
+  (唯一调用者就是本函数); code_0.h:539 补 f_BD 的 E2 证据。详见
+  docs/handoffs/MATCH-801EA70-20260913.md。
+- 下一步: 同族 sub_801E848 (273 行, status 0) 可复用本包形状结论。
+
+**追加 8 (gpnux, 2026-09-13): sub_801E848 接管 — 语义 100% 还原, 字节差 593→33 (未匹配)**
+
+接管前候选: fndiff 6500 / 真字节差 593/648。接管后: **33/648**, 指令序列(助记符+立即数)已 100% 对齐,
+剩纯 GCC2.9 寄存器选择差异 (case1 的 r3/r4/r5 轮换 ~20B + 3 处零散临时寄存器 ~8B + %6 的 orrs 操作数序 2B)。
+- 语义: 战斗效果队列 gUnk_030006F8 的 3 态状态机 (gUnk_03000716: 0→1→2→0); case0 装配
+  gUnk_030006F8[0]->headB (同 sub_8020A0C 的 801B81C 调用, 少 arg1<<5) / case1 把 headB 整体
+  复制到队列其余对象 + state|=0x2000 / case2 逐对象 %6 闪烁节拍 + kindFlags&0x1000 时
+  sub_804C3A4(palSlot, sub_801B954(&headB)) 退场, 全完成则 Sfx_StopTrack+state=0+返回1。
+- 三大形状结论 (复现必读): ① case 顺序必须 0,1,2 ② case1 的 for 前必须有 if(gUnk_03000714>1) 守卫
+  ③ case2 的 %6 段不能写普通 if/else (需三元式或 kindFlags 指针形式), 否则 AND/OR 两块不共享
+  orrs/strh (差 204B); 另: 第4实参常量 0xDA<<1 必须经函数级 int 变量带入 (否则 r3 提前占死 → 多占 r9)。
+- 本项目新增可复用工具: `.scratch/bc.sh`(对称链接字节比对, 比 fndiff 分数可靠),
+  `.scratch/sd.py`(结构化指令比对, 剔除字面池/分支/寄存器名), `.scratch/harvest.sh`(复核 permuter 产出)。
+- permuter 接入: `PYTHONPATH=$PWD/.venv/lib/python3.14/site-packages python3 tools/decomp-permuter/permuter.py
+  permuter/<fn> -j8 --stop-on-zero` (fndiff 生成的 compile.sh 与之参数兼容; 需 .venv 的 toml);
+  **permuter 内建 score 与真实字节差不同步**, 必须用 bc.sh 复核; 它会把最优回写 base.c。
+- 详见 docs/handoffs/MATCH-801E848-20260913-a.md; functions.tsv:480 status 仍为 0 (按 AGENTS.md
+  不得在未字节匹配时替换 INCLUDE_ASM)。
+
+**追加 9 (gpnux, 2026-09-13): sub_8045328 匹配 (战斗命中判定, 176B)** — 接管 sensenova 的遗弃锁 (3 天/note 空/零产物), 经用户同意后按 INCIDENTS 流程备份并重新认领。
+
+bytecmp 240B 全等 + fncheck OK 176B + 全量 make/sha1 通过 (812/1059, 76.7%)。
+- 语义: `u8 sub_8045328(u8 *arg0, u8 *arg1, u8 arg2)` — arg0=行动发起方, arg1=目标池对象 (0xC8 步长),
+  arg2=基准命中权重 (唯一调用者 sub_8046480 传 0x50)。目标 variantClass∈{2,3,4} (sub_8045F10(arg1,0x1C)==2)
+  或攻击者 fxKind==1 时必中; 否则 v = 2*(agl差) + (atc - 目标def) + (arg2 - t), t = arg0.slot<=0xA ? arg0[0x8B] : 0;
+  v 钳到 [30,100]; 目标带 kind=2/val=8 装备 (sub_804E76C(arg1,2,8)>=0) 再 -50; 最后 (Rng%100) < v 判中。
+  **v 可为负** (30-50 = -20), 比较按有符号 16 位。
+- ★ 形状关键 (本项目新经验, 已写入 EXPERIENCE): **`v` 必须声明为 `s16` 而非 `u16`**。
+  agbcc 对 `u16` 局部做 SImode 提升, 夹取赋值后 v 成 SImode 值, `v -= 50` 展开为 `adds r0,r4,#0 / subs r0,#50 / lsls #16 / lsrs #16`;
+  改 `s16` 后保留 HImode 语义, 展开为 `lsls r0,r4,#16 / ldr r1,[pc] / adds r0,r0,r1 / lsrs r4,r0,#16`, 常量池
+  `0xFFCE0000` (= -50<<16)。仅此一处即 7B 差, 是唯一需要形状调整的地方。
+- 另外三个非显然点: ① `Rng_LcgNext` 必须写 `((u32(*)(void))Rng_LcgNext)()` (code_0.h 声明 u16 但实际返回 32 位;
+  不宽化会多一次 `lsls/lsrs #16` 截断, 差 16B) ② 返回值必须写成 `if(c) result=1; else result=0;`
+  (写成 `result=0; if(c) result=1;` 时 GCC 把 `movs rX,#0` 提前到 `bl Rng` 之前并改用 r5, 差 16B)
+  ③ 两个提前返回写成 `if/else if` 链, GCC 交叉跳转合并成单一 `movs r2,#1` 块。
+- 排除的无效方向: 局部声明顺序 6 种 / `v -= 50` 的 12 种 cast 写法 / clamp 结构 6 种 / 返回值类型 6 种 —— 在 v 为 u16 时**全部无效**。
+- 共享文件: `include/code_0.h:863` `u8 sub_8045328();` → `u8 sub_8045328(u8 *, u8 *, u8);`
+  (空参数表与 `u8` 形参不能共存); 升级后已复核唯一调用者 sub_8046480 与同 TU 的 sub_80453D8 仍 fncheck OK。
+- 新增可复用工具: `.scratch/cc.sh <snippet.c>` — **用项目同一工具链编译任意片段并输出汇编**, 用于快速验证代码形态假设
+  (本包靠它定位「u16 局部 SImode 提升」); `.scratch/bcfn.sh`(通用对称链接字节比对); `.scratch/norm.py`(规范化指令流 diff)。
+- 锁: 已接管并释放; 原锁备份 `.scratch/gpnux/sub_8045328.lock.bak`; 详见 docs/handoffs/MATCH-8045328-20260913.md。
+
+**追加 10 (gpnux, 2026-09-13): sub_8045F10 原型升级为 (BattleObj *, u16) — 类型化重构, 字节零变化**
+
+- `include/code_0.h:878` `u8 sub_8045F10(u8 *, u16);` → `u8 sub_8045F10(BattleObj *, u16);`;
+  定义 (battle_engine.c:739) 同步改 `BattleObj *obj`, 体内 `obj[0xBE]`→`obj->slot`、`obj[0xAB]`→`obj->variantClass`。
+- **7 处 C 调用点全部同步**: battle_engine.c:247 (sub_8045328, 直接传 BattleObj*, 顺带删掉上一轮加的 (u8*) cast);
+  battle_engine.c:1045/1082/1515 (base 为 u8*, 补 `(BattleObj *)` 显式转换); battle_anim.c:743/792 (obj/o 为 u8*, 补转换);
+  battle_obj_core.c:2392 (sub_8020A7C) 由 `(u8 *)arg0 + i * 0xC8` **简化为 `arg0 + i`** —— arg0 本就是 BattleObj*。
+- **关键前置验证: `sizeof(BattleObj) == 0xC8`**。用 `.scratch/cc.sh` 编译 `return sizeof(BattleObj);` 得 `mov r0,#0xc8`,
+  确认结构体无尾部填充 (pad_C4[0xC8-0xC4] 显式补齐), `arg0 + i` 与 `arg0 + i*0xC8` 等价。**未验证前不可写 `arg0 + i`**。
+- 字节验证: `rm -f` 三个受影响 .o 后强制重编, fncheck OK: sub_8045F10 132B / sub_8045328 176B / sub_8020A7C 50B /
+  sub_80489E8 128B; 全量 make + `sha1sum -c ll.sha1` 通过 (812/1059) —— 全 ROM 字节零漂移。
+- 经验: 指针形参改结构体类型是**零代码生成风险**的重构 (指针宽度不变), 但调用点的**地址算术**必须逐处核对:
+  `u8* + i*0xC8` 与 `T* + i` 只有在 `sizeof(T)==0xC8` 时等价。8 个 asm 调用者 (sub_8020A7C/80462E4/8046C50/80489E8/
+  804C78C/804C890/804666C) 不受 C 原型影响, 且传参本就是对象指针, ABI 未变。
+- 待办: sub_804E76C (obj_pool.c:330, 读 +0xBE/+0x8D equipSlots) 同构可类型化, 本轮未动 (跨文件, 建议同法单独一包)。
+
+## sub_802C714 (0x0802C714, event_actor, 战斗对象"多段演出/蓄力"状态机) — ✅ 2026-09-13 opencode-802C714
+
+- 与已匹配同族 sub_802BD94 模板套用; gUnk_03000820 0→0x12..0x19→9, 单参 BattleObj*。
+- 三处与 sibling 不同:
+  1. case0 f_B6=2 (BD94=1)。
+  2. case22 = Sfx_Play(0x4E,1,1) (BD94 的 0x4E 在其 case25)。
+  3. case23 阈值 0x18 + sub_8044514(0x32); 只有 0x12..0x19 (无 0x1A/0x1B)。
+- **关键形状 (case24/25 共享尾块)**: case24 写成 `if (计数 > 3) { state=0x19; sub_804C728(0,3,0x10); break; } 计数++;`
+  才让 GCC 把两处 `计数++` 跨跳合并成单块 (目标 `cmp #3; bls _0802C99E`)。照抄 BD94 的 `if (<=3){计数++;break}` 会各留一块。
+  且 **case24 else 无 `计数=0`** (BD94 有), 顺序是 `state=0x19` 先于 sub_804C728。
+- 验证: bcfn 对称链接 bytecmp OK 904B; fncheck OK 724B。原型 `void()` → `u8 sub_802C714(BattleObj *)` (仅任务表分发, 无 C 调用点)。
+- 全量: `make` + `sha1sum -c ll.sha1` 通过 (833/1059)。排障中一次 linker.ld:804 红系我切换 INCLUDE_ASM/C 产生的陈旧 .o，
+  源稳定后重编即绿，与源码无关。详见 handoff。
+
+## sub_802CE90 (0x0802CE90, event_actor, 战斗对象"冲刺/跳跃攻击"演出状态机) — ✅ 2026-09-13 opencode-802CE90
+
+- 同 sub_802C714 族模板套用 (gUnk_03000820 0→0x12..0x1A→9, 单参 BattleObj*), 两段 sub_8020CC4 +
+  sub_801768C/sub_801A2AC/sub_804BE90 位置插值与屏幕效果。
+- 与 C714 差异: case0 arg3=0xA (C714=0xD); case18 无 Sfx; case19 用 position+0x46/-0x20 播 0x27C;
+  0x17 第二段 0x74/0x80/0x2EA; 0x18 headB.kindFlags|=0x2000; 0x1A 用 sub_801768C/sub_801A2AC/sub_804BE90。
+- **关键形状**: case19 的 `(u8)(posX+0x46)`/`(u8)(posY-0x20)` 必须显式 (u8) 截断 (目标 lsls/lsrs #24);
+  case25 与 case26 else 的 `state=9` 写成同一处赋值即让 GCC 合并到共享尾块。
+- 验证: bcfn 对称链接 bytecmp **一次命中 OK 1072B**; fncheck OK 876B; make+SHA1 绿 (834/1059)。
+- 原型 `void()` → `u8 sub_802CE90(BattleObj *)` (仅任务表分发)。
+
+## sub_802DA78 (0x0802DA78, event_actor, 战斗对象"多段连击/旋转攻击"演出状态机) — ✅ 2026-09-13 opencode-802DA78
+
+- 同 sub_802CE90 族模板套用 (gUnk_03000820 0→0x12..0x1A→9, 单参), 用 headA.frameIdx 的 `%0x1F` 循环驱动两段 sub_8020CC4。
+- 与 CE90 差异: case0 sub_801CE80 arg2=g822 (非字面量) + 计数初值 0xA + f_B6=1;
+  0x13 用 posX+0x3C 播 0x1B4/0xE/0x329; 0x14 无 Sfx_StopTrack 改为 Sfx(0x5B) + headA&=0xFEFF;
+  0x15 播 Sfx(0x5A)+sub_8044514(0x3C)+sub_804BF14 → **0x19 跳段**; 0x19/0x1A 用帧循环 + %16 副动画;
+  0x16/0x17/0x18 是另一条等待链; 0x18 state=9 + headA&=0xFEFF。
+- **关键形状**: `%0x1F`/`%0x10` 走 `__modsi3` (GCC2.9 不内联); case25/26 的 `计数++` 结构让 GCC 合并共享尾块。
+- 验证: bcfn 对称链接 bytecmp **一次命中 OK 1088B**; fncheck OK 908B; make+SHA1 绿 (839/1059)。
+- 原型 `void()` → `u8 sub_802DA78(BattleObj *)` (仅任务表分发)。
+
+## sub_802E49C (0x0802E49C, event_actor, 双参战斗演出状态机) — ✅ 2026-09-13 opencode-agent
+
+- 0x0839CDC8 指针表 idx0x10,由 sub_803F444 分派器传 (BattleObj*, BattleObj*),第二参=目标对象。
+- 同 sub_802E234/DFDC/F480 单参族模板,但 case18 用**参2** posX/posY 播 sub_8020CC4(arg,arg2->posX,arg2->posY,0x27C,0xE,0x30C,5)。
+- **关键形状**: case0 的 `kindFlags |= 0x100` ROM 为 `movs r2,#0x80; lsls #1` (误写 0x800 → 2 字节差);
+  返回 u32 使 ret 存活于 r7 (prologue push r4-r7)。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 556B; make+SHA1 绿 (841/1059, 79.4%)。
+- 原型 `void()` → `u32 sub_802E49C(BattleObj *, BattleObj *)`。
+
+## sub_802F100 (0x0802F100, event_actor, 单参战斗演出状态机变体) — ✅ 2026-09-13 opencode-agent
+
+- 0x0839CDC8 指针表 handler,同 sub_802C714 模板但状态段整体后移 (0→0x1c..0x1f→0x15..0x19→9)。
+- 差异: case0 arg4=1 + state=0x1c; 新增 case28..31 (0xA9 帧阈 + sub_8020CC4(0x27C,0xA,0x317,4) +
+  Sfx(0x59)/Sfx(0x5A) + headB.frameIdx==0xC8 触发); case21..25 复用 C714 (Sfx 0x4E, BF14, C728)。
+- **关键形状**: case28 坐标 (u8)(posX+4)/(u8)(posY-0x10) 显式截断; case24/25 计数++ 共享尾块。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 896B; make+SHA1 绿 (843/1059, 79.6%)。
+- 原型 `void()` → `u8 sub_802F100(BattleObj *)`。
+
+## sub_802EAC4 (0x0802EAC4, event_actor, 战斗对象演出状态机) — ⛔ 2026-09-13 opencode-802EAC4 挂起 (UB 二律背反, 同 sub_802C0EC)
+
+- 语义/结构已 100% 还原 (gUnk_03000820 0→0x1C..0x1F→9 及 0x15..0x19 链; case0 无 palSlot 存储, arg5=1)。
+- **卡点**: case30 (state 0x1E) 的 sub_801CE80 arg3 (r3) 目标是 `adds r3,r4,#0`, 而 r4 在本函数**从未赋值**
+  (目标 r4 首次出现即此处) —— 原始 ROM 传了 caller 遗留的不确定值, 是原作者的 indeterminate bug。
+- 实测: 唯一致命字节一致写法需**未初始化局部** `u8 zero` (UB); 定义语义 `zero=0` 恒差 2 字节
+  (`movs r3,#0` vs `adds r3,r4,#0`); 读 palSlot/g824/f_B4 差 300-754 字节。
+- 决策: 按 AGENTS.md §2/§5 与 BLOCKED-802C0EC 同策略, **status 保持 0, 不合入**。
+- 候选: permuter/sub_802EAC4/base.c (UB 字节一致, 禁合入) + base_defined.c (定义语义差 2B)。详见 handoff。
+
+## sub_802A154 (0x0802A154, event_actor, 大状态机) — ⏸ 阻塞 2026-09-13 opencode-agent
+
+- 语义全解, 可读候选 `permuter/sub_802A154/base.c`。同 sub_8029BF8 族 (37 用例 0→0x12..0x24→9),
+  用 ROM 表 0x0839DF90[gUnk_030008A5*2/+1] (case30/36)。
+- **剩 2 字节**: case30/36 的 `[idx*2+1]` 中 ROM 把 +1 加在表基址 (基址→r2, 下标→r0),
+  候选加在下标 (基址→r0, 下标→r2) — 纯 local-alloc home 互换, 指令全同。
+- 已排除 ~20 种写法 (指针算术/局部变量/强转字面量/语句顺序), 最好仍 2。详见
+  docs/handoffs/BLOCKED-802A154-20260913.md。
+- 需要的符号 gUnk_030008A5 / gUnk_0839DF90 (linker.ld) 曾临时加入, 已回退, 未污染仓库。
+- 仓库 make+SHA1 绿 (853/1059)。
+
+## sub_802DE04 (0x0802DE04, event_actor, 吸血/回复状态机) — ⏸ 阻塞 2026-09-13 opencode-agent
+
+- 语义全解, 可读候选 `permuter/sub_802DE04/base.c` (0→0x12..0x15→9, case9 返回 2)。
+- **剩 5 字节** (3 条指令): case20 `obj->hp += sub_8048D64(obj, maxHp>>1)` 的 HP 地址伪寄存器
+  (ROM→r2) 与 HP 值伪寄存器 (ROM→r1) home 互换; 指令/形状/立即数/分支/池全对。
+- 已排除 ~15 种写法 (加数顺序/强转/局部变量/指针别名/死临时/new_var/语句重排), 最好仍 5。
+- 前人已在 permuter/sub_802DE04 跑 167 迭代最佳 690 (远差), 本候选为新起点。
+- 未改共享文件; make+SHA1 绿 (853/1059)。详见 docs/handoffs/BLOCKED-802DE04-20260913.md。
+
+## sub_801E848 (0x0801E848, battle_obj_core, 战斗效果"群体复制"3 态状态机) — ⏸ 2026-09-13 opencode 接管复攻 (仍 33B 墙)
+
+- 语义 100% 还原 (见 handoff MATCH-801E848-20260913-a): gUnk_03000716 0→1→2→0; case0 装配 headB / case1 广播复制 / case2 %6 闪烁+退场。
+- **复核**: 归一化指令流 236=236 **已 100% 一致**, `.scratch/bc.sh` 字节差 **33 bytes / 648**, 全是纯寄存器选择。
+- **卡点**: case1 循环三寄存器循环置换 —— 目标 `(基址副本=r3, dst=r5, ldm/stm临时=r4)` vs 当前 `(r4, r3, r5)`, 即 r3→r5→r4→r3 的群对称。任何单点源码改动只换排列或退化。
+- 本轮实验 (全无效, 字节差): do-while(0)/if(1)/复合块/while/do-while、q/src/idx/nv 变量形式、索引写法、case0 newval 变体、%6 段 const-first/三元-long/去kf 指针、permuter(内部score 225 无产出)。
+- 判定: GCC2.9 global-alloc 群对称死结, 保持 status 0。建议下步用 qtydump 反推 refs/live_length 或找同族已匹配锚。
+- 候选: permuter/sub_801E848/base.c (33B, 可读)。仓库绿 (sha1 通过)。
+
+## sub_8036EA4 (0x08036EA4, event_hub, 双参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 同 sub_80368FC/sub_8034718 族 (0x3A5/0x3A6/0x1000),但 case18-20 用 sub_80476DC(arg0,arg1)==1。
+- **关键形状**: case20 的零参必须字面量 `sub_801CBA4(arg0,0,g822,g824,0)`; 用 `zero` 变量会差 20 字节。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 466B; make+SHA1 绿 (854/1059)。
+- 原型 `void()` → `u32 sub_8036EA4(BattleObj *, BattleObj *)`。
+
+## sub_8037C40 (0x08037C40, event_hub, 双参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 与 sub_8036EA4 完全同构,唯一差异 case0 `sub_8048B30(1, 0x1E, 0x3AD)` (arg=1 vs 0)。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 466B; make+SHA1 绿 (855/1059)。
+- 原型 `void()` → `u32 sub_8037C40(BattleObj *, BattleObj *)`。
+
+## sub_8038E44 (0x08038E44, event_hub, NPC 对话状态机变体) — ⏸ 阻塞 2026-09-13 opencode-agent
+
+- 同 sub_8038C84 族; case1 sub_803E58C(...,2)+动画 0x3C8, case3 双帧检查(0x24/0x43)。
+- **剩 2 字节**: case0 的两条独立 `movs rX,#0` (zero/zero2) 调度顺序互换 (地址已先算)。
+- 已排除 ~20 种写法 (赋值顺序/类型/角色互换/字面量/死变量/spr inventory); 孤立复现证明
+  顺序由全函数伪寄存器 inventory 决定。详见 docs/handoffs/BLOCKED-8038E44-20260913.md。
+- 未改共享文件; make+SHA1 绿 (855/1059)。
+
+## sub_803F21C (0x0803F21C, event_hub, 对话 tilemap 装配 + tile DMA) — ⏸ 2026-09-13 opencode 挂起 (faithful 171B/304)
+
+- 语义: sub_804ACC0 的富化姊妹 (同 0x0839B462 表 + sub_8050434 但参数 0x4F1E); 找第 arg1 个 0xF00 标记得游标,
+  遍历写两行 tilemap: 静态 id (<=0xDF) 直写 0xB000+(id&0xFF)*2, 动态 id (>=0xE0) 在 TileDma 上下文 (gUnk_03000EE8) 线性查表得 k。
+- **卡点**: 纯寄存器分配。faithful best 171 bytes / 304。目标 `sl` 在 r10 + 0xB000 hoist 成单常量 (movs #11;lsls #12);
+  我方 `sl` 溢出到栈 + 0xB000 折成双常量 (0xFFFFB000/0xFFFFB001)。
+- 实验: 声明序全排列/类型/内联/arg0+=/base 变量 均无效 (171-271)。
+- permuter 内部分数 2875 对应真字节 134B, 但依赖 `table` 未初始化读 + 退化 if(k) 的伪改进, 清理后回 171。
+- 候选: permuter/sub_803F21C/base.c (faithful 171)。仓库绿。详见 docs/handoffs/BLOCKED-803F21C-20260913.md
+
+## sub_8036564 (0x08036564, event_hub, 双参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 25 态 (0..0x18), 比 sub_80368FC 多 headB 段 (case19-24); case21 播 headB 动画 + 位移插值到 arg1。
+- **关键形状**: `b4` 必须 `int` (u8 时 palSlot home 落 r5, 20 字节差); case21 kindFlags 位操作必须
+  拆两条 RMW (`&= 0xEFFF; |= 0x100;`), 合并写法让 0x100 占 r2 与 g25 零冲突 (7 字节差)。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 918B; make+SHA1 绿 (858/1059, 81.0%)。
+- 原型 `void()` → `u32 sub_8036564(BattleObj *, BattleObj *)`。
+
+## sub_8037078 (0x08037078, event_hub, 双参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 34 态, 与 sub_8036564 同族; case28 用 arg1 的 posX/posY - sub_801EC3C(arg1,1) 播 0x3B0。
+- **关键形状**: `b4` 必须 `int`; case30 sub_801B954 必须传 &headB (非 headA, 差 1 字节)。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 784B; make+SHA1 绿 (859/1059, 81.1%)。
+- 原型 `void()` → `u32 sub_8037078(BattleObj *, BattleObj *)`。
+
+## sub_8037868 (0x08037868, event_hub, 单参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 35 态 0x1C42 锚点动画族 (sub_801A2AC(0x1C42,..) + sub_804BDD8/BE90 + Sfx_StopTrack)。
+- **关键形状**: case31 `if(g25>0x3B) state=0x20; else g25++;` 必须显式 else 才能与 case19 共享
+  g25++ 尾块 (否则 12 字节差)。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 984B; make+SHA1 绿 (861/1059, 81.3%)。
+- 原型 `void()` → `u32 sub_8037868(BattleObj *)`。
+
+## sub_8039024 (0x08039024, event_hub, 双参 NPC 剧情状态机) — ✅ 2026-09-13 opencode-agent
+
+- 0x3C9/0x3CA 动画族; case22 复合条件 (state&0x2000 && headB.frameIdx>0xE) + headA&0x1000 复位。
+- 验证: bytecmp non-bl 差异 0; fncheck OK 668B; make+SHA1 绿 (862/1059, 81.4%)。
+- 原型 `void()` → `u32 sub_8039024(BattleObj *, BattleObj *)`。

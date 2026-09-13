@@ -1021,7 +1021,7 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
     u8 *pool;
     u8 count;
     u8 i;
-    sub_8048D40((u8 *)arg0);
+    sub_8048D40((BattleObj *)arg0);
     pool = GetObjPool();
     count = sub_80489E8(pool, buf, 0, 0x7F);
     for (i = 0; i < count; i++)
@@ -1031,8 +1031,8 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
     }
     gUnk_030006A0[buf[i]].data = (u32)arg0;
     ListNode_InitKey((UnkNode *)&gUnk_030006A0[buf[i]], arg1);
-    ListNode_InsertSorted((UnkNode *)0x03000690, (UnkNode *)&gUnk_030006A0[buf[i]]);
-    sub_8045F94((u8 *)arg0, 8);
+    ListNode_InsertSorted(&gUnk_03000690, (UnkNode *)&gUnk_030006A0[buf[i]]);
+    sub_8045F94((BattleObj *)arg0, 8);
     arg0->dmgAmount = 0;
     sub_804E7EC(arg0);
     if (arg0->slot <= 6)
@@ -1040,7 +1040,7 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
         *(u16 *)&arg0->animPtr = 0;
         arg0->state |= 2;
     }
-    *(u8 *)0x030006F0 += 1;
+    gUnk_030006F0 += 1;
 }
 
 
@@ -1072,8 +1072,8 @@ void sub_801DD04(BattleObj *obj, u8 idx, u16 val)
     obj->hp = val;
     obj->fxKind = 0;
 
-    if (*(u8 *)0x030006F0)
-        (*(u8 *)0x030006F0)--;
+    if (gUnk_030006F0)
+        gUnk_030006F0--;
 
     f2a = idx * 0x16 + 9;
     f35 = (u8)(idx + 1);
@@ -1259,7 +1259,7 @@ u8 sub_801E040(void)
                 u16 newval = 4 | obj->state;
                 obj->state = newval;
             }
-            sub_8045F94((u8 *)obj, 8);
+            sub_8045F94((BattleObj *)obj, 8);
         }
         else
         {
@@ -1275,7 +1275,7 @@ u8 sub_801E040(void)
                 u16 newval = 4 | obj->state;
                 obj->state = newval;
             }
-            sub_8045F94((u8 *)obj, 8);
+            sub_8045F94((BattleObj *)obj, 8);
         }
         gUnk_03000715++;
     }
@@ -1511,7 +1511,140 @@ u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
 // @ 0x0801E848
 INCLUDE_ASM("asm/nonmatchings", sub_801E848);
 // @ 0x0801EA70
-INCLUDE_ASM("asm/nonmatchings", sub_801EA70);
+/* 战斗对象目标选取 (战斗阶段状态机 sub_801BE34 / sub_801C484 的 case 1 调用:
+ *   sub_801EA70(gUnk_03000638[gUnk_03000669], pool))。
+ * arg0 = 行动对象 (obj 池内一项; 调用点取自 gUnk_03000638[] 指针表),
+ * arg1 = obj 池基址 (GetObjPool(), 元素步长 0xC8)。
+ *
+ * 结果写入 obj->f_BD = 目标对象的池索引; sub_801F884/802192C/804E2AC 再按
+ * pool + f_BD*0xC8 取目标对象。
+ *
+ * 顶层按槽号分流:
+ *  - slot > 0xA (非玩家侧 0-0xA): 转交其他引擎 —
+ *      slot <= 0x70 走 sub_804CEE0, 否则 (特效/特殊槽) 走 sub_804DD70。
+ *  - slot <= 0xA: 按 sub_801F76C(obj) 的动作类别重选目标 (case 0-3):
+ *      case 0/3 先看当前目标 pool[f_BD]: 若已是玩家侧有效成员 (case 3 还要求
+ *        它是死亡/空槽形态), 且 obj->variantClass == 5 (同组形态), 就在 pool[0..4]
+ *        中找与 obj->slot 相同的同伴位次, 交给 sub_804C8E0 剔除该位次后随机取回
+ *        一个候选; 否则用 sub_80489E8 收集候选池后随机挑一个
+ *        (mode 1 = 玩家侧 0..4, mode 0 = 其余)。
+ *      case 1: gGstate324 (sub_80187B4) bit14 置位时放宽到 variantClass ∈ {7,8},
+ *        否则只认 7; case 2: 只认 7。通过后按 mode 0 随机挑候选。
+ * 随机索引 = (u8)Rng_LcgNext() % 候选数。 */
+extern u32 __umodsi3(u32, u32);
+
+void sub_801EA70(BattleObj *obj, BattleObj *pool)
+{
+    u8 buf[8];
+    u8 i;
+    u8 n;
+
+    if (obj->slot <= 0xA)
+    {
+        switch (sub_801F76C(obj))
+        {
+        case 0:
+            if (pool[obj->f_BD].slot <= 0xA)
+            {
+                if (pool[obj->f_BD].variantClass == 8)
+                {
+                    if (obj->variantClass == 5)
+                    {
+                        for (i = 0; i <= 4; i++)
+                        {
+                            if (pool[i].slot == obj->slot)
+                            {
+                                obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                                return;
+                            }
+                        }
+                        return;
+                    }
+                    n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                    obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+                    return;
+                }
+                if (obj->variantClass == 5)
+                    return;
+                n = sub_80489E8((u8 *)pool, buf, 1, 0x7F);
+                obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+                return;
+            }
+            if (pool[obj->f_BD].slot != 0xFF)
+                return;
+            if (obj->variantClass != 5)
+            {
+                n = sub_80489E8((u8 *)pool, buf, 1, 0x7F);
+                obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+                return;
+            }
+            for (i = 0; i <= 4; i++)
+            {
+                if (pool[i].slot == obj->slot)
+                {
+                    obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                    return;
+                }
+            }
+            return;
+
+        case 1:
+            if (sub_80187B4() & 0x4000)
+            {
+                if (pool[obj->f_BD].variantClass != 7 && pool[obj->f_BD].variantClass != 8)
+                    return;
+                n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+                return;
+            }
+            if (pool[obj->f_BD].variantClass != 7)
+                return;
+            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+            return;
+
+        case 2:
+            if (pool[obj->f_BD].variantClass != 7)
+                return;
+            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+            return;
+
+        case 3:
+            if (pool[obj->f_BD].slot <= 0xA)
+            {
+                if (pool[obj->f_BD].variantClass != 8 && pool[obj->f_BD].slot != 0xFF)
+                    return;
+                if (obj->variantClass != 5)
+                {
+                    n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+                    obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+                    return;
+                }
+                for (i = 0; i <= 4; i++)
+                {
+                    if (pool[i].slot == obj->slot)
+                    {
+                        obj->f_BD = sub_804C8E0((u8 *)pool, i);
+                        return;
+                    }
+                }
+                return;
+            }
+            if (pool[obj->f_BD].slot != 0xFF)
+                return;
+            n = sub_80489E8((u8 *)pool, buf, 0, 0x7F);
+            obj->f_BD = buf[(u8)Rng_LcgNext() % n];
+            return;
+        }
+        return;
+    }
+
+    if (obj->slot <= 0x70)
+        sub_804CEE0(obj, pool);
+    else
+        sub_804DD70((BattleObj *)obj, (u32)pool);
+}
 // @ 0x0801EC3C
 u32 sub_801EC3C(BattleObj *obj, u8 arg1)
 {
@@ -1670,9 +1803,175 @@ INCLUDE_ASM("asm/nonmatchings", sub_801EEE4);
 // @ 0x0801F3FC
 INCLUDE_ASM("asm/nonmatchings", sub_801F3FC);
 // @ 0x0801F76C
-INCLUDE_ASM("asm/nonmatchings", sub_801F76C);
+/* 战斗对象动作类别 (0-3, 唯一调用者 sub_801EA70 按 u8 分派目标重选策略):
+ *  - fxKind==1: 取所选技能 id = (0xA1 > 7 ? 0xA1 : skills[0xA1]) (+0x99 槽数组),
+ *    再按技能 id 归为三类: {6,8,9,12,13,30,31,32,33,35,49,51}=1,
+ *    {10,25,29}=3, {34}=2, 其余=0。
+ *  - fxKind==2: 看 +0xA4 值: ==0xE1 → 2, >0xDC → 1, 否则 0。
+ *  - 其他 fxKind: 0。
+ * 形状: switch(fxKind) 必须带 case 0 空臂, 才能生成目标
+ * `cmp#1/beq/cmp#1/bgt/cmp#2/beq` 二分链 (无 case0 时 GCC 折叠成 cmp#1/cmp#2);
+ * 技能取值须写成 `(0xA1>7 ? 0xA1 : skills[0xA1])` 并用 struct 数组成员
+ * (skills[]), 才会先算数组基址 arg0+0x99 再算索引 —— 这正是 sub_80489A4/
+ * sub_8048764 同族的访问形状。 */
+u8 sub_801F76C(BattleObj *obj)
+{
+    u8 r3 = 0;
+    s32 f = (s8)obj->fxKind;
+    u8 x;
+
+    switch (f)
+    {
+    case 0:
+        break;
+    case 1:
+        switch (obj->pad_A1 > 7 ? obj->pad_A1 : obj->skills[obj->pad_A1])
+        {
+        case 6:
+        case 8:
+        case 9:
+        case 12:
+        case 13:
+        case 30:
+        case 31:
+        case 32:
+        case 33:
+        case 35:
+        case 49:
+        case 51:
+            r3 = 1;
+            break;
+        case 10:
+        case 25:
+        case 29:
+            r3 = 3;
+            break;
+        case 34:
+            r3 = 2;
+            break;
+        }
+        break;
+    case 2:
+        x = obj->pad_A4[0];
+
+        if (x == 0xE1)
+            r3 = 2;
+        else if (x > 0xDC)
+            r3 = 1;
+        break;
+    }
+
+    return r3;
+}
 // @ 0x0801F884
-INCLUDE_ASM("asm/nonmatchings", sub_801F884);
+/* 目标对象"匹配键"计算: 取 f_BD 指向的池对象 (步长 0xC8) 的 +0xAC 属性字节,
+ * 供 sub_80462E4 按候选槽过滤 (见 sub_801EA70 的目标选取文档)。
+ * 按槽号分三类:
+ *  - 玩家侧 (slot<=0xA): 直接取该字节; fxKind==1 时先由 sub_80489A4(obj, 0xA1)
+ *    取得技能类别 (0-5) 决定: 0/4=原值, 1=低 nibble, 2=高 nibble (==0x20 映射 0x30),
+ *    3/5=0。
+ *  - 敌方 (0xB..0x70): 由 animPtr+0x1A (fxKind==1 再加 animPtr[0x29]) 查
+ *    gUnk_08393B28, 按其 field_10 模式分派 (0=原值, 1=0, 2=低 nibble ==2 映射 1,
+ *    3=高 nibble ==0x20 映射 0x10)。
+ *  - 特效/特殊 (>0x70): 表索引改取 animPtr+2 (fxKind==0) 或
+ *    animPtr+8+animSubIdx*2 (fxKind==1)。
+ * 返回 0 表示调用者不做 nibble 过滤 (复制全部候选槽)。
+ * 注: switch case 顺序按 ROM 分派顺序书写 (case1 在前), 与同族 sub_801E4D4 一致。 */
+u8 sub_801F884(BattleObj *obj)
+{
+    u8 result = 0;
+    u8 *pool = (u8 *)GetObjPool();
+    u16 idx;
+    s32 t;
+    u8 *anim;
+    int off;
+    Unk_08393B28 *entry;
+
+    if (obj->slot <= 0xA)
+    {
+        switch ((s8)obj->fxKind)
+        {
+        case 1:
+            switch (sub_80489A4((u8 *)obj, obj->pad_A1))
+            {
+            case 0:
+            case 4:
+                result = pool[obj->f_BD * 0xC8 + 0xAC];
+                break;
+            case 1:
+                result = pool[obj->f_BD * 0xC8 + 0xAC] & 0xF;
+                break;
+            case 2:
+                result = pool[obj->f_BD * 0xC8 + 0xAC] & 0xF0;
+                if (result == 0x20)
+                    result = 0x30;
+                break;
+            case 3:
+            case 5:
+                result = 0;
+                break;
+            }
+            break;
+        case 0:
+        case 2:
+            result = pool[obj->f_BD * 0xC8 + 0xAC];
+            break;
+        }
+    }
+    else
+    {
+        if (obj->slot <= 0x70)
+        {
+            switch ((s8)obj->fxKind)
+            {
+            case 0:
+                idx = *(u16 *)(obj->animPtr + 0x1A) + 3;
+                entry = &gUnk_08393B28[idx];
+                break;
+            case 1:
+                t = *(u16 *)(obj->animPtr + 0x1A) + 3;
+                idx = t + *(u8 *)(obj->animPtr + 0x29);
+                entry = &gUnk_08393B28[idx];
+                break;
+            }
+        }
+        else
+        {
+            switch ((s8)obj->fxKind)
+            {
+            case 0:
+                entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
+                break;
+            case 1:
+                anim = obj->animPtr;
+                off = obj->animSubIdx * 2;
+                anim += 8;
+                entry = &gUnk_08393B28[*(u16 *)(anim + off)];
+                break;
+            }
+        }
+        switch (entry->field_10)
+        {
+        case 0:
+            result = pool[obj->f_BD * 0xC8 + 0xAC];
+            break;
+        case 1:
+            result = 0;
+            break;
+        case 2:
+            result = pool[obj->f_BD * 0xC8 + 0xAC] & 0xF;
+            if (result == 2)
+                result = 1;
+            break;
+        case 3:
+            result = pool[obj->f_BD * 0xC8 + 0xAC] & 0xF0;
+            if (result == 0x20)
+                result = 0x10;
+            break;
+        }
+    }
+    return result;
+}
 // @ 0x0801FA10
 void sub_801FA10(BattleObj *obj, u8 kind)
 {
@@ -1719,7 +2018,107 @@ void sub_801FEBC(BattleObj *arg0, u16 arg1, u8 arg2)
     sub_801FA10(arg0, 1);
 }
 // @ 0x0801FF40
-INCLUDE_ASM("asm/nonmatchings", sub_801FF40);
+/* 战斗对象"待选槽"挑选 (模式 0 = 敌方/杂项, 1 = 玩家侧; 由 sub_802151C 操作码 15/16 调用):
+ * 1. 清 buf[0..4];
+ * 2. 建一个随机种子 (sub_8018838(Rng_LcgNext()), 再丢弃一次 Rng_LcgNext());
+ * 3. 遍历 0x03000690 的对象链 (节点 key<=0xFE): 每个节点数据对象 +0xB2 (dmgAmount) 逐帧 +1
+ *    (与 sub_8020AE4 的逐帧累加同一语义), 并让内部计数 i 递增 (+1 经 u8 截断);
+ *      - mode==1 → slot = i, 结束;
+ *      - 否则按 (n+1)*40 vs rand%101 的概率判定 (n=该对象 dmgAmount), 命中 → slot = i;
+ *      - 未命中且 n>4 时把该对象的 memberIdx (+0xBB) 收进 buf;
+ *      - 继续下一节点。
+ * 4. count=buf 收集数 (r7):
+ *      - count!=0: slot = buf[Rng % count], 再在 gUnk_030006A0 (16B/节点, .data 指向对象) 里
+ *        找 memberIdx==slot 的位次 i, 命中则 slot=i;
+ *      - count==0 且 slot>=0: 在 gUnk_030006A0 里找 memberIdx 与当前节点数据对象相同的位次。
+ * 5. 再用 sub_80489E8 收集一个候选槽表 buf (mode 0, 上限 0x100), 在其中找与 slot 相同
+ *    memberIdx 的项, 命中则 slot = buf[i] (池槽索引)。
+ * 返回 slot (s8; >=0 为有效槽, 调用者据此走 sub_802103C)。
+ *
+ * 注: n 在前两个查找循环中是**未初始化局部变量** —— 这是 ROM 的真 UB (经验 58/155):
+ * 目标在 r8 上直接 `cmp r6, r8`, r8 到函数后半才由 sub_80489E8 结果写入。为字节忠实保留。
+ * 链表头 0x03000690 是 UnkNode 哨兵 (sub_801B964 用 ListNode_Init 初始化), 故取 ->next。 */
+s8 sub_801FF40(u8 mode)
+{
+    u8 buf[5];
+    s8 slot;
+    s8 i;
+    u8 count;
+    u8 n;
+    Unk_030006A0 *node;
+    u8 *pool;
+
+    slot = -1;
+    i = 0;
+
+    for (; i <= 4; i++)
+        buf[i] = 0;
+
+    sub_8018838(((u32 (*)(void))Rng_LcgNext)());
+    ((u32 (*)(void))Rng_LcgNext)();
+
+    node = (Unk_030006A0 *)gUnk_03000690.next;
+    count = 0;
+
+    while (node->key <= 0xFE)
+    {
+        *(u16 *)(node->data + 0xB2) += 1;
+        i = (u8)(i + 1);
+        if (mode == 1)
+        {
+            slot = i;
+            break;
+        }
+        if ((u8)(((u32 (*)(void))Rng_LcgNext)() % 101) <= (s32)((*(u16 *)(node->data + 0xB2) + 1) * 40))
+        {
+            slot = i;
+            break;
+        }
+        if (*(u16 *)(node->data + 0xB2) > 4)
+        {
+            buf[count] = *(u8 *)(node->data + 0xBB);
+            count = (u8)(count + 1);
+        }
+        node = node->next;
+    }
+
+    if (count != 0)
+    {
+        slot = buf[((u32 (*)(void))Rng_LcgNext)() % count];
+        for (i = 0; i < n; i++)
+        {
+            if (*(u8 *)(gUnk_030006A0[i].data + 0xBB) == (s8)slot)
+            {
+                slot = i;
+                break;
+            }
+        }
+    }
+    else if (slot >= 0)
+    {
+        for (i = 0; i < n; i++)
+        {
+            if (*(u8 *)(node->data + 0xBB) == *(u8 *)(gUnk_030006A0[i].data + 0xBB))
+            {
+                slot = i;
+                break;
+            }
+        }
+    }
+
+    pool = (u8 *)GetObjPool();
+    n = sub_80489E8(pool, buf, 0, 0x100);
+    for (i = 0; i < n; i++)
+    {
+        if ((s8)slot == ((BattleObj *)pool)[buf[i]].memberIdx)
+        {
+            slot = buf[i];
+            break;
+        }
+    }
+
+    return slot;
+}
 // @ 0x080200E8
 void sub_80200E8(BattleObj *obj, PlayerStats *stats, u8 arg2)
 {
@@ -1990,7 +2389,7 @@ u8 sub_8020A7C(BattleObj *arg0)
     ret = 1;
     for (i = 0; i <= 4; i++)
     {
-        if (sub_8045F10((u8 *)arg0 + i * 0xC8, 0x114) == 1)
+        if (sub_8045F10(arg0 + i, 0x114) == 1)
         {
             ret = 0;
         }
@@ -2012,38 +2411,26 @@ u8 sub_8020AB0(void)
     return ret != 0;
 }
 
-typedef struct Unk_8020AE4_node
-{
-    u8 field_0;
-    u8 pad_1[7];
-    struct Unk_8020AE4_node *field_8;
-    u32 field_C;
-} Unk_8020AE4_node;
-
-typedef struct Unk_03000690
-{
-    u32 field_0;
-    u32 field_4;
-    Unk_8020AE4_node *field_8;
-} Unk_03000690;
-
 // @ 0x08020AE4
+/* 待选池逐帧计时: 遍历 0x03000690 待选链 (同 sub_801FF40), 每个节点数据对象的
+ * dmgAmount (+0xB2) 自增 1。与 sub_801FF40 的循环体同源。 */
 void sub_8020AE4(void)
 {
-    Unk_8020AE4_node *node = ((Unk_03000690 *)0x03000690)->field_8;
-    while (node->field_0 <= 0xFE)
+    Unk_030006A0 *node = (Unk_030006A0 *)gUnk_03000690.next;
+
+    while (node->key <= 0xFE)
     {
-        (*(u16 *)(node->field_C + 0xB2))++;
-        node = node->field_8;
+        (*(u16 *)(node->data + 0xB2))++;
+        node = node->next;
     }
 }
 // @ 0x08020B04
-void sub_8020B04(u8 *arg0)
+void sub_8020B04(BattleObj *arg0)
 {
     u8 ids[12];
     u8 i;
     u32 base = GetObjPool();
-    u8 count = sub_80462E4(arg0, ids, 0x7F);
+    u8 count = sub_80462E4((BattleObj *)arg0, ids, 0x7F);
     for (i = 0; i < count; i++)
     {
         sub_801D568((BattleObj *)(base + ids[i] * 0xC8));
@@ -2062,7 +2449,7 @@ void sub_8020B04(void *arg0)
     u8 *base;
 
     base = (u8 *)GetObjPool();
-    count = sub_80462E4(arg0, buf, 0x7F);
+    count = sub_80462E4((BattleObj *)arg0, buf, 0x7F);
     for (i = 0; i < count; i++)
     {
         sub_801D568(base + buf[i] * 0xC8);
@@ -2155,7 +2542,7 @@ void sub_8020C58(BattleObj *entries, u32 arg1)
         if (!(sub_80187B4() & 0x20))
             sub_804CEE0(entry, arg1);
         else
-            sub_804DD70((u8 *)entry, arg1);
+            sub_804DD70((BattleObj *)entry, arg1);
     }
 }
 

@@ -15,7 +15,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_803FF54);
 // @ 0x080401AC
 INCLUDE_ASM("asm/nonmatchings", sub_80401AC);
 // @ 0x080405A4
-u8 sub_80405A4(u8 *obj)
+u8 sub_80405A4(BattleObj *obj)
 {
     u8 result;
 
@@ -23,15 +23,15 @@ u8 sub_80405A4(u8 *obj)
     switch (gUnk_03000820)
     {
         case 0:
-            gUnk_03000824 = obj[0x35];
-            gUnk_03000822 = *(u16 *)(obj + 0x2A);
-            gUnk_03000828 = obj[0xBF];
-            gUnk_03000829 = obj[0xC0];
+            gUnk_03000824 = obj->headA.palSlot;
+            gUnk_03000822 = obj->headA.f_1E;
+            gUnk_03000828 = obj->posX;
+            gUnk_03000829 = obj->posY;
             gUnk_03000825 = 0;
             if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x45 && (sub_80187B4() & 0x220) == 0)
             {
-                u16 f2a = *(u16 *)(obj + 0x24) | 0x20;
-                *(u16 *)(obj + 0x24) = f2a;
+                u16 f2a = obj->headA.kindFlags | 0x20;
+                obj->headA.kindFlags = f2a;
                 gUnk_03000820 = 2;
             }
             else
@@ -42,14 +42,14 @@ u8 sub_80405A4(u8 *obj)
         case 2:
             if (gUnk_03000825 <= 0x13)
             {
-                obj[0xBF] = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
+                obj->posX = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
                 gUnk_03000825 += 1;
             }
             else
             {
                 sub_80207A4();
-                obj[0xBE] = 0xFF;
-                obj[0xAB] = 7;
+                obj->slot = 0xFF;
+                obj->variantClass = 7;
                 gUnk_03000820 = 9;
             }
             break;
@@ -72,7 +72,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_80419E0);
 // @ 0x08041EDC
 INCLUDE_ASM("asm/nonmatchings", sub_8041EDC);
 // @ 0x08042200
-u8 sub_8042200(u8 *obj)
+u8 sub_8042200(BattleObj *obj)
 {
     u8 result;
 
@@ -80,17 +80,17 @@ u8 sub_8042200(u8 *obj)
     switch (gUnk_03000820)
     {
         case 0:
-            gUnk_03000824 = obj[0x35];
-            gUnk_03000822 = *(u16 *)(obj + 0x2A);
+            gUnk_03000824 = obj->headA.palSlot;
+            gUnk_03000822 = obj->headA.f_1E;
             sub_801CA08((BattleObj *)obj, 3, 0x1B4, 0xD, result);
             gUnk_03000820 = 2;
             break;
         case 2:
-            if (*(u16 *)(obj + 0x24) & 0x1000)
+            if (obj->headA.kindFlags & 0x1000)
             {
-                sub_804C3A4(obj[0x35], sub_801B954((ObjHead *)(obj + 0xC)));
-                *(u16 *)(obj + 0x24) &= 0xEFFF;
-                sub_80207DC((BattleObj *)obj, obj[0xBF], obj[0xC0], gUnk_03000822, gUnk_03000824);
+                sub_804C3A4(obj->headA.palSlot, sub_801B954((ObjHead *)(&obj->headA)));
+                obj->headA.kindFlags &= 0xEFFF;
+                sub_80207DC((BattleObj *)obj, obj->posX, obj->posY, gUnk_03000822, gUnk_03000824);
                 gUnk_03000820 = 9;
             }
             break;
@@ -105,7 +105,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_80422B8);
 // @ 0x08042784
 INCLUDE_ASM("asm/nonmatchings", sub_8042784);
 // @ 0x08042AB4
-u8 sub_8042AB4(u8 *obj)
+u8 sub_8042AB4(BattleObj *obj)
 {
     u8 result;
 
@@ -113,15 +113,15 @@ u8 sub_8042AB4(u8 *obj)
     switch (gUnk_03000820)
     {
         case 0:
-            gUnk_03000824 = obj[0x35];
-            gUnk_03000822 = *(u16 *)(obj + 0x2A);
-            gUnk_03000828 = obj[0xBF];
-            gUnk_03000829 = obj[0xC0];
+            gUnk_03000824 = obj->headA.palSlot;
+            gUnk_03000822 = obj->headA.f_1E;
+            gUnk_03000828 = obj->posX;
+            gUnk_03000829 = obj->posY;
             gUnk_03000825 = 0;
             if ((sub_80187B4() & 0x200) == 0)
             {
-                u16 f2a = *(u16 *)(obj + 0x24) | 0x20;
-                *(u16 *)(obj + 0x24) = f2a;
+                u16 f2a = obj->headA.kindFlags | 0x20;
+                obj->headA.kindFlags = f2a;
                 gUnk_03000820 = 2;
             }
             else
@@ -132,7 +132,7 @@ u8 sub_8042AB4(u8 *obj)
         case 2:
             if (gUnk_03000825 <= 0x13)
             {
-                obj[0xBF] = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
+                obj->posX = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
                 gUnk_03000825 += 1;
             }
             else
@@ -142,8 +142,8 @@ u8 sub_8042AB4(u8 *obj)
             break;
         case 9:
             sub_80207A4();
-            obj[0xAB] = 7;
-            obj[0xBE] = 0xFF;
+            obj->variantClass = 7;
+            obj->slot = 0xFF;
             result = 2;
             break;
         case 0x12:

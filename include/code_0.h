@@ -422,7 +422,7 @@ void DialogCtx_SetPair(u32, u32, u32, u32, u32);
 void BattleFx_UpdateTable();
 void sub_80199E0();
 void sub_8019AD0(u8, u16);
-void sub_8019B98();
+u8 sub_8019B98(u8, u8, u8, u8); // 返回 u8 (调用点 lsls #24 截断判断)
 void BattleUiFlag_Clear();
 void BattleUiFlag_Set(u16);
 u16 BattleUiFlag_Get();
@@ -520,7 +520,9 @@ typedef struct BattleObj
     u8 equipSlots[6];                      /* +0x8D..0x92 ← stats.equip_slot1..6 (E3: sub_80200E8 逐字节搬运; 0xB3=空槽哨兵, sub_8048B5C 判 equip5/6 是否为空) */
     u8 pad_93[0x99 - 0x93];                /* +0x93..0x98 未验证 (sub_80200E8 不写) */
     u8 skills[8];                          /* +0x99..0xA0 ← stats.skills[i]-1, 0xFF=空/无效 (E3: sub_80200E8 8 字节循环, 0xFF 与 0x26 视为空) */
-    u8 pad_A1;                             /* +0xA1 未验证 */
+    u8 pad_A1;                             /* +0xA1 选中技能槽索引: 0-7 索引 skills[8] (+0x99), >7 时按原值当技能 id。
+                                            * E2 消费者: sub_80489A4/sub_8048764 (val<=7 → skills[val] 否则 val) 与
+                                            * sub_8045B90 (直接 skills[arg1]) 三处同源访问, 均由本字段取值 */
     u8 substate;                           /* +0xA2 子状态 (sub_801D12C 写状态机值; sub_801CF90 逐帧消费) */
     u8 flashLevel;                         /* +0xA3 闪烁/混色档 (sub_8020D50 写 sub_804BBDC 混色结果并置 state bit7; sub_801CF90 读取) */
     u8 pad_A4[0xA9 - 0xA4];                /* +0xA4..0xA8 未验证 */
@@ -536,7 +538,7 @@ typedef struct BattleObj
     u8 pad_BA[0xBB - 0xBA];                /* +0xBA 未验证 */
     u8 memberIdx;                          /* +0xBB 出场 = sub_80487CC(memberId) = 队伍位次 0-5 (0x03004A88[] 查表; 0xA1/0xA7 特例 → 2); 801FF40 副代表选取按本值判重; 敌群路径写 r8-5; 动画流可写 (均 801B964) */
     u8 fxKind;                             /* +0xBC 效果/攻击型别 (s8): 0/1 选 animPtr 偏移模式 (801DEDC/DF90/E4D4/E690/802093C); 出场 =0xFF (801B964); sub_804CEE0 写 0/1, 80466F0 写 */
-    u8 f_BD;                               /* +0xBD 出场清 0 (801B964); 常见值 0-5 (8023820 ×7, 80230BC=5, 802103C=arg1, 80466F0); >4 时 sub_8020DF0 转全体扫描; 读 801EA70/801F884/802192C/804E2AC (语义未定) */
+    u8 f_BD;                               /* +0xBD 目标对象的 obj 池索引 (0-4 玩家侧候选/0xFF 空): 801EA70 写入 == 本槽目标选取结果, 801F884/802192C/804E2AC 按 GetObjPool()+f_BD*0xC8 取目标对象; 出场清 0 (801B964); 常见值 0-5 (8023820 ×7, 80230BC=5, 802103C=arg1, 80466F0); >4 时 sub_8020DF0 转全体扫描 */
     u8 slot;                               /* +0xBE 槽号 (≤0xB 玩家侧, ≤0x70 敌方, 0x71+ 特效/特殊; 0xFF=空) */
     u8 posX;                               /* +0xBF 屏幕坐标 X (E3: 出场 ← 阵型表 tbl[id*4+2] (801B964); 801D568 弹数字锚 X-16; headB 装配 (801DB3C/8020A0C/80210C0); 802B608 拷到 0x03000828; 移动族大量读写) */
     u8 posY;                               /* +0xC0 屏幕坐标 Y (同上: tbl[id*4+3]; 弹数字 Y-8; 0x03000829) */
@@ -601,8 +603,8 @@ void sub_801ED40(BattleObj *, u8);
 void sub_801EE6C(BattleObj *);
 u8 sub_801EEE4();
 void sub_801F3FC();
-void sub_801F76C();
-void sub_801F884();
+u8 sub_801F76C(BattleObj *); // 返回战斗对象动作类别 0-3 (唯一调用者 801EA70 按 u8 使用返回值; 体内按 r3 返回 0/1/2/3)
+u8 sub_801F884(BattleObj *); // 目标匹配键: f_BD 指向对象的 +0xAC 按槽号/fxKind/gUnk_08393B28.field_10 取原值或 nibble 映射 (0=调用者不过滤)
 void sub_801FA10(BattleObj *, u8);
 void sub_801FAB8();
 void sub_801FEBC(BattleObj *, u16, u8);
@@ -626,7 +628,7 @@ void sub_8020A0C(BattleObj *, u8);
 u8 sub_8020A7C(BattleObj *);
 u8 sub_8020AB0(void);
 void sub_8020AE4();
-void sub_8020B04();
+void sub_8020B04(BattleObj *arg0);
 u32 sub_8020B48();
 void sub_8020B54();
 void sub_8020B90(BattleObj *);
@@ -684,115 +686,115 @@ void sub_80257D8();
 void sub_8025994();
 void sub_8025DA8();
 void sub_80260BC();
-void sub_80264C0();
-void sub_802698C();
-void sub_8026D08();
-void sub_8026F88();
-void sub_802723C();
-u8 sub_802761C();
-void sub_8027760();
-void sub_8027A20();
-void sub_8027D9C();
-void sub_8028098();
-void sub_80282EC();
-void sub_80285A0();
-void sub_80287EC();
-void sub_8028AD8();
-void sub_8029268();
-void sub_8029510();
-void sub_8029784();
-void sub_80299C8();
-void sub_8029BF8();
-void sub_802A154();
-void sub_802A86C();
-void sub_802ADC4();
-void sub_802B0F0();
-void sub_802B608();
-void sub_802B8BC();
-void sub_802BB24();
-void sub_802BD94();
-void sub_802C0EC();
-void sub_802C490();
-void sub_802C714();
-void sub_802C9E8();
-void sub_802CE90();
-void sub_802D1FC();
-void sub_802D454();
-void sub_802D728();
-void sub_802DA78();
-void sub_802DE04();
-u32 sub_802DFDC();
-void sub_802E234();
-void sub_802E49C();
-void sub_802E6C8();
+u8 sub_80264C0(BattleObj *, BattleObj *);
+u32 sub_802698C(BattleObj *);
+u32 sub_8026D08(BattleObj *);
+u8 sub_8026F88(BattleObj *, BattleObj *);
+u8 sub_802723C(BattleObj *);
+u8 sub_802761C(BattleObj *); // 战斗对象特效/背景覆盖演出状态机 (gUnk_03000820 0起手/1-7等待/9全体); 唯一入口=0x0839CD5C 指针表 idx9 (sub_803F444 对 slot 0xB..0x70 的对象间接调用, 传参为 BattleObj)
+u8 sub_8027760(BattleObj *, BattleObj *); // 战斗对象"换位靠近"演出状态机; 同 sub_80282EC 族双参 (参1 = 同池目标对象), 尾部帧计数+sub_803F658
+u8 sub_8027A20(BattleObj *);
+u32 sub_8027D9C(BattleObj *, BattleObj *);
+u8 sub_8028098(BattleObj *);
+u8 sub_80282EC(BattleObj *, BattleObj *);
+u8 sub_80285A0(BattleObj *, BattleObj *); // 战斗对象"归位到目标"演出状态机; 同 sub_8027760 族双参, 用 sub_804B834/sub_804B8E8 槽位恢复
+u8 sub_80287EC(BattleObj *);
+u32 sub_8028AD8(BattleObj *);
+u8 sub_8029268(BattleObj *, BattleObj *); // 战斗对象"移动到目标"演出状态机; 双参, 插值 headB.f_2B/f_2C
+u8 sub_8029510(BattleObj *); // 战斗对象"强化/特效"演出状态机; 单参, 用 sub_804B834/sub_804B8E8 槽位恢复
+u8 sub_8029784(BattleObj *); // 战斗对象"强化/特效"演出状态机变体; 同 sub_8029510 但 case0 CE80 末参=1, case1 空
+u8 sub_80299C8(BattleObj *, BattleObj *); // 战斗对象"归位到目标"演出状态机 (双参; 用 sub_804B834/sub_804B8E8 槽位恢复)
+u8 sub_8029BF8(BattleObj *);
+u32 sub_802A154(BattleObj *); // 战斗对象"文字框/换装长演出"状态机; 单参, 0x0839CD5C 指针表 idx0x1A handler, 用 sub_801A2AC + gUnk_03000867/68 双窗口插值 + gUnk_0839DF90 演出序号
+u8 sub_802A86C(BattleObj *); // 战斗对象"长演出/换装"状态机; 单参, 0x0839CD5C idx0x18 handler, 与 sub_8029BF8 近乎逐字同族 (0 → 0x12..0x21 → 9), 差异 f_B6=0xA9/sub_8020CC4 0x2E8/case28 参数序
+u8 sub_802ADC4(BattleObj *); // 战斗对象"召唤/贝斯手演出"状态机; 单参, 0x0839CD5C idx0x19 handler, 同 sub_802B608 族 (0 → 0x12..0x19 → 9), 中段 sub_801768C 插值 gUnk_03000867 + sub_804B96C/sub_804C4D8 装备层切换, case9 result=2
+u8 sub_802B0F0(BattleObj *, BattleObj *); // 战斗对象双参"绕行归位/多段位移"演出状态机 (gUnk_03000820: 0 → 0x12..0x1E → 9); 参1 = 目标对象, case22/28 用 sub_801768C 把 posX/posY/pad_C1 插值
+u8 sub_802B608(BattleObj *); // 战斗对象"召唤/技能释放"演出状态机; 单参, 用 sub_801A348/sub_8019B98/sub_804BDD8/sub_804BE90
+u8 sub_802B8BC(BattleObj *); // 战斗对象"闪现/瞬移演出"状态机; 同 sub_802F480 族, case0 类型 0xB, case20 多 Sfx(0x36), case22 多 Sfx_StopTrack
+u8 sub_802BB24(BattleObj *, BattleObj *); // 战斗对象"召唤伙伴/传送"演出状态机; 双参, case13 按 arg1 位置播 sub_8020CC4
+u8 sub_802BD94(BattleObj *); // 战斗对象"蓄力/多段演出"状态机; 单参, 用 sub_804BF14(9参)/sub_804C728
+u8 sub_802C0EC(BattleObj *);
+u8 sub_802C490(BattleObj *);
+u8 sub_802C714(BattleObj *); // 战斗对象"多段演出/蓄力"状态机; 同 sub_802BD94 族单参, f_B6=2/case22 Sfx(0x4E,1,1)/case23 阈值0x18
+u8 sub_802C9E8(BattleObj *, BattleObj *); // 战斗对象"多段演出/绕到目标+位移"状态机 (双参, 参1=同池目标对象); 0x0839CDE4 指针表 handler
+u8 sub_802CE90(BattleObj *); // 战斗对象"冲刺/跳跃攻击"演出状态机; 同 sub_802C714 族单参, 两段 sub_8020CC4 + sub_801768C/sub_804BE90
+u8 sub_802D1FC(BattleObj *); // 战斗对象"放声/蓄力"演出状态机 (gUnk_03000820: 0 → 0x12..0x17 → 9); 用 headB 等待 + 位置锁定后播 sub_8020CC4 锚点动画
+u8 sub_802D454(BattleObj *, BattleObj *); // 战斗对象双参"蓄力/放声"演出状态机 (gUnk_03000820: 0 → 0x12..0x19 → 9); 参1 = 同池目标对象 (headB.kindFlags 等待)
+u8 sub_802D728(BattleObj *, BattleObj *); // 战斗对象双参"目标重定位/多段插值"演出状态机 (gUnk_03000820: 0 → 0x12..0x17 → 9); 参1 = 目标对象, 用 sub_801768C 把 headB.f_2B/f_2C 插值到目标坐标
+u8 sub_802DA78(BattleObj *); // 战斗对象"多段连击/旋转攻击"演出状态机; 同 sub_802CE90 族单参, headA.frameIdx %0x1F 循环 + 两段 sub_8020CC4
+u8 sub_802DE04(BattleObj *); // 战斗对象"吸血/回复"演出状态机 (gUnk_03000820: 0 → 0x12..0x15 → 9); case20 HP += sub_8048D64(obj,maxHp/2), case9 返回 2; 尾部 gUnk_03000825++
+u32 sub_802DFDC(BattleObj *arg);
+u8 sub_802E234(BattleObj *); // 战斗对象"横移演出"状态机; 单参, 0x0839CE04 指针表 handler
+u32 sub_802E49C(BattleObj *, BattleObj *);
+u8 sub_802E6C8(BattleObj *); // 战斗对象"多段演出/蓄力"状态机; 单参, 0x0839CE10 指针表 handler, 用 sub_804BF14(9参)/sub_804C728
 void sub_802EAC4();
-void sub_802EDD8();
-void sub_802F100();
-u32 sub_802F480();
-void sub_802F6D8();
-void sub_802F9EC();
-void sub_802FE98();
-void sub_803029C();
-void sub_8030664();
-u32 sub_80309B0();
-u8 sub_8030C08(u8 *);
-u8 sub_8030D9C(u8 *);
-u8 sub_8030F30(u8 *);
-u8 sub_80310C4(u8 *);
-u8 sub_8031258(u8 *);
-u8 sub_80313EC(u8 *);
-u8 sub_8031580(u8 *);
-u8 sub_8031714(u8 *);
-u8 sub_80318A8(u8 *);
-u8 sub_8031A3C(u8 *);
-u8 sub_8031BD0(u8 *);
-u8 sub_8031D64(u8 *);
-u8 sub_8031EF8(u8 *);
-u8 sub_803208C(u8 *);
-u8 sub_8032220(u8 *);
-u8 sub_80323B4(u8 *);
-u32 sub_8032548();
-u32 sub_803272C();
-void sub_8032948();
-u8 sub_8032D74();
+u8 sub_802EDD8(BattleObj *); // 战斗对象"多段演出/蓄力"状态机; 单参, 0x0839CD5C 指针表 idx0x2E handler, 同 sub_802E6C8 族 (0 → 0x1C..0x1F → 0x15..0x18 → 9), case28 sub_8020CC4 0x316/case21 0xB4/Sfx 0x59/0x5A/0x55/case23 sub_8044514(0x1E)
+u8 sub_802F100(BattleObj *);
+u32 sub_802F480(BattleObj *arg);
+u8 sub_802F6D8(BattleObj *); // 战斗对象"换装/形态切换"演出状态机; 单参, 用 sub_804B96C/sub_804C4D8/Sfx_TrackBusy
+u8 sub_802F9EC(BattleObj *);
+u8 sub_802FE98(BattleObj *);
+u32 sub_803029C(BattleObj *, BattleObj *);
+u8 sub_8030664(BattleObj *); // 战斗对象"双头换装/形态切换"演出状态机; 单参, 用双 headA/headB + sub_8020CC4 锚点
+u32 sub_80309B0(BattleObj *arg);
+u8 sub_8030C08(BattleObj *obj);
+u8 sub_8030D9C(BattleObj *obj);
+u8 sub_8030F30(BattleObj *obj);
+u8 sub_80310C4(BattleObj *obj);
+u8 sub_8031258(BattleObj *obj);
+u8 sub_80313EC(BattleObj *obj);
+u8 sub_8031580(BattleObj *obj);
+u8 sub_8031714(BattleObj *obj);
+u8 sub_80318A8(BattleObj *obj);
+u8 sub_8031A3C(BattleObj *obj);
+u8 sub_8031BD0(BattleObj *obj);
+u8 sub_8031D64(BattleObj *obj);
+u8 sub_8031EF8(BattleObj *obj);
+u8 sub_803208C(BattleObj *obj);
+u8 sub_8032220(BattleObj *obj);
+u8 sub_80323B4(BattleObj *obj);
+u32 sub_8032548(BattleObj *arg0, u8 *arg1);
+u32 sub_803272C(BattleObj *arg0, u8 *arg1);
+u32 sub_8032948(BattleObj *, u8 *); // 战斗对话/演出状态机变体 (gUnk_03000820: 0 → 1 → 2 → 0x12..0x1B → 9); 多段 sub_8020974 装载 + sub_804BF14/sub_804C728 窗口 + sub_801768C 位移
+u8 sub_8032D74(BattleObj *obj);
 void sub_8032EA0();
 void sub_80334B8();
 void sub_8033988();
 void sub_8033E2C();
-u32 sub_8034440();
-u32 sub_80345AC();
-u32 sub_8034718();
-u32 sub_80348A8();
-u32 sub_8034BFC();
-u32 sub_8034D94();
-u32 sub_8034F00();
-u32 sub_8035130();
+u32 sub_8034440(BattleObj *arg);
+u32 sub_80345AC(BattleObj *arg);
+u32 sub_8034718(BattleObj *arg, BattleObj *arg1);
+u32 sub_80348A8(BattleObj *arg);
+u32 sub_8034BFC(BattleObj *arg);
+u32 sub_8034D94(BattleObj *arg);
+u32 sub_8034F00(BattleObj *arg);
+u32 sub_8035130(BattleObj *arg);
 void sub_8035360();
-u32 sub_803586C();
-u32 sub_8035B04();
-u32 sub_8035D9C();
-u32 sub_8036034();
-u32 sub_80362CC();
-void sub_8036564();
-u32 sub_80368FC();
-void sub_8036B30();
-void sub_8036EA4();
-void sub_8037078();
+u32 sub_803586C(BattleObj *arg);
+u32 sub_8035B04(BattleObj *arg);
+u32 sub_8035D9C(BattleObj *arg);
+u32 sub_8036034(BattleObj *arg);
+u32 sub_80362CC(BattleObj *arg);
+u32 sub_8036564(BattleObj *, BattleObj *);
+u32 sub_80368FC(BattleObj *arg0);
+u32 sub_8036B30(BattleObj *); // 战斗对象"文字框演出"状态机 (gUnk_03000820: 0 → 1 → 2 → 5 → 0x12..0x16 → 0x1A → 0x1B → 9); 用 sub_801A2AC/sub_8019B98/sub_804BDD8/sub_804BE90 + gUnk_03000867 窗口插值
+u32 sub_8036EA4(BattleObj *, BattleObj *);
+u32 sub_8037078(BattleObj *, BattleObj *);
 void sub_8037388();
-void sub_8037868();
-void sub_8037C40();
-u32 sub_8037E14();
-u32 sub_8037FE8();
-u32 sub_80381BC();
-u32 sub_8038390();
-u32 sub_8038568();
-u32 sub_803874C();
+u32 sub_8037868(BattleObj *);
+u32 sub_8037C40(BattleObj *, BattleObj *);
+u32 sub_8037E14(BattleObj *obj);
+u32 sub_8037FE8(BattleObj *obj);
+u32 sub_80381BC(BattleObj *obj);
+u32 sub_8038390(BattleObj *obj);
+u32 sub_8038568(BattleObj *arg, BattleObj *arg1);
+u32 sub_803874C(BattleObj *obj);
 void sub_8038920();
-u32 sub_8038C84();
+u32 sub_8038C84(BattleObj *arg0, u8 *arg1);
 void sub_8038E44();
-void sub_8039024();
-u8 sub_80392C0();
-void sub_80393E0();
+u32 sub_8039024(BattleObj *, BattleObj *);
+u8 sub_80392C0(BattleObj *obj);
+u32 sub_80393E0(BattleObj *);
 void sub_8039724();
 void sub_8039C38();
 void sub_8039C6C();
@@ -806,59 +808,59 @@ void sub_803CE0C();
 void sub_803D20C();
 void sub_803D60C();
 void sub_803DECC();
-u8 sub_803E58C();
+u8 sub_803E58C(BattleObj *, u8 *, u8); // 对话对象"到位/插值"演出服务 (gUnk_0300086B: 0 → 3..23); mode 选锚点算法 (0=相对 arg1,1=调色,2/3=对象池中点,4=朝向); 返回 1 表示收尾
 u8 sub_803ED34();
 void sub_803F21C();
 u8 sub_803F328(u8 arg0);
 void sub_803F444();
-void sub_803F5B4();
-void sub_803F658();
+void sub_803F5B4(BattleObj *);
+void sub_803F658(BattleObj *);
 u8 sub_803FF54(u8 *);
 u8 sub_80401AC(void);
-u8 sub_80405A4(u8 *);
+u8 sub_80405A4(BattleObj *obj);
 void sub_8040690();
 void sub_8040EE8();
 void sub_8041308();
 void sub_80416F0();
 void sub_80419E0();
 void sub_8041EDC();
-u8 sub_8042200(u8 *);
+u8 sub_8042200(BattleObj *obj);
 void sub_80422B8();
 void sub_8042784();
-u8 sub_8042AB4(u8 *);
+u8 sub_8042AB4(BattleObj *obj);
 void sub_8042B90();
 void sub_8042E70();
 void sub_8043554();
 void sub_8043938();
 void sub_8043B5C();
 void sub_8043F90();
-void sub_8044394(u8 *);
+void sub_8044394(BattleObj *obj);
 void sub_8044414();
 u16 sub_8044420();
 void sub_804442C(u8);
 void sub_804448C();
 u8 sub_8044498();
-void sub_80444A4();
+void sub_80444A4(BattleObj *);
 u8 sub_80444E8(void);
 void sub_8044514(s16);
 void sub_8044574(s16, u16, u8);
 u8 *sub_80445E0();
-void sub_80445E8(u8 *, u8);
-u8 sub_8044680(u8 *);
-u8 sub_80446A4(u8 *);
-void sub_80446BC(u8 *);
+void sub_80445E8(BattleObj *arg0, u8 arg1);
+u8 sub_8044680(BattleObj *arg0);
+u8 sub_80446A4(BattleObj *arg0);
+void sub_80446BC(BattleObj *arg0);
 s32 sub_8044728();
 s32 sub_804472C();
 s32 sub_8044730();
 s32 sub_8044734();
 s32 sub_8044738();
-u32 sub_804473C();
-u32 sub_80448A8();
+u32 sub_804473C(BattleObj *arg0, u8 *arg1);
+u32 sub_80448A8(BattleObj *arg0, u8 *arg1);
 u32 sub_8044A40();
-u32 sub_8044F4C();
-u32 sub_8045098();
+u32 sub_8044F4C(BattleObj *, BattleObj *);
+u16 sub_8045098(BattleObj *, BattleObj *); // 战斗伤害浮动: 按 arg0->pad_A4[0]-0x19 选基础值/随机幅度, Rng 抖动 + sub_8047D28 命中修正, 返回夹 0..0x3E7
 void sub_804519C();
-u8 sub_8045328(); // 2026-09-11 zcode-engine: sub_8046480 调用点反汇编证据 (lsls/lsrs/cmp #1), 无已匹配调用者
+u8 sub_8045328(BattleObj *, BattleObj *, u8); // 2026-09-13 gpnux: 命中判定; arg0=行动发起方, arg1=目标对象, arg2=基准权重(调用点 0x50). 2026-09-11 zcode-engine: sub_8046480 调用点反汇编证据 (lsls/lsrs/cmp #1)
 u16 sub_80453D8(void);
 u16 sub_804542C(void);
 u8 sub_80454A4(u16);
@@ -869,31 +871,31 @@ s8 sub_8045860(u8, u8 *);
 void sub_8045940();
 u8 sub_8045A10(u8 *, u8);
 u8 sub_8045A74(u8 *, u8 *, u8, u8, u8);
-void sub_8045B90(u8 *, u8);
-void sub_8045BF4();
+void sub_8045B90(BattleObj *obj, u8 index);
+void sub_8045BF4(BattleObj *obj);
 void sub_8045D00();
 void sub_8045EB8(u8 *);
-u8 sub_8045F10(u8 *, u16);
-void sub_8045F94(u8 *, u16);
-void sub_8046060(u8 *, u16);
-void sub_804612C(u8 *, u16, u16);
+u8 sub_8045F10(BattleObj *, u16);
+void sub_8045F94(BattleObj *obj, u16 arg1);
+void sub_8046060(BattleObj *obj, u16 arg1);
+void sub_804612C(BattleObj *obj, u16 arg1, u16 arg2);
 void sub_804621C();
-u32 sub_80462E4();
-u32 sub_8046480(u8 *, u8 *, u8);
-void sub_8046558(); // 2026-09-11 zcode-engine 回退: 函数未匹配, 原型保持原样
+u32 sub_80462E4(BattleObj *, u8 *, u16);
+u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode);
+u8 sub_8046558(u8 *, u8 *, u8, u8); // 收集符合条件的对象池槽号到 out 数组, 返回数量; 契约由 sub_803E58C 调用点推定 (未匹配)
 void sub_804666C();
 void sub_80466F0();
 void sub_8046C50();
 void sub_8046CD4();
 u8 sub_8046E18(u8 *, s32, s32); // 2026-09-11 zcode-engine: 宽参+窄局部 (经验71), 匹配调用方传参无截断证据
-u16 sub_8046F0C(); // 2026-09-11 zcode-engine: 调用点返回值按 u16 用 (lsls/lsrs #0x10), 无已匹配调用者
+u16 sub_8046F0C(BattleObj *obj); // 2026-09-11 zcode-engine: 调用点返回值按 u16 用 (lsls/lsrs #0x10), 无已匹配调用者
 u16 sub_8047024();
 u8 sub_80471AC();
 u32 sub_80472E8();
 void sub_804753C();
 u8 sub_80476DC();
 u8 sub_8047B1C();
-u8 sub_8047D28(u8 *, u8);
+u8 sub_8047D28(BattleObj *obj, u8 mask);
 u8 sub_8047DC8();
 s32 sub_8047FCC(u16);
 void sub_80480EC();
@@ -909,24 +911,24 @@ u8 sub_80487CC(u8);
 u16 sub_8048818(u8, u8);
 u8 sub_8048868(u8, u8);
 u8 sub_80488CC(u8 *, u8);
-u8 sub_8048934(u8 *, u8);
+u8 sub_8048934(BattleObj *arg0, u8 arg1);
 u8 sub_8048984(u8 *, u8);
 u8 sub_80489A4(u8 *, u8);
 u16 sub_80489C8(u8 *, u16);
 u8 sub_80489E8(u8 *, u8 *, u8, u16);
-u8 sub_8048A68(u8 *);
+u8 sub_8048A68(BattleObj *arg0);
 void sub_8048A88(u8 *, s8, s8);
 void sub_8048ACC(u8 *, u8, u8);
 void sub_8048B30(u8, u8, u16);
 void sub_8048B5C(u8 *, u8);
-u8 sub_8048B88(u8 *);
-u8 sub_8048BAC(u8 *);
-void sub_8048BD0(u8 *);
-u8 sub_8048C30(u8 *);
-u8 sub_8048C80(u8 *);
-u8 sub_8048CEC(u8 *);
-void sub_8048D40(u8 *);
-u16 sub_8048D64(u8 *, u16);
+u8 sub_8048B88(BattleObj *arg0);
+u8 sub_8048BAC(BattleObj *arg0);
+void sub_8048BD0(BattleObj *arg0);
+u8 sub_8048C30(BattleObj *obj);
+u8 sub_8048C80(BattleObj *obj);
+u8 sub_8048CEC(BattleObj *obj);
+void sub_8048D40(BattleObj *arg0);
+u16 sub_8048D64(BattleObj *arg0, u16 arg1);
 u8 sub_8048D84(u8 *, u8 *);
 void sub_8048DA4();
 void sub_8048F0C();
@@ -1017,9 +1019,9 @@ void sub_804C78C();
 void sub_804C890();
 u8 sub_804C8E0(u8 *, u8); // obj池槽位移除元素+随机取回 (返回 u8)
 void sub_804C9B4();
-void sub_804CA2C(u8 *);
+void sub_804CA2C(BattleObj *obj);
 void sub_804CAA0(u8 *);
-void sub_804CB18(u8 *);
+void sub_804CB18(BattleObj *obj);
 void sub_804CB8C(u8 *);
 void sub_804CC00(u8 *);
 void sub_804CC78(u8 *);
@@ -1029,34 +1031,34 @@ void sub_804CDD4(u8 *);
 void sub_804CE48(u8 *);
 void sub_804CEBC();
 void sub_804CEE0();
-void sub_804D0F8(u8 *); // obj槽位填充: 守卫+移除匹配obj[0xAC]+随机取回
-void sub_804D1B4(u8 *, u8 *); // obj槽位概率填充: 守卫+表驱动随机
-void sub_804D260(u8 *, u8 *); // obj槽位概率填充 (x10, sub_804D1B4 孪生)
-void sub_804D310();
-void sub_804D3A0(u8 *, u8 *); // obj槽位概率填充 (x13, 同族孪生)
-void sub_804D44C(u8 *, u8 *); // obj槽位概率填充 (x10, 同族孪生)
-void sub_804D4FC();
-void sub_804D5B4();
-void sub_804D708();
+void sub_804D0F8(BattleObj *obj); // obj槽位填充: 守卫+移除匹配obj[0xAC]+随机取回
+void sub_804D1B4(BattleObj *obj, u8 *arg1); // obj槽位概率填充: 守卫+表驱动随机
+void sub_804D260(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x10, sub_804D1B4 孪生)
+void sub_804D310(BattleObj *obj, u8 *arg1);
+void sub_804D3A0(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x13, 同族孪生)
+void sub_804D44C(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x10, 同族孪生)
+void sub_804D4FC(BattleObj *obj, u8 *arg1);
+void sub_804D5B4(BattleObj *obj, u8 *arg1);
+void sub_804D708(BattleObj *obj, u8 *arg1);
 void sub_804D798();
-void sub_804D840();
-void sub_804D8F4();
-void sub_804DA04();
-void sub_804DABC();
-void sub_804DB64();
-void sub_804DC24();
-void sub_804DCD8();
-void sub_804DD70(u8 *, u32);
+void sub_804D840(BattleObj *obj, u8 *arg1);
+void sub_804D8F4(BattleObj *obj, u8 *arg1);
+void sub_804DA04(BattleObj *obj, u8 *arg1);
+void sub_804DABC(BattleObj *obj, u8 *arg1);
+void sub_804DB64(BattleObj *obj, u8 *arg1);
+void sub_804DC24(BattleObj *obj, u8 *arg1);
+void sub_804DCD8(BattleObj *obj, u8 *arg1);
+void sub_804DD70(BattleObj *ptr, u32 arg1);
 u8 sub_804DD90(u8, u8); /** 勿改宽原型/K&R: u8原型+Sub6C结构形态才是 sub_8045EB8 的解 */
 void sub_804DE20();
 void sub_804DE8C();
 u8 sub_804DF14(Unk_03000DEntry *);
 void sub_804DF74(Unk_03000DEntry *, u8 *, u8);
 void sub_804DFD8(u16 *, u8, u8, u8 *, u8, u8, u8);
-u8 sub_804E0E4(u8 *, u32);
+u8 sub_804E0E4(BattleObj *arg0, u32 arg1);
 u8 sub_804E2AC(u8 *, u32);
-s8 sub_804E6DC(u8 *, u8);
-s8 sub_804E76C(u8 *, u8, u8);
+s8 sub_804E6DC(BattleObj *obj, u8 value);
+s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2);
 void sub_804E7EC();
 u8 sub_804E85C(void);
 void sub_804E9DC();
@@ -1068,7 +1070,7 @@ u8 sub_804EF90(u8);
 void sub_804EFDC(u8 *, u8, u8, u8 *, u8);
 u8 sub_804F050(u8);
 void sub_804F07C();
-u8 sub_804F088(u8 *, u32);
+u8 sub_804F088(BattleObj *arg0, u32 arg1);
 u8 sub_804F0B8(u8 *, s32); // CheckObjectKindSlot: 比较对象 +0x91/+0x92 两个候选 id, 返 1/2/0
 #define CheckObjectKindSlot sub_804F0B8
 s8 sub_804F10C(u8, u8);

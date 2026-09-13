@@ -231,8 +231,12 @@ extern u8 gUnk_03000714;
 extern u8 gUnk_03000715;
 extern u8 gUnk_03000716;
 
-/* 对象排序链表节点 (0xC8 字节对象池的槽位链, 见 src/code_801A5EC.c sub_801DD04):
- * key@0, prev@4, next@8, data@12, 节点 16 字节 */
+/* 战斗"待选池"链节点 (16B, 步长 0x10): 前 12 字节就是 UnkNode, 故 gUnk_030006A0[i]
+ * 可直接强转 UnkNode* 交给 ListNode_InitKey/InsertSorted (见 sub_801DC20)。
+ * 数组 0x030006A0..0x030006F0 共 5 项 (索引 = obj 池槽 0..4, 由 sub_80489E8 mode0 产出);
+ * 链表头 0x03000690 是 UnkNode 哨兵 (ListNode_Init, key=0xFF), 遍历条件恒为 key <= 0xFE。
+ * data 指向 BattleObj*。消费者: sub_801DC20 (挂入), sub_801DD04 (摘链),
+ * sub_801FF40 (挑选, 读 data 对象 memberIdx), sub_8020AE4 (逐帧 dmgAmount+1)。 */
 typedef struct Unk_030006A0
 {
     u8 key;
@@ -242,6 +246,8 @@ typedef struct Unk_030006A0
     u32 data;
 } Unk_030006A0;
 extern Unk_030006A0 gUnk_030006A0[];
+extern UnkNode gUnk_03000690;  /* 待选池链表头: UnkNode 哨兵 (key=0xFF), 遍历取 ->next */
+extern u8 gUnk_030006F0;       /* 待选池计数: sub_801DC20 挂入时 ++, sub_801DD04 摘链时 -- */
 extern u32 gUnk_03000718;
 extern u8 gUnk_0300071C;
 extern u32 gUnk_03000730;
@@ -250,6 +256,7 @@ extern u8 gUnk_0300073D;
 extern u8 gUnk_03000744;
 extern u8 gUnk_03000765;
 extern u8 gUnk_08393A30[];
+extern u8 gUnk_0839DF90[]; ///< sub_802A154 case30/36 用的 (x,y) 对表 (各 2 字节)
 extern float gCosTable[];
 extern float gSinTable[];
 extern u8 gUnk_03000748[];
@@ -305,11 +312,23 @@ extern u8 gUnk_03000867;
 extern u8 gUnk_03000868;
 extern u8 gUnk_0300086A;
 extern u8 gUnk_0300086B;
+extern u16 gUnk_0300086C; ///< sub_803E58C 动画基准表项 (0x350/0x353/0x356, 加 1/2 变体)
+extern u8 gUnk_0300086E;
+extern u8 gUnk_0300086F; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
 extern u16 gUnk_03000882;
 extern u8 gUnk_03000884;
 extern u16 gUnk_03000886;
 extern u8 gUnk_03000888;
 extern u8 gUnk_03000889;
+extern u8 gUnk_0300088B; ///< sub_80489E8 返回的参演角色数 (sub_8028AD8 登记)
+extern u8 gUnk_0300088C; ///< 当前处理角色下标 (sub_8028AD8)
+extern u8 gUnk_03000890[]; ///< 角色 obj 池槽号表 (sub_80489E8 输出, 按 0x8C 下标; sub_8028AD8)
+extern u8 gUnk_03000898[]; ///< 暂存 posX (sub_8028AD8)
+extern u8 gUnk_0300089A[]; ///< 暂存 posY (sub_8028AD8)
+extern u8 gUnk_0300089C[]; ///< 暂存 headA.palSlot (sub_8028AD8)
+extern u16 gUnk_030008A0[]; ///< 暂存 headA.f_1E (sub_8028AD8)
+extern u8 gUnk_030008A4; ///< 当前相位/组下标 (sub_8028AD8)
+extern u8 gUnk_030008A5; ///< sub_802A154 演出序号 (0..2, 索引 gUnk_0839DF90 的 (x,y) 对)
 extern u32 gUnk_030008EC;
 extern u8 gChoiceListLen;
 extern u8 gUnk_0300094A;
@@ -364,6 +383,28 @@ extern u16 gUnk_03000AE0;
 extern u16 gUnk_03000AE2;
 extern u8 gUnk_03000AE4; // 2026-09-11 zcode-engine 登记 (sub_804B288)
 extern u8 gUnk_03000AE5; // 2026-09-11 zcode-engine 登记 (sub_804B288)
+/* 调色板动画条目 (16 字节 × 16 项 = 256 字节)。
+ * 0x03000AE8 = BG 调色板动画表 (目的 0x05000200 / 镜像 0x02036AC0);
+ * 0x03000BE8 = OBJ 调色板动画表 (目的 0x05000000 / 镜像 0x02036CC0); 布局相同。
+ * ctrl 低 4 位 = opcode: 0=空(0xFF), 1=流式(sub_804B3C0), 2=精灵动画(sub_804B458),
+ * 3=淡变(sub_804B4D0); bit4=0x10 方向, bit5=0x20 禁止颜色重置, bit6=0x40 循环方向。
+ * RGB 增量 (dR/dG/dB) 与 shift 供 sub_804B56C 做 src + delta*weight>>shift 插值。 */
+typedef struct
+{
+    u8 ctrl;       /* +0x0 控制字/opcode */
+    s8 palSlot;    /* +0x1 目标调色板槽 (<<4 或 <<5 索引) */
+    u8 period;     /* +0x2 周期/总帧数 */
+    u8 counter;    /* +0x3 当前帧计数器 */
+    u8 span;       /* +0x4 低4位=宽, 高4位=帧数 */
+    u8 pad5;       /* +0x5 */
+    u16 frameIdx;  /* +0x6 当前帧索引 */
+    u8 dir;        /* +0x8 往返方向 */
+    u8 pad9[3];    /* +0x9..0xB */
+    s8 dR;         /* +0xC R 增量 */
+    s8 dG;         /* +0xD G 增量 */
+    s8 dB;         /* +0xE B 增量 */
+    u8 shift;      /* +0xF 插值移位/除数 */
+} PaletteAnimEntry;
 extern u8 gUnk_03000AE8[];
 extern u16 gUnk_03000CE8; // 2026-09-11 zcode-engine 登记 (sub_804B288)
 extern u8 gUnk_03000BE8[];

@@ -11,13 +11,13 @@
 #include "sound.h"
 
 // @ 0x0804473C
-u32 sub_804473C(u8 *arg0, u8 *arg1)
+u32 sub_804473C(BattleObj *arg0, u8 *arg1)
 {
     u16 result;
 
-    if (arg0[0xBE] <= 0xA)
+    if (arg0->slot <= 0xA)
     {
-        switch ((s8)arg0[0xBC])
+        switch ((s8)arg0->fxKind)
         {
         case 0:
             result = sub_8044A40(arg0, arg1);
@@ -73,7 +73,7 @@ typedef struct Stats_BattleView
     u8 unk30[1];   /* obj[0xC2] 索引的替代槽 (声明 [1], 实际长度由表定) */
 } Stats_BattleView;
 
-u32 sub_80448A8(u8 *arg0, u8 *arg1)
+u32 sub_80448A8(BattleObj *arg0, u8 *arg1)
 {
     u16 result;
     Stats_BattleView *stats;
@@ -81,14 +81,14 @@ u32 sub_80448A8(u8 *arg0, u8 *arg1)
     s8 bc;
 
     result = 0;
-    stats = *(Stats_BattleView **)(arg0 + 0x88);
+    stats = *(Stats_BattleView **)(&arg0->animPtr);
     kind = stats->unk2F;
-    bc = (s8)arg0[0xBC];
+    bc = (s8)arg0->fxKind;
     if (bc != 0)
     {
         if (bc == 1)
         {
-            kind = stats->unk30[arg0[0xC2]];
+            kind = stats->unk30[arg0->animSubIdx];
         }
     }
     do
@@ -174,7 +174,7 @@ u32 sub_80448A8(u8 *arg0, u8 *arg1)
 // @ 0x08044A40
 INCLUDE_ASM("asm/nonmatchings", sub_8044A40);
 // @ 0x08044F4C
-u32 sub_8044F4C(u8 *arg0, u8 *arg1)
+u32 sub_8044F4C(BattleObj *arg0, BattleObj *arg1)
 {
     u32 bit;
     u16 mod;
@@ -183,20 +183,20 @@ u32 sub_8044F4C(u8 *arg0, u8 *arg1)
     u16 dmg;
     s16 t;
 
-    if ((bit = *(u16 *)(arg1 + 0xB0) & 0x1000) != 0)
+    if ((bit = arg1->state & 0x1000) != 0)
     {
-        *(u16 *)(arg1 + 0xB0) = *(u16 *)(arg1 + 0xB0) & 0xEFFF;
+        arg1->state = arg1->state & 0xEFFF;
         return 0;
     }
-    if (*(u16 *)(arg1 + 0xB0) & 0x10)
+    if (arg1->state & 0x10)
     {
-        *(u16 *)(arg1 + 0xB2) = bit;
+        arg1->dmgAmount = bit;
         return 0;
     }
     mod = ((u32 (*)(void))Rng_LcgNext)() % (sub_8047024(arg0, 8) / 10);
     w9 = sub_8047024(arg1, 9);
     v = sub_80472E8(arg0, sub_8048764(arg0), 0);
-    dmg = (sub_8047024(arg0, 8) + v * arg0[0xAA] + mod - w9) / 2;
+    dmg = (sub_8047024(arg0, 8) + v * arg0->lv + mod - w9) / 2;
     switch (sub_8047D28(arg1, sub_8047DC8(arg0)))
     {
     case 1:
@@ -208,12 +208,12 @@ u32 sub_8044F4C(u8 *arg0, u8 *arg1)
     case 0:
         break;
     }
-    if (*(u16 *)(arg0 + 0xB0) & 0x4000)
+    if (arg0->state & 0x4000)
     {
         dmg = dmg * 2;
-        *(u16 *)(arg0 + 0xB0) = *(u16 *)(arg0 + 0xB0) & 0xBFFF;
+        arg0->state = arg0->state & 0xBFFF;
     }
-    if (sub_804E6DC(arg0, 0xC) >= 0)
+    if (sub_804E6DC((BattleObj *)(arg0), 0xC) >= 0)
     {
         t = dmg;
         dmg = t + t / 10;
@@ -233,7 +233,38 @@ INCLUDE_ASM("asm/nonmatchings", sub_8045098);
 // @ 0x0804519C
 INCLUDE_ASM("asm/nonmatchings", sub_804519C);
 // @ 0x08045328
-INCLUDE_ASM("asm/nonmatchings", sub_8045328);
+// 命中判定: 目标 variantClass ∈{2,3,4} 或攻击者 fxKind==1 → 必中。
+// 否则按 2*(agl差) + (atc - 目标def) + (arg2 - 攻击者[0x8B]) 算权重 v, 钳制 [30,100];
+// 目标带 kind=2/val=8 的装备时 v -= 50; 最后 (Rng%100) < v 判定命中。
+// 注: v 必须是有符号 s16 (u16 会被 agbcc 提升为 SImode, 生成形状不同)。
+// 注: +0x8B 落在 animPtr(+0x88) 高字节上, 但 sub_8048C80 亦按独立统计量读取, 布局未定, 暂以裸偏移访问。
+u8 sub_8045328(BattleObj *arg0, BattleObj *arg1, u8 arg2)
+{
+    s16 v;
+    u8 t;
+    u8 result;
+
+    if (sub_8045F10(arg1, 0x1C) == 2)
+        result = 1;
+    else if ((s8)arg0->fxKind == 1)
+        result = 1;
+    else
+    {
+        t = (arg0->slot <= 0xA) ? ((u8 *)arg0)[0x8B] : 0;
+        v = (arg0->agl - arg1->agl) * 2 + (arg0->atc - arg1->def) + (arg2 - t);
+        if (v > 0x64)
+            v = 0x64;
+        if (v <= 0x1D)
+            v = 0x1E;
+        if (sub_804E76C((BattleObj *)arg1, 2, 8) >= 0)
+            v -= 50;
+        if ((s16)(((u32 (*)(void))Rng_LcgNext)() % 100) < v)
+            result = 1;
+        else
+            result = 0;
+    }
+    return result;
+}
 // @ 0x080453D8
 u16 sub_80453D8(void)
 {
@@ -576,7 +607,7 @@ u8 sub_8045A74(u8 *obj, u8 *list, u8 count, u8 arg3, u8 mode)
     return i;
 }
 // @ 0x08045B90
-void sub_8045B90(u8 *obj, u8 index)
+void sub_8045B90(BattleObj *obj, u8 index)
 {
     u16 original;
     u16 *current;
@@ -585,14 +616,14 @@ void sub_8045B90(u8 *obj, u8 index)
     s32 wide;
     u8 *data;
 
-    current = (u16 *)(obj + 0x70);
+    current = &(obj->mp);
     original = *current;
     data = (u8 *)current;
     data += 0x29;
     data += index;
     id = *data;
     amount = gUnk_08093418[id * 5 + 4];
-    if (sub_804E76C(obj, 3, 1) >= 0)
+    if (sub_804E76C((BattleObj *)(obj), 3, 1) >= 0)
         amount = amount - 2;
     if (sub_804E76C(obj, 3, 2) >= 0)
         amount >>= 1;
@@ -605,54 +636,54 @@ void sub_8045B90(u8 *obj, u8 index)
 // @ 0x08045BF4
 // 按 obj[0xBE] (形态/类别 0-10) 分派写 obj[0x8A] 字段; 各分支直写该字段, GCC2 尾合并成末尾一次 strb;
 // 0x91/0x92==0xCB/0xBF 判定 + 0x8D==0x15/0x3B/0x3C 细分; >10 落 default (无 default 分支直落函数尾)。
-void sub_8045BF4(u8 *obj)
+void sub_8045BF4(BattleObj *obj)
 {
-    switch (obj[0xBE])
+    switch (obj->slot)
     {
     case 0:
     case 1:
-        if (obj[0x8D] == 0x15)
+        if (*((u8 *)obj + 0x8D) == 0x15)
         {
-            if (obj[0x91] == 0xCB || obj[0x92] == 0xCB)
-                obj[0x8A] = 0x37;
+            if (*((u8 *)obj + 0x91) == 0xCB || *((u8 *)obj + 0x92) == 0xCB)
+                *((u8 *)obj + 0x8A) = 0x37;
             else
-                obj[0x8A] = 0x30;
+                *((u8 *)obj + 0x8A) = 0x30;
         }
         else
-            obj[0x8A] = 0x30;
+            *((u8 *)obj + 0x8A) = 0x30;
         break;
     case 2:
-        obj[0x8A] = 0x31;
+        *((u8 *)obj + 0x8A) = 0x31;
         break;
     case 3:
-        if (obj[0x91] == 0xBF || obj[0x92] == 0xBF)
-            obj[0x8A] = 0x38;
+        if (*((u8 *)obj + 0x91) == 0xBF || *((u8 *)obj + 0x92) == 0xBF)
+            *((u8 *)obj + 0x8A) = 0x38;
         else
-            obj[0x8A] = 0x32;
+            *((u8 *)obj + 0x8A) = 0x32;
         break;
     case 4:
-        if (obj[0x91] == 0xBF || obj[0x92] == 0xBF)
-            obj[0x8A] = 0x39;
+        if (*((u8 *)obj + 0x91) == 0xBF || *((u8 *)obj + 0x92) == 0xBF)
+            *((u8 *)obj + 0x8A) = 0x39;
         else
-            obj[0x8A] = 0x33;
+            *((u8 *)obj + 0x8A) = 0x33;
         break;
     case 5:
-        if (obj[0x8D] == 0x3B)
-            obj[0x8A] = 0x3A;
+        if (*((u8 *)obj + 0x8D) == 0x3B)
+            *((u8 *)obj + 0x8A) = 0x3A;
         else
-            obj[0x8A] = 0x34;
+            *((u8 *)obj + 0x8A) = 0x34;
         break;
     case 6:
-        if (obj[0x8D] == 0x3C)
-            obj[0x8A] = 0x3B;
+        if (*((u8 *)obj + 0x8D) == 0x3C)
+            *((u8 *)obj + 0x8A) = 0x3B;
         else
-            obj[0x8A] = 0x35;
+            *((u8 *)obj + 0x8A) = 0x35;
         break;
     case 7:
     case 8:
     case 9:
     case 10:
-        obj[0x8A] = 0xFF;
+        *((u8 *)obj + 0x8A) = 0xFF;
         break;
     }
 }
@@ -705,15 +736,15 @@ void sub_8045EB8(u8 *obj)
     *flags |= extra;
 }
 // @ 0x08045F10
-u8 sub_8045F10(u8 *obj, u16 dirMask)
+u8 sub_8045F10(BattleObj *obj, u16 dirMask)
 {
     u8 result;
     u8 dir;
     result = 0;
-    if (obj[0xBE] != 0xFF)
+    if (obj->slot != 0xFF)
     {
         result = 1;
-        dir = obj[0xAB];
+        dir = obj->variantClass;
         if (dir <= 8)
         {
             switch (dir)
@@ -788,19 +819,19 @@ u8 sub_8045F10(u8 *obj, u16 dirMask)
 // @ 0x08045F94
 // 姊妹 sub_8046060: 方向槽 obj[0xAB] 只增不减; CBA4 普通行走第2实参=0x4 (vs 0xA)。
 // 见 sub_8046060 注释与 RULES 规则135 (moveBits/walkOfs/stateFlags 三段链)。
-void sub_8045F94(u8 *obj, u16 arg1)
+void sub_8045F94(BattleObj *obj, u16 arg1)
 {
     u32 zero;
     u16 moveBits;
     int stateFlags;
     int walkOfs;
 
-    if (obj[0xBE] > 0x70 && arg1 != 8)
+    if (((u8 *)obj)[0xBE] > 0x70 && arg1 != 8)
         return;
-    if (obj[0xAB] >= arg1)
+    if (((u8 *)obj)[0xAB] >= arg1)
         return;
     zero = 0;
-    obj[0xAB] = arg1;
+    ((u8 *)obj)[0xAB] = arg1;
     switch (arg1)
     {
         case 1:
@@ -811,10 +842,10 @@ void sub_8045F94(u8 *obj, u16 arg1)
         case 6:
         case 7:
             sub_801D12C((BattleObj *)obj, 1);
-            if (obj[0xBE] <= 0xA)
-                sub_801CBA4((BattleObj *)obj, 4, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+            if (((u8 *)obj)[0xBE] <= 0xA)
+                sub_801CBA4((BattleObj *)obj, 4, *(u16 *)((u8 *)obj + 0x2A), ((u8 *)obj)[0x35], zero);
             else
-                sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CA08((BattleObj *)obj, 0, *(u16 *)((u8 *)obj + 0x2A), ((u8 *)obj)[0x35], zero);
             break;
         case 8:
             sub_801D12C((BattleObj *)obj, 2);
@@ -823,17 +854,17 @@ void sub_8045F94(u8 *obj, u16 arg1)
     switch (arg1)
     {
         case 1:
-            stateFlags = 0x10 | *(u16 *)(obj + 0xB8);
-            *(u16 *)(obj + 0xB8) = stateFlags;
+            stateFlags = 0x10 | *(u16 *)((u8 *)obj + 0xB8);
+            *(u16 *)((u8 *)obj + 0xB8) = stateFlags;
         case 2:
         case 3:
         case 5:
         case 6:
-            moveBits = 0x200 | *(u16 *)(obj + 0xB0);
+            moveBits = 0x200 | *(u16 *)((u8 *)obj + 0xB0);
             walkOfs = 0;
             stateFlags = moveBits;
-            *(u16 *)(obj + 0xB0) = stateFlags;
-            obj[0xA8] = walkOfs;
+            *(u16 *)((u8 *)obj + 0xB0) = stateFlags;
+            ((u8 *)obj)[0xA8] = walkOfs;
             break;
     }
 }
@@ -844,19 +875,19 @@ void sub_8045F94(u8 *obj, u16 arg1)
 // >0xA 走事件类 sub_801CA08) 传 (obj, f2A, f35, 0)。arg1==8 = 离场: Obj_SetMoveState(obj,2)。
 // 位段收尾 (arg1 1..7 落入): obj[0xB8]|=0x10 (case1 fallthrough), obj[0xB0]|=0x200, obj[0xA8]=0。
 // 第5实参 0 与 obj[0xA8]=0 的 0 是两个独立变量 (r7/r3 分配, 合并会破分配, 见 RULES 规则87家族)。
-void sub_8046060(u8 *obj, u16 arg1)
+void sub_8046060(BattleObj *obj, u16 arg1)
 {
     u32 zero;
     u16 moveBits;
     int stateFlags;
     int walkOfs;
 
-    if (obj[0xBE] > 0x70 && arg1 != 8)
+    if (((u8 *)obj)[0xBE] > 0x70 && arg1 != 8)
         return;
-    if (obj[0xAB] >= arg1)
+    if (((u8 *)obj)[0xAB] >= arg1)
         return;
     zero = 0;
-    obj[0xAB] = arg1;
+    ((u8 *)obj)[0xAB] = arg1;
     switch (arg1)
     {
         case 1:
@@ -867,10 +898,10 @@ void sub_8046060(u8 *obj, u16 arg1)
         case 6:
         case 7:
             sub_801D12C((BattleObj *)obj, 1);
-            if (obj[0xBE] <= 0xA)
-                sub_801CBA4((BattleObj *)obj, 0xA, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+            if (((u8 *)obj)[0xBE] <= 0xA)
+                sub_801CBA4((BattleObj *)obj, 0xA, *(u16 *)((u8 *)obj + 0x2A), ((u8 *)obj)[0x35], zero);
             else
-                sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2A), obj[0x35], zero);
+                sub_801CA08((BattleObj *)obj, 0, *(u16 *)((u8 *)obj + 0x2A), ((u8 *)obj)[0x35], zero);
             break;
         case 8:
             sub_801D12C((BattleObj *)obj, 2);
@@ -879,17 +910,17 @@ void sub_8046060(u8 *obj, u16 arg1)
     switch (arg1)
     {
         case 1:
-            stateFlags = 0x10 | *(u16 *)(obj + 0xB8);
-            *(u16 *)(obj + 0xB8) = stateFlags;
+            stateFlags = 0x10 | *(u16 *)((u8 *)obj + 0xB8);
+            *(u16 *)((u8 *)obj + 0xB8) = stateFlags;
         case 2:
         case 3:
         case 5:
         case 6:
-            moveBits = 0x200 | *(u16 *)(obj + 0xB0);
+            moveBits = 0x200 | *(u16 *)((u8 *)obj + 0xB0);
             walkOfs = 0;
             stateFlags = moveBits;
-            *(u16 *)(obj + 0xB0) = stateFlags;
-            obj[0xA8] = walkOfs;
+            *(u16 *)((u8 *)obj + 0xB0) = stateFlags;
+            ((u8 *)obj)[0xA8] = walkOfs;
             break;
     }
 }
@@ -900,7 +931,7 @@ void sub_8046060(u8 *obj, u16 arg1)
 // 否则清方向后按 obj[0xBE]<=0xA 走 sub_801CBA4/CA08。尾部清 obj[0xB8] bit4。
 // 注意: prev 用 (u16)(arg1+0xFFFE) 写法 (u16 回绕减 2, 见 RULES 135 家族);
 // pool 指针池扫后复用为 &obj[0xB8] (规则87: 一个局部兼职两个值买寄存器 home)。
-void sub_804612C(u8 *obj, u16 arg1, u16 arg2)
+void sub_804612C(BattleObj *obj, u16 arg1, u16 arg2)
 {
     u8 *pool;
     u8 i;
@@ -909,32 +940,32 @@ void sub_804612C(u8 *obj, u16 arg1, u16 arg2)
     u16 v;
 
     prev = (u16)(arg1 + 0xFFFE);
-    if (obj[0xab] != prev && arg1 != 0xb)
+    if (obj->variantClass != prev && arg1 != 0xb)
         return;
-    if (arg1 == 0xb && obj[0xab] == 8)
+    if (arg1 == 0xb && obj->variantClass == 8)
         return;
-    if (obj[0xab] == 8)
+    if (obj->variantClass == 8)
     {
         pool = (u8 *)GetObjPool();
         for (i = 0; i <= 4; i++)
-            if (pool[i * 0xC8 + 0xBE] == obj[0xBE])
+            if (pool[i * 0xC8 + 0xBE] == obj->slot)
                 break;
-        v = *(u16 *)(obj + 0x6c);
+        v = obj->hp;
         sub_801DD04((BattleObj *)obj, i, (u16)(v + arg2));
     }
     else
     {
         zero = 0;
-        obj[0xab] = 0;
-        if (obj[0xbe] <= 0xa)
-            sub_801CBA4((BattleObj *)obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], zero);
+        obj->variantClass = 0;
+        if (obj->slot <= 0xa)
+            sub_801CBA4((BattleObj *)obj, 0, obj->headA.f_1E, obj->headA.palSlot, zero);
         else
-            sub_801CA08((BattleObj *)obj, 0, *(u16 *)(obj + 0x2a), obj[0x35], 0);
+            sub_801CA08((BattleObj *)obj, 0, obj->headA.f_1E, obj->headA.palSlot, 0);
     }
-    if (*(u16 *)(obj + 0xb8) & 0x10)
+    if (obj->statusAil & 0x10)
     {
-        pool = obj + 0xb8;
-        *(u16 *)pool = *(u16 *)(obj + 0xb8) & 0xFFEF;
+        pool = &obj->statusAil;
+        *(u16 *)pool = obj->statusAil & 0xFFEF;
     }
     sub_801D12C((BattleObj *)obj, 0);
 }
@@ -946,7 +977,7 @@ INCLUDE_ASM("asm/matchings", sub_80462E4); /* 函数清单修正: yaml=[1] 且 .
 // 行动槽位处理: mode==0 时清空 buf[0..4], 否则清空 buf[0..6]; 用 sub_80462E4(arg0, local, 0x7F)
 // 收集槽号到 local[12], 逐个把 local[i] 写进 buf[i], 对满足 sub_8045328(arg0, 槽对象, 0x50)==1
 // 且槽对象 field_AB==3 且 Rng%100<=0x45 的槽调 sub_804612C(槽对象, 5, 0), 然后置 buf[i]|=0x10。
-u32 sub_8046480(u8 *arg0, u8 *buf, u8 mode)
+u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode)
 {
     u8 local[12];
     u8 i;
@@ -965,18 +996,18 @@ u32 sub_8046480(u8 *arg0, u8 *buf, u8 mode)
             buf[i] = 0;
     }
     pool = (u8 *)GetObjPool();
-    count = sub_80462E4(arg0, local, 0x7F);
+    count = sub_80462E4((BattleObj *)arg0, local, 0x7F);
     for (i = 0; i < count; i++)
     {
         stride = 0xC8;
         buf[i] = local[i];
-        if ((u8)sub_8045328(arg0, pool + local[i] * stride, 0x50) == 1)
+        if ((u8)sub_8045328((BattleObj *)arg0, (BattleObj *)(pool + local[i] * stride), 0x50) == 1)
         {
             if (*(u8 *)(buf[i] * stride + (u32)pool + 0xAB) == 3)
             {
                 if (((u32 (*)(void))Rng_LcgNext)() % 100 <= 0x45)
                 {
-                    sub_804612C(pool + buf[i] * stride, 5, 0);
+                    sub_804612C((BattleObj *)(pool + buf[i] * stride), 5, 0);
                 }
             }
             buf[i] |= 0x10;
@@ -1011,7 +1042,7 @@ void sub_804666C(void)
     max = 5;
     while (i < max)
     {
-        if (sub_8045F10(base + i * 0xC8, 0x43) == 2)
+        if (sub_8045F10((BattleObj *)(base + i * 0xC8), 0x43) == 2)
         {
             buffer[count] = i;
             count++;
@@ -1048,7 +1079,7 @@ void sub_8046C50(void)
     max = 5;
     while (i < max)
     {
-        if (sub_8045F10(base + i * 0xC8, 0x43) == 2)
+        if (sub_8045F10((BattleObj *)(base + i * 0xC8), 0x43) == 2)
         {
             buffer[count] = i;
             count++;
@@ -1066,40 +1097,40 @@ INCLUDE_ASM("asm/nonmatchings", sub_8046E18);
 // @ 0x08046F0C
 // 对象属性取值器: 按 gUnk_030008F0 (battle stat 索引) 分派读取对象槽字段; case5-9 = 基础值+修正值
 // (0x74..0x7C 与 0x7E..0x86 成对相加截断 u16); 越界索引(>14)返回入口 r0 (无显式 return, GCC2 直落 bx lr)。
-u16 sub_8046F0C(u8 *obj)
+u16 sub_8046F0C(BattleObj *obj)
 {
     switch (gUnk_030008F0)
     {
     case 0:
-        return obj[0xAA];
+        return obj->lv;
     case 1:
-        return *((u16 *)obj + 0x36);
+        return obj->hp;
     case 2:
-        return *((u16 *)obj + 0x37);
+        return obj->maxHp;
     case 3:
-        return *((u16 *)obj + 0x38);
+        return obj->mp;
     case 4:
-        return *((u16 *)obj + 0x39);
+        return obj->maxMp;
     case 5:
-        return *((u16 *)obj + 0x3A) + *((u16 *)obj + 0x3F);
+        return obj->atc + obj->statMods[0];
     case 6:
-        return *((u16 *)obj + 0x3B) + *((u16 *)obj + 0x40);
+        return obj->def + obj->statMods[1];
     case 7:
-        return *((u16 *)obj + 0x3C) + *((u16 *)obj + 0x41);
+        return obj->agl + obj->statMods[2];
     case 8:
-        return *((u16 *)obj + 0x3D) + *((u16 *)obj + 0x42);
+        return obj->men + obj->statMods[3];
     case 9:
-        return *((u16 *)obj + 0x3E) + *((u16 *)obj + 0x43);
+        return obj->res + obj->statMods[4];
     case 10:
-        return obj[0xA9];
+        return obj->noa;
     case 11:
-        return obj[0xBF];
+        return obj->posX;
     case 12:
-        return obj[0xC0];
+        return obj->posY;
     case 13:
-        return obj[0xAC] & 0xF;
+        return obj->pad_AC[0] & 0xF;
     case 14:
-        return obj[0xAC] >> 4;
+        return obj->pad_AC[0] >> 4;
     }
 }
 // @ 0x08047024
@@ -1115,7 +1146,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_80476DC);
 // @ 0x08047B1C
 INCLUDE_ASM("asm/nonmatchings", sub_8047B1C);
 // @ 0x08047D28
-u8 sub_8047D28(u8 *obj, u8 mask)
+u8 sub_8047D28(BattleObj *obj, u8 mask)
 {
     u8 result;
     u16 flags1;
@@ -1127,22 +1158,22 @@ u8 sub_8047D28(u8 *obj, u8 mask)
     result = 0;
     flags2 = 0;
     flags1 = 0;
-    if (obj[0xBE] <= 0xA)
+    if (obj->slot <= 0xA)
     {
         if (sub_804E76C(obj, 2, 6) >= 0)
             flags2 = 3;
         if (sub_804E76C(obj, 2, 7) >= 0)
             flags2 = 0xC;
     }
-    else if ((u8)(obj[0xBE] - 0xC) <= 0x64)
+    else if ((u8)(obj->slot - 0xC) <= 0x64)
     {
-        flags1 = *(u16 *)(*(u32 *)(obj + 0x88) + 0x16);
-        flags2 = *(u16 *)(*(u32 *)(obj + 0x88) + 0x18);
+        flags1 = *(u16 *)(obj->animPtr + 0x16);
+        flags2 = *(u16 *)(obj->animPtr + 0x18);
     }
-    else if (obj[0xBE] > 0x70)
+    else if (obj->slot > 0x70)
     {
-        flags1 = *(u16 *)(*(u32 *)(obj + 0x88) + 0x2A);
-        flags2 = *(u16 *)(*(u32 *)(obj + 0x88) + 0x2C);
+        flags1 = *(u16 *)(obj->animPtr + 0x2A);
+        flags2 = *(u16 *)(obj->animPtr + 0x2C);
     }
     i = 0;
     bit = 1;
@@ -1401,7 +1432,7 @@ u8 sub_80488CC(u8 *obj, u8 skill)
 }
 
 // @ 0x08048934
-u8 sub_8048934(u8 *arg0, u8 arg1)
+u8 sub_8048934(BattleObj *arg0, u8 arg1)
 {
     u8 b;
     u8 val;
@@ -1409,12 +1440,12 @@ u8 sub_8048934(u8 *arg0, u8 arg1)
     s8 *ptr;
     int off;
 
-    ptr = arg0 + 0x99;
+    ptr = (u8 *)arg0 + 0x99;
     b = ptr[arg1];
     tbl = gUnk_08093418;
     off = b * 5 + 4;
     val = *(u8 *)(off + tbl);
-    if (sub_804E76C(arg0, 3, 1) >= 0)
+    if (sub_804E76C((BattleObj *)(arg0), 3, 1) >= 0)
     {
         val = val - 2;
     }
@@ -1481,7 +1512,7 @@ u8 sub_80489E8(u8 *base, u8 *output, u8 mode, u16 flags)
     }
     for (; i < end; i++)
     {
-        if (sub_8045F10(base + i * 0xC8, flags) == 2)
+        if (sub_8045F10((BattleObj *)(base + i * 0xC8), flags) == 2)
         {
             output[count] = i;
             count++;
@@ -1490,14 +1521,14 @@ u8 sub_80489E8(u8 *base, u8 *output, u8 mode, u16 flags)
     return count;
 }
 // @ 0x08048A68
-u8 sub_8048A68(u8 *arg0)
+u8 sub_8048A68(BattleObj *arg0)
 {
     s16 a;
     s16 b;
     s16 diff;
 
-    a = *(s16 *)(arg0 + 0x6C);
-    b = *(s16 *)(arg0 + 0xB2);
+    a = arg0->hp;
+    b = arg0->dmgAmount;
     diff = a - b;
     if (diff <= 0)
     {
@@ -1570,11 +1601,11 @@ void sub_8048B5C(u8 *arg0, u8 arg1)
 extern u8 gUnk_0839CC4C[];
 
 // @ 0x08048B88
-u8 sub_8048B88(u8 *arg0)
+u8 sub_8048B88(BattleObj *arg0)
 {
-    if (arg0[0xBE] <= 10)
+    if (arg0->slot <= 10)
     {
-        return gUnk_0839CC4C[arg0[0x8D] * 4];
+        return gUnk_0839CC4C[*((u8 *)arg0 + 0x8D) * 4];
     }
     return 0;
 }
@@ -1588,18 +1619,18 @@ typedef struct
 extern Unk_0839CC4C gUnk_0839CC4C_entries[];
 
 // @ 0x08048BAC
-u8 sub_8048BAC(u8 *arg0)
+u8 sub_8048BAC(BattleObj *arg0)
 {
-    if (arg0[0xBE] <= 10)
+    if (arg0->slot <= 10)
     {
-        return gUnk_0839CC4C_entries[arg0[0x8D]].value;
+        return gUnk_0839CC4C_entries[*((u8 *)arg0 + 0x8D)].value;
     }
     return 0;
 }
 // @ 0x08048BD0
-void sub_8048BD0(u8 *arg0)
+void sub_8048BD0(BattleObj *arg0)
 {
-    switch (arg0[0xBE])
+    switch (arg0->slot)
     {
         case 0:
         case 1:
@@ -1611,16 +1642,16 @@ void sub_8048BD0(u8 *arg0)
         case 8:
         case 9:
         case 10:
-            arg0[0xC3] = 0x10;
+            arg0->f_C3 = 0x10;
             break;
         case 5:
-            if (arg0[0x8D] == 0)
+            if (*((u8 *)arg0 + 0x8D) == 0)
             {
-                arg0[0xC3] = 8;
+                arg0->f_C3 = 8;
             }
             else
             {
-                arg0[0xC3] = 0x10;
+                arg0->f_C3 = 0x10;
             }
             break;
         default:
@@ -1631,12 +1662,12 @@ extern u8 gUnk_0839BB4C[];
 extern u8 gUnk_0839D5BC[];
 
 // @ 0x08048C30
-u8 sub_8048C30(u8 *obj)
+u8 sub_8048C30(BattleObj *obj)
 {
     u8 ret = 0;
-    if (obj[0xBE] <= 0xA)
+    if (obj->slot <= 0xA)
     {
-        switch (obj[0xBE])
+        switch (obj->slot)
         {
         case 0:
         case 1:
@@ -1657,10 +1688,10 @@ u8 sub_8048C30(u8 *obj)
     }
     else
     {
-        if ((u8)(obj[0xBE] - 0xC) <= 0x64)
+        if ((u8)(obj->slot - 0xC) <= 0x64)
         {
             const u8 *tbl = gUnk_0839D5BC;
-            int k2 = obj[0xBE] - 0xC;
+            int k2 = obj->slot - 0xC;
             int idx = k2 * 6;
             const u8 *p = tbl + 4;
             u8 flagA = *(p + idx);
@@ -1674,7 +1705,7 @@ u8 sub_8048C30(u8 *obj)
 }
 
 // @ 0x08048C80
-u8 sub_8048C80(u8 *obj)
+u8 sub_8048C80(BattleObj *obj)
 {
     // 8 字节数组在本函数中未被使用, 但 GCC2 仍为其保留栈帧 (对应目标 sub sp,#8 / add sp,#8);
     // 同文件 sub_804C9B4/sub_804D1B4 等姊妹函数的 values[8] 是真使用, 本函数是模板复刻残留
@@ -1686,17 +1717,17 @@ u8 sub_8048C80(u8 *obj)
     u32 threshold;
 
     GetObjPool(obj);
-    if (obj[0xBE] <= 0xA)
+    if (obj->slot <= 0xA)
     {
         base = 5;
-        v1 = obj[0x8B];
+        v1 = *((u8 *)obj + 0x8B);
     }
     else
     {
         base = 0x14;
         v1 = 0;
     }
-    switch (obj[0xAB])
+    switch (obj->variantClass)
     {
     case 2:
         sw = 5;
@@ -1715,49 +1746,49 @@ u8 sub_8048C80(u8 *obj)
     return ret;
 }
 // @ 0x08048CEC
-u8 sub_8048CEC(u8 *obj)
+u8 sub_8048CEC(BattleObj *obj)
 {
     u8 result;
 
     result = 0;
-    if (obj[0xBE] <= 10)
+    if (obj->slot <= 10)
     {
-        if ((s8)obj[0xBC] != 2)
+        if ((s8)obj->fxKind != 2)
         {
-            if (*(u16 *)(obj + 0x7E) != 0)
+            if (*(u16 *)((u8 *)obj + 0x7E) != 0)
                 result = 1;
-            else if (*(u16 *)(obj + 0x80) != 0)
+            else if (*(u16 *)((u8 *)obj + 0x80) != 0)
                 result = 2;
         }
         else
         {
-            if (*(u16 *)(obj + 0x7E) != 0)
+            if (*(u16 *)((u8 *)obj + 0x7E) != 0)
                 result = 3;
-            else if (*(u16 *)(obj + 0x80) != 0)
+            else if (*(u16 *)((u8 *)obj + 0x80) != 0)
                 result = 4;
         }
     }
     return result;
 }
 // @ 0x08048D40
-void sub_8048D40(u8 *arg0)
+void sub_8048D40(BattleObj *arg0)
 {
-    if (arg0[0xBE] > 10)
+    if (arg0->slot > 10)
     {
         return;
     }
-    *(u16 *)(arg0 + 0x7E) = 0;
-    *(u16 *)(arg0 + 0x80) = 0;
-    *(u16 *)(arg0 + 0x82) = 0;
-    *(u16 *)(arg0 + 0x84) = 0;
-    *(u16 *)(arg0 + 0x86) = 0;
+    *(u16 *)((u8 *)arg0 + 0x7E) = 0;
+    *(u16 *)((u8 *)arg0 + 0x80) = 0;
+    *(u16 *)((u8 *)arg0 + 0x82) = 0;
+    *(u16 *)((u8 *)arg0 + 0x84) = 0;
+    *(u16 *)((u8 *)arg0 + 0x86) = 0;
 }
 // @ 0x08048D64
-u16 sub_8048D64(u8 *arg0, u16 arg1)
+u16 sub_8048D64(BattleObj *arg0, u16 arg1)
 {
     s32 diff;
 
-    diff = *(u16 *)(arg0 + 0x6E) - *(u16 *)(arg0 + 0x6C);
+    diff = arg0->maxHp - arg0->hp;
     if (diff < arg1)
     {
         return diff;

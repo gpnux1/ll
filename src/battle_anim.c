@@ -145,48 +145,7 @@ typedef struct
 // OBJ/BG 调色板与 0x02036AC0/0x02036CC0, 每次后 DmaWait; 最后把两张 16×16B 表的
 // field_0/1 |= 0xFF、field_2-4/8 清零、field_6 (u16) 清零。
 // new_var 死赋值 = 锚定 gUnk_03000AE8 池常量的装载位置 (缺了它 GCC2 会把该 ldr 提升到首个 DmaWait 之前)。
-void sub_804B288(void)
-{
-    u8 i;
-    vu16 fill;
-    u8 *new_var;
-
-    gUnk_03000AE0 = 0;
-    gUnk_03000AE2 = 0;
-    gUnk_03000CE8 = 0;
-    gUnk_03000AE4 = 0;
-    gUnk_03000AE5 = 0;
-    fill = 0;
-    DmaSet(3, &fill, (void *)0x05000200, 0x81000100);
-    DmaWait(3);
-    fill = 0;
-    DmaSet(3, &fill, (void *)0x05000000, 0x81000100);
-    DmaWait(3);
-    fill = 0;
-    DmaSet(3, &fill, (void *)0x02036AC0, 0x81000100);
-    DmaWait(3);
-    fill = 0;
-    DmaSet(3, &fill, (void *)0x02036CC0, 0x81000100);
-    DmaWait(3);
-    for (i = 0; i <= 15; i++)
-    {
-        new_var = gUnk_03000AE8;
-        ((Unk_804B288Entry *)(new_var + (i * 16)))->f0 |= 0xFF;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f1 |= 0xFF;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f2 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f3 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f4 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f6 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000AE8 + (i * 16)))->f8 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f0 |= 0xFF;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f1 |= 0xFF;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f2 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f3 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f4 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f6 = 0;
-        ((Unk_804B288Entry *)(gUnk_03000BE8 + (i * 16)))->f8 = 0;
-    }
-}
+INCLUDE_ASM("asm/nonmatchings", sub_804B288);
 // @ 0x0804B3C0
 INCLUDE_ASM("asm/nonmatchings", sub_804B3C0);
 // @ 0x0804B458
@@ -740,7 +699,7 @@ void sub_804C78C(void)
     for (i = 0; i < count; i++)
     {
         obj = pool + values[i] * 0xC8;
-        if (sub_8045F10(obj, 0x20) == 1)
+        if (sub_8045F10((BattleObj *)obj, 0x20) == 1)
         {
             switch (obj[0xBE])
             {
@@ -789,7 +748,7 @@ void sub_804C890(u8 *obj)
     for (i = 0; i <= 4; i++)
     {
         u8 *o = obj + i * 0xC8;
-        if (sub_8045F10(o, 0x20) == 2)
+        if (sub_8045F10((BattleObj *)o, 0x20) == 2)
         {
             u8 r;
             u8 t = i;
@@ -873,23 +832,23 @@ void sub_804C9B4(void)
     }
 }
 // @ 0x0804CA2C
-void sub_804CA2C(u8 *obj)
+void sub_804CA2C(BattleObj *obj)
 {
     u8 values[16];
     u8 count;
     u8 value;
 
     count = sub_80489E8((u8 *)GetObjPool(), values, 1, 0x7F);
-    obj[0xBC] = 0;
-    if ((s8)gUnk_03000D38[obj[0xBE]] < 0)
+    obj->fxKind = 0;
+    if ((s8)gUnk_03000D38[obj->slot] < 0)
     {
         value = values[((s32 (*)(void))Rng_LcgNext)() % count];
-        obj[0xBD] = value;
-        gUnk_03000D38[obj[0xBE]] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        obj->f_BD = value;
+        gUnk_03000D38[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
     }
     else
     {
-        obj[0xBD] = gUnk_03000D38[obj[0xBE]];
+        obj->f_BD = gUnk_03000D38[obj->slot];
     }
 }
 
@@ -940,23 +899,23 @@ void sub_804CA2C(u8 *obj)
 // @ 0x0804CAA0
 DEFINE_RANDOM_SLOT_FUNC_24(sub_804CAA0)
 // @ 0x0804CB18
-void sub_804CB18(u8 *obj)
+void sub_804CB18(BattleObj *obj)
 {
     u8 values[16];
     u8 count;
     u8 value;
 
     count = sub_80489E8((u8 *)GetObjPool(), values, 1, 0x7F);
-    obj[0xBC] = 0;
-    if ((s8)gUnk_03000D38[obj[0xBE]] < 0)
+    obj->fxKind = 0;
+    if ((s8)gUnk_03000D38[obj->slot] < 0)
     {
         value = values[((s32 (*)(void))Rng_LcgNext)() % count];
-        obj[0xBD] = value;
-        gUnk_03000D38[obj[0xBE]] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        obj->f_BD = value;
+        gUnk_03000D38[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
     }
     else
     {
-        obj[0xBD] = gUnk_03000D38[obj[0xBE]];
+        obj->f_BD = gUnk_03000D38[obj->slot];
     }
 }
 // @ 0x0804CB8C
@@ -990,7 +949,7 @@ void sub_804CEBC(void)
 // @ 0x0804CEE0
 INCLUDE_ASM("asm/nonmatchings", sub_804CEE0);
 // @ 0x0804D0F8
-void sub_804D0F8(u8 *obj)
+void sub_804D0F8(BattleObj *obj)
 {
     u8 values[8];
     u8 count = 0;
@@ -998,9 +957,9 @@ void sub_804D0F8(u8 *obj)
     u8 j;
     u8 *pool;
 
-    if (*(u32 *)(*(u32 *)(obj + 0x88) + 0x1C) == 0)
+    if (*(u32 *)(obj->animPtr + 0x1C) == 0)
     {
-        obj[0xBC] = 0;
+        obj->fxKind = 0;
         pool = GetObjPool();
         count = sub_80489E8(pool, values, 1, 0x6F);
         if (count <= 1)
@@ -1009,7 +968,7 @@ void sub_804D0F8(u8 *obj)
         }
         for (i = 0; i < count; i++)
         {
-            if (*(u8 *)(pool + values[i] * 0xC8 + 0xAC) == obj[0xAC])
+            if (*(u8 *)(pool + values[i] * 0xC8 + 0xAC) == *((u8 *)obj + 0xAC))
             {
                 for (j = i; j < count - 1; j++)
                     values[j] = values[j + 1];
@@ -1017,10 +976,10 @@ void sub_804D0F8(u8 *obj)
                 break;
             }
         }
-        obj[0xBD] = values[(u32)(u8)Rng_LcgNext() % count];
+        obj->f_BD = values[(u32)(u8)Rng_LcgNext() % count];
     }
     else
     {
-        obj[0xBC] = 3;
+        obj->fxKind = 3;
     }
 }

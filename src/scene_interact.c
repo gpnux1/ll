@@ -11,7 +11,7 @@
 
 
 // @ 0x08031580
-u8 sub_8031580(u8 *obj)
+u8 sub_8031580(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -24,8 +24,8 @@ u8 sub_8031580(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -53,8 +53,8 @@ u8 sub_8031580(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -64,15 +64,15 @@ u8 sub_8031580(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            obj[0xBE] = 0xFF;
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
+            obj->slot = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08031714
-u8 sub_8031714(u8 *obj)
+u8 sub_8031714(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -85,8 +85,8 @@ u8 sub_8031714(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -114,8 +114,8 @@ u8 sub_8031714(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -125,15 +125,15 @@ u8 sub_8031714(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x080318A8
-u8 sub_80318A8(u8 *obj)
+u8 sub_80318A8(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -146,8 +146,8 @@ u8 sub_80318A8(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -175,8 +175,8 @@ u8 sub_80318A8(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -186,15 +186,15 @@ u8 sub_80318A8(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08031A3C
-u8 sub_8031A3C(u8 *obj)
+u8 sub_8031A3C(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -207,8 +207,8 @@ u8 sub_8031A3C(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -236,8 +236,8 @@ u8 sub_8031A3C(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -247,15 +247,15 @@ u8 sub_8031A3C(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08031BD0
-u8 sub_8031BD0(u8 *obj)
+u8 sub_8031BD0(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -268,8 +268,8 @@ u8 sub_8031BD0(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -297,8 +297,8 @@ u8 sub_8031BD0(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -308,15 +308,15 @@ u8 sub_8031BD0(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08031D64
-u8 sub_8031D64(u8 *obj)
+u8 sub_8031D64(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -329,8 +329,8 @@ u8 sub_8031D64(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -358,8 +358,8 @@ u8 sub_8031D64(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -369,15 +369,15 @@ u8 sub_8031D64(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08031EF8
-u8 sub_8031EF8(u8 *obj)
+u8 sub_8031EF8(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -390,8 +390,8 @@ u8 sub_8031EF8(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -419,8 +419,8 @@ u8 sub_8031EF8(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -430,15 +430,15 @@ u8 sub_8031EF8(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x0803208C
-u8 sub_803208C(u8 *obj)
+u8 sub_803208C(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -451,8 +451,8 @@ u8 sub_803208C(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -480,8 +480,8 @@ u8 sub_803208C(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -491,15 +491,15 @@ u8 sub_803208C(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x08032220
-u8 sub_8032220(u8 *obj)
+u8 sub_8032220(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -512,8 +512,8 @@ u8 sub_8032220(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -541,8 +541,8 @@ u8 sub_8032220(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -552,15 +552,15 @@ u8 sub_8032220(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }
     return result;
 }
 // @ 0x080323B4
-u8 sub_80323B4(u8 *obj)
+u8 sub_80323B4(BattleObj *obj)
 {
     u8 result;
     u16 f2a;
@@ -573,8 +573,8 @@ u8 sub_80323B4(u8 *obj)
             gUnk_03000825 = 0;
             gUnk_03000867 = 0x10;
             gUnk_03000868 = 0;
-            f2a = *(u16 *)(obj + 0x24) | 0x10;
-            *(u16 *)(obj + 0x24) = f2a;
+            f2a = obj->headA.kindFlags | 0x10;
+            obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
             gUnk_03000889 = 1;
@@ -602,8 +602,8 @@ u8 sub_80323B4(u8 *obj)
             else
             {
                 gUnk_03000825 = 0;
-                f2b = *(u16 *)(obj + 0x24) | 0x200;
-                *(u16 *)(obj + 0x24) = f2b;
+                f2b = obj->headA.kindFlags | 0x200;
+                obj->headA.kindFlags = f2b;
                 gUnk_03000889 = 3;
             }
             break;
@@ -613,8 +613,8 @@ u8 sub_80323B4(u8 *obj)
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
-            *(u16 *)(obj + 0x24) &= 0xFFEF;
-            obj[0xBE] = 0xFF;
+            obj->headA.kindFlags &= 0xFFEF;
+            obj->slot = 0xFF;
             result = 1;
             break;
     }

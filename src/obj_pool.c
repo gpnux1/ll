@@ -14,9 +14,9 @@ typedef void (*UnkFuncDD70)(u8 *, u32);
 extern UnkFuncDD70 gUnk_0839CE38[];
 
 // @ 0x0804DD70
-void sub_804DD70(u8 *ptr, u32 arg1)
+void sub_804DD70(BattleObj *ptr, u32 arg1)
 {
-    gUnk_0839CE38[*(u8 *)(ptr + 0xBE) - 0x71](ptr, arg1);
+    gUnk_0839CE38[ptr->slot - 0x71](ptr, arg1);
 }
 extern const u8 gUnk_087EA580[];
 extern const u8 gUnk_0839CEFC[];
@@ -205,7 +205,7 @@ void sub_804DFD8(u16 *arg0, u8 arg1, u8 arg2, u8 *arg3, u8 arg4, u8 arg5, u8 arg
  * 前段按 obj[0xA4] (0xDD..0xE4) 选出一对参数 (a, b) 供 case 4 传给 sub_801EEE4;
  * 后段是状态机: 0 起手→1 播动画→2 等 0x1000 →3 等 0x800 →4 播完→13 收尾。
  * 与 event_hub.c sub_8034440 / event_actor.c 的同族状态机同型 (zero/keys 临时同样式)。 */
-u8 sub_804E0E4(u8 *arg0, u32 arg1)
+u8 sub_804E0E4(BattleObj *arg0, u32 arg1)
 {
     u8 result;
     u8 a;
@@ -215,7 +215,7 @@ u8 sub_804E0E4(u8 *arg0, u32 arg1)
 
     result = 0;
 
-    switch (arg0[0xA4] - 0xDD)
+    switch (*((u8 *)arg0 + 0xA4) - 0xDD)
     {
     case 0:
         a = 0;
@@ -253,8 +253,8 @@ u8 sub_804E0E4(u8 *arg0, u32 arg1)
     case 0:
         sub_8020DE4();
         gUnk_03000DDE = 1;
-        gUnk_03000DE6 = *(u16 *)(arg0 + 0x2A);
-        gUnk_03000DE8 = arg0[0x35];
+        gUnk_03000DE6 = arg0->headA.f_1E;
+        gUnk_03000DE8 = arg0->headA.palSlot;
         break;
     case 1:
         sub_801CBA4(arg0, 6, 0x1B4, 0xD, 0);
@@ -262,25 +262,25 @@ u8 sub_804E0E4(u8 *arg0, u32 arg1)
         Sfx_Play(0x17, 0, 0);
         break;
     case 2:
-        if (*(u16 *)(arg0 + 0x24) & 0x1000)
+        if (arg0->headA.kindFlags & 0x1000)
         {
             u8 v;
 
-            v = arg0[0x35];
-            sub_804C3A4(v, (u8)sub_801B954((ObjHead *)(arg0 + 0xC)));
-            keys = *(u16 *)(arg0 + 0x24) & 0xEFFF;
+            v = arg0->headA.palSlot;
+            sub_804C3A4(v, (u8)sub_801B954((ObjHead *)(&arg0->headA)));
+            keys = arg0->headA.kindFlags & 0xEFFF;
             zero = 0;
-            *(u16 *)(arg0 + 0x24) = keys;
+            arg0->headA.kindFlags = keys;
             sub_801CBA4(arg0, zero, gUnk_03000DE6, gUnk_03000DE8, zero);
-            keys = *(u16 *)(arg0 + 0x24) | 0x100;
-            *(u16 *)(arg0 + 0x24) = keys;
+            keys = arg0->headA.kindFlags | 0x100;
+            arg0->headA.kindFlags = keys;
             gUnk_03000DDE = 3;
         }
         break;
     case 3:
-        if (!(*(u16 *)(arg0 + 0x24) & 0x800))
+        if (!(arg0->headA.kindFlags & 0x800))
         {
-            *(u16 *)(arg0 + 0x24) &= 0xFEFF;
+            arg0->headA.kindFlags &= 0xFEFF;
             gUnk_03000DDE = 4;
         }
         break;
@@ -301,16 +301,16 @@ u8 sub_804E0E4(u8 *arg0, u32 arg1)
 // @ 0x0804E2AC
 INCLUDE_ASM("asm/nonmatchings", sub_804E2AC);
 // @ 0x0804E6DC
-s8 sub_804E6DC(u8 *obj, u8 value)
+s8 sub_804E6DC(BattleObj *obj, u8 value)
 {
     u8 result;
     u8 *data;
     u8 i;
 
     result = -1;
-    if (obj[0xBE] <= 10)
+    if (obj->slot <= 10)
     {
-        data = obj + 0x8D;
+        data = (u8 *)obj + 0x8D;
         if (data[0] != 0 || data[1] != 0 || data[2] != 0 || data[3] != 0 || data[4] != 0 || data[5] != 0 || data[6] != 0
             || data[7] != 0)
         {
@@ -327,16 +327,16 @@ s8 sub_804E6DC(u8 *obj, u8 value)
     return result;
 }
 // @ 0x0804E76C
-s8 sub_804E76C(u8 *obj, u8 arg1, u8 arg2)
+s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2)
 {
     s8 result;
     u8 i;
     u8 *values;
 
     result = -1;
-    if (obj[0xBE] <= 10)
+    if (obj->slot <= 10)
     {
-        values = obj + 0x8D;
+        values = (u8 *)obj + 0x8D;
         if (values[0] != 0 || values[1] != 0 || values[2] != 0 || values[3] != 0 || values[4] != 0 || values[5] != 0 || values[6] != 0
             || values[7] != 0)
         {
@@ -438,7 +438,7 @@ u8 sub_804E85C(void)
     case 4:
         for (i = 0; i < gUnk_03000E04; i++)
         {
-            sub_804612C(ObjSlot(i), 0xA, 1);
+            sub_804612C((BattleObj *)(ObjSlot(i)), 0xA, 1);
         }
         result = 1;
         break;
@@ -554,13 +554,13 @@ void sub_804F07C(void)
     gUnk_03000DDE = 0;
 }
 // @ 0x0804F088
-u8 sub_804F088(u8 *arg0, u32 arg1)
+u8 sub_804F088(BattleObj *arg0, u32 arg1)
 {
-    if (arg0[0xBE] > 0xAU)
+    if (arg0->slot > 0xAU)
     {
         return 2;
     }
-    if (arg0[0xA4] > 0xDCU)
+    if (*((u8 *)arg0 + 0xA4) > 0xDCU)
     {
         return sub_804E0E4(arg0, arg1);
     }
@@ -627,7 +627,7 @@ s8 sub_804F10C(u8 arg0, u8 arg1)
     for (i = 0; i < count; i++)
     {
         idx = values[i] * 0xC8;
-        result = sub_804E76C(pool + idx, arg0, arg1);
+        result = sub_804E76C((BattleObj *)(pool + idx), arg0, arg1);
         tmp = result;
         if (tmp >= 0)
         {
@@ -656,7 +656,7 @@ u8 sub_804F17C(u8 *arg0, u8 arg1, u8 arg2)
     found = 0;
     for (i = 0; i < count; i++)
     {
-        if (sub_804E76C(pool + slots[i] * 0xC8, arg1, arg2) >= 0)
+        if (sub_804E76C((BattleObj *)(pool + slots[i] * 0xC8), arg1, arg2) >= 0)
         {
             arg0[found] = slots[i];
             found++;

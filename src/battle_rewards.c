@@ -26,7 +26,7 @@ typedef struct
 extern Unk_804D1B4_Entry gUnk_08393B28_entries[];
 
 // @ 0x0804D1B4
-void sub_804D1B4(u8 *obj, u8 *arg1)
+void sub_804D1B4(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -35,32 +35,32 @@ void sub_804D1B4(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 15)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = 0;
-    switch ((s8)obj[0xBC])
+        obj->fxKind = 0;
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
-            obj[0xC2] = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 8)];
+            obj->animSubIdx = 0;
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D260
-void sub_804D260(u8 *obj, u8 *arg1)
+void sub_804D260(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -69,32 +69,32 @@ void sub_804D260(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = 0;
-    switch ((s8)obj[0xBC])
+        obj->fxKind = 0;
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
-            obj[0xC2] = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 8)];
+            obj->animSubIdx = 0;
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D310
-void sub_804D310(u8 *obj, u8 *arg1)
+void sub_804D310(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -104,25 +104,25 @@ void sub_804D310(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
-        obj[0xBC] = 1;
+        ((u8 *)obj)[0xBC] = 1;
     else
-        obj[0xBC] = 0;
-    obj[0xBC] = 0;
-    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+        ((u8 *)obj)[0xBC] = 0;
+    ((u8 *)obj)[0xBC] = 0;
+    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
     zero = 0;
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            ((u8 *)obj)[0xBD] = value;
             break;
         case 1:
-            obj[0xBD] = zero;
+            ((u8 *)obj)[0xBD] = zero;
             break;
     }
 }
 // @ 0x0804D3A0
-void sub_804D3A0(u8 *obj, u8 *arg1)
+void sub_804D3A0(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -131,32 +131,32 @@ void sub_804D3A0(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 13)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = 0;
-    switch ((s8)obj[0xBC])
+        obj->fxKind = 0;
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
-            obj[0xC2] = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 8)];
+            obj->animSubIdx = 0;
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D44C
-void sub_804D44C(u8 *obj, u8 *arg1)
+void sub_804D44C(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -165,32 +165,32 @@ void sub_804D44C(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = 0;
-    switch ((s8)obj[0xBC])
+        obj->fxKind = 0;
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
-            obj[0xC2] = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 8)];
+            obj->animSubIdx = 0;
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D4FC
-void sub_804D4FC(u8 *obj, u8 *arg1)
+void sub_804D4FC(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -202,39 +202,39 @@ void sub_804D4FC(u8 *obj, u8 *arg1)
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 1;
+        flag = &(obj->fxKind);
+        obj->fxKind = 1;
     }
     else
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 0;
+        flag = &(obj->fxKind);
+        obj->fxKind = 0;
     }
     v = *flag;
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
-            obj[0xC2] = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+            obj->animSubIdx = v;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D5B4
-void sub_804D5B4(u8 *obj, u8 *arg1)
+void sub_804D5B4(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 value;
@@ -246,46 +246,46 @@ void sub_804D5B4(u8 *obj, u8 *arg1)
     victory = 0;
     count = sub_80489E8(arg1, values, 1, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = victory;
+        obj->fxKind = victory;
     if (count == 2)
     {
         victory = 1;
         for (i = 0; i < 2; i++)
         {
-            if (obj[0xAC] == arg1[values[i] * 0xC8 + 0xAC])
+            if (*((u8 *)obj + 0xAC) == arg1[values[i] * 0xC8 + 0xAC])
                 continue;
             if ((s8)arg1[values[i] * 0xC8 + 0xBC] != 1)
                 break;
             if (arg1[values[i] * 0xC8 + 0xC2] != (count = 1)) /* count 仅作 1 的载体, 下行起即被重算 */
                 break;
-            obj[0xBC] = 3;
+            obj->fxKind = 3;
             break;
         }
     }
     count = sub_80489E8(arg1, values, 0, 0x6F);
-    switch ((s8)obj[0xBC])
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             if (victory == 1 && ((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x31)
-                obj[0xC2] = victory;
+                obj->animSubIdx = victory;
             else
-                obj[0xC2] = 0;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+                obj->animSubIdx = 0;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
@@ -293,7 +293,7 @@ void sub_804D5B4(u8 *obj, u8 *arg1)
 // 概率判定+drop道具。⚠ 2026-09-03 还原 INCLUDE_ASM: 原 C 代码比 ROM 少 4 字节
 // (ROM 尾部死 store `movs r0,#0; strb r0,[obj+0xBC]` 被 C 编译器优化掉),
 // 直接导致全局 +4 位移 bug。待用 do-while 屏障/中间变量复现死 store 后重匹配。
-void sub_804D708(u8 *obj, u8 *arg1)
+void sub_804D708(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -303,27 +303,27 @@ void sub_804D708(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
-        obj[0xBC] = 1;
+        ((u8 *)obj)[0xBC] = 1;
     else
-        obj[0xBC] = 0;
-    obj[0xBC] = 0;
-    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+        ((u8 *)obj)[0xBC] = 0;
+    ((u8 *)obj)[0xBC] = 0;
+    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
     zero = 0;
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            ((u8 *)obj)[0xBD] = value;
             break;
         case 1:
-            obj[0xBD] = zero;
+            ((u8 *)obj)[0xBD] = zero;
             break;
     }
 }
 // @ 0x0804D798
 INCLUDE_ASM("asm/matchings", sub_804D798); /* 函数清单修正: tsv=1 且 .s 已在 matchings/ (坑7); 见 INCIDENTS.md */
 // @ 0x0804D840
-void sub_804D840(u8 *obj, u8 *arg1)
+void sub_804D840(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -335,39 +335,39 @@ void sub_804D840(u8 *obj, u8 *arg1)
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 1;
+        flag = &(obj->fxKind);
+        obj->fxKind = 1;
     }
     else
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 0;
+        flag = &(obj->fxKind);
+        obj->fxKind = 0;
     }
     v = *flag;
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
-            obj[0xC2] = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+            obj->animSubIdx = v;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804D8F4
-void sub_804D8F4(u8 *obj, u8 *arg1)
+void sub_804D8F4(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -378,47 +378,47 @@ void sub_804D8F4(u8 *obj, u8 *arg1)
     unsigned int v;
 
     lucky = 0;
-    gold = *(u16 *)(obj + 0x6E) / 10 << 2;
+    gold = obj->maxHp / 10 << 2;
     count = sub_80489E8(arg1, values, 0, 0x6F);
-    if ((*(u16 *)(obj + 0xB0) & 0x400) == 0 && *(u16 *)(obj + 0x6C) < gold)
+    if ((obj->state & 0x400) == 0 && obj->hp < gold)
     {
-        obj[0xBC] = 1;
-        *(u16 *)(obj + 0xB0) |= 0x400;
+        obj->fxKind = 1;
+        obj->state |= 0x400;
         lucky = 1;
     }
     else
     {
         if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
-            obj[0xBC] = 1;
+            obj->fxKind = 1;
         else
-            obj[0xBC] = 0;
+            obj->fxKind = 0;
     }
-    switch (v = (s8)obj[0xBC])
+    switch (v = (s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             if (lucky == 0)
-                obj[0xC2] = lucky;
+                obj->animSubIdx = lucky;
             else
-                obj[0xC2] = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+                obj->animSubIdx = v;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804DA04
-void sub_804DA04(u8 *obj, u8 *arg1)
+void sub_804DA04(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -428,33 +428,33 @@ void sub_804DA04(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
-        obj[0xBC] = 1;
+        obj->fxKind = 1;
     else
-        obj[0xBC] = 0;
-    switch ((s8)obj[0xBC])
+        obj->fxKind = 0;
+    switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             kind = ((u32 (*)(void))Rng_LcgNext)() % 3;
-            obj[0xC2] = kind;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+            obj->animSubIdx = kind;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804DABC
-void sub_804DABC(u8 *obj, u8 *arg1)
+void sub_804DABC(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -464,28 +464,28 @@ void sub_804DABC(u8 *obj, u8 *arg1)
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
-        obj[0xBC] = 1;
+        ((u8 *)obj)[0xBC] = 1;
     else
-        obj[0xBC] = 0;
-    obj[0xBC] = 1;
+        ((u8 *)obj)[0xBC] = 0;
+    ((u8 *)obj)[0xBC] = 1;
     v = ((u32 (*)(void))Rng_LcgNext)() & 3;
-    obj[0xC2] = v;
+    ((u8 *)obj)[0xC2] = v;
     if (v == 1)
-        obj[0xC2] = 0;
-    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+        ((u8 *)obj)[0xC2] = 0;
+    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)((u8 *)obj + 0x88)))->field_8[((u8 *)obj)[0xC2]]];
     switch (entry->field_10)
     {
     case 0:
         value = values[(u32)(u8)Rng_LcgNext() % count];
-        obj[0xBD] = value;
+        ((u8 *)obj)[0xBD] = value;
         break;
     case 1:
-        obj[0xBD] = 0;
+        ((u8 *)obj)[0xBD] = 0;
         break;
     }
 }
 // @ 0x0804DB64
-void sub_804DB64(u8 *obj, u8 *arg1)
+void sub_804DB64(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -498,41 +498,41 @@ void sub_804DB64(u8 *obj, u8 *arg1)
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 1;
+        flag = &(obj->fxKind);
+        obj->fxKind = 1;
     }
     else
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 0;
+        flag = &(obj->fxKind);
+        obj->fxKind = 0;
     }
     v = *flag;
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             kind = ((u32 (*)(void))Rng_LcgNext)() % 5;
-            obj[0xC2] = kind;
-            if ((u32)obj[0xC2] == 2)
-                obj[0xC2] = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+            obj->animSubIdx = kind;
+            if ((u32)obj->animSubIdx == 2)
+                obj->animSubIdx = v;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804DC24
-void sub_804DC24(u8 *obj, u8 *arg1)
+void sub_804DC24(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -544,39 +544,39 @@ void sub_804DC24(u8 *obj, u8 *arg1)
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x3B)
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 1;
+        flag = &(obj->fxKind);
+        obj->fxKind = 1;
     }
     else
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 0;
+        flag = &(obj->fxKind);
+        obj->fxKind = 0;
     }
     v = *flag;
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)(obj + 0x88) + 2)];
+            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
-            obj[0xC2] = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+            obj->animSubIdx = v;
+            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
             break;
     }
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
 // @ 0x0804DCD8
-void sub_804DCD8(u8 *obj, u8 *arg1)
+void sub_804DCD8(BattleObj *obj, u8 *arg1)
 {
     u8 values[8];
     u8 count;
@@ -588,27 +588,27 @@ void sub_804DCD8(u8 *obj, u8 *arg1)
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 1;
+        flag = &(obj->fxKind);
+        obj->fxKind = 1;
     }
     else
     {
-        flag = (s8 *)(obj + 0xBC);
-        obj[0xBC] = 0;
+        flag = &(obj->fxKind);
+        obj->fxKind = 0;
     }
     zero = 0;
-    obj[0xBC] = 1;
-    obj[0xC2] = zero;
-    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)(obj + 0x88)))->field_8[obj[0xC2]]];
+    obj->fxKind = 1;
+    obj->animSubIdx = zero;
+    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
     switch (entry->field_10)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
-            obj[0xBD] = value;
+            obj->f_BD = value;
             break;
             while (value) break; /* 调度屏障: 触发 agbcc global-alloc 复用 r1 存 0 + 拷地址到 r2 (零行为, 两路皆 break) */
         case 1:
-            obj[0xBD] = 0;
+            obj->f_BD = 0;
             break;
     }
 }
