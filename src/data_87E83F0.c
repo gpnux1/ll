@@ -633,7 +633,7 @@ const u32 gDialogPortraitGfxTable[]
        (u32)gUnk_08075B04, (u32)gUnk_08076104, (u32)gUnk_080767C8, (u32)gUnk_08076E00, (u32)gUnk_08077468, (u32)gUnk_08077A10,
        (u32)gUnk_08077FE0, (u32)gUnk_080786C8, (u32)gUnk_08078CAC, (u32)gUnk_08079294};
 
-/* 队伍成员名字文本块表 (5 项), 由 gUnk_030047B4 选, 交给 TextBlocks_Render */
+/* 队伍成员名字文本块表 (5 项), 由 gCameraPanDuration 选, 交给 TextBlocks_Render */
 const u32 gCharNameTextBlocks[] = {(u32)gCharNameTextBlock_Homel, (u32)gCharNameTextBlock_Catarina, (u32)gCharNameTextBlock_Marius,
                                    (u32)gCharNameTextBlock_Stadjus, (u32)gCharNameTextBlock_4};
 

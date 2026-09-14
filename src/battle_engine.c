@@ -63,7 +63,7 @@ u32 sub_804473C(BattleObj *arg0, u8 *arg1)
     return result;
 }
 // @ 0x080448A8
-// 战斗结果技能 HP 恢复写入 (gUnk_03000908): 按 (s8)obj[0xBC] 选 stats[0x2F] (case1: stats[0x30+obj[0xC2]])
+// 战斗结果技能 HP 恢复写入 (gSkillHealAmount): 按 (s8)obj[0xBC] 选 stats[0x2F] (case1: stats[0x30+obj[0xC2]])
 // 作技能 id, switch 分发到 sub_8044A40 (恢复量基准) 并对 12/34/38/41 加 0xF、14/37/40 加 0x1E。
 // do-while(0) 为调度屏障: 撑出 result→r1 / kind→r4 的 home (拆掉则二者互换, 头部 8 条全错)。
 typedef struct Stats_BattleView
@@ -168,7 +168,7 @@ u32 sub_80448A8(BattleObj *arg0, u8 *arg1)
             break;
         }
     } while (0);
-    gUnk_03000908 = result;
+    gSkillHealAmount = result;
     return result;
 }
 // @ 0x08044A40
@@ -531,7 +531,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_8045A10);
 //     t = *(u16 *)slot;
 //     bptr = slot + 0x29;
 //     b = bptr[arg1];
-//     tbl = gUnk_08093418;
+//     tbl = gSkillLearnTable;
 //     off = b * 5 + 4;
 //     val = *(u8 *)(off + tbl);
 //     v = b;
@@ -622,7 +622,7 @@ void sub_8045B90(BattleObj *obj, u8 index)
     data += 0x29;
     data += index;
     id = *data;
-    amount = gUnk_08093418[id * 5 + 4];
+    amount = gSkillLearnTable[id * 5 + 4];
     if (sub_804E76C((BattleObj *)(obj), 3, 1) >= 0)
         amount = amount - 2;
     if (sub_804E76C(obj, 3, 2) >= 0)
@@ -1193,11 +1193,11 @@ INCLUDE_ASM("asm/nonmatchings", sub_8046CD4);
 // @ 0x08046E18
 INCLUDE_ASM("asm/nonmatchings", sub_8046E18);
 // @ 0x08046F0C
-// 对象属性取值器: 按 gUnk_030008F0 (battle stat 索引) 分派读取对象槽字段; case5-9 = 基础值+修正值
+// 对象属性取值器: 按 gStatRecalcKind (battle stat 索引) 分派读取对象槽字段; case5-9 = 基础值+修正值
 // (0x74..0x7C 与 0x7E..0x86 成对相加截断 u16); 越界索引(>14)返回入口 r0 (无显式 return, GCC2 直落 bx lr)。
 u16 sub_8046F0C(BattleObj *obj)
 {
-    switch (gUnk_030008F0)
+    switch (gStatRecalcKind)
     {
     case 0:
         return obj->lv;
@@ -1540,7 +1540,7 @@ u8 sub_8048934(BattleObj *arg0, u8 arg1)
 
     ptr = (u8 *)arg0 + 0x99;
     b = ptr[arg1];
-    tbl = gUnk_08093418;
+    tbl = gSkillLearnTable;
     off = b * 5 + 4;
     val = *(u8 *)(off + tbl);
     if (sub_804E76C((BattleObj *)(arg0), 3, 1) >= 0)
@@ -1561,7 +1561,7 @@ u8 sub_8048984(u8 *arg0, u8 arg1)
 
     ptr = arg0 + 0x99;
     index = ptr[arg1];
-    return gUnk_08093418[index * 5 + 2] & 0xF;
+    return gSkillLearnTable[index * 5 + 2] & 0xF;
 }
 // @ 0x080489A4
 u8 sub_80489A4(u8 *arg0, u8 arg1)
@@ -1572,7 +1572,7 @@ u8 sub_80489A4(u8 *arg0, u8 arg1)
 
         arg1 = ptr[arg1];
     }
-    return gUnk_08093418[arg1 * 5 + 1] & 0xF;
+    return gSkillLearnTable[arg1 * 5 + 1] & 0xF;
 }
 // @ 0x080489C8
 u16 sub_80489C8(u8 *arg0, u16 arg1)
@@ -1661,8 +1661,8 @@ void sub_8048ACC(u8 *arg0, u8 arg1, u8 arg2)
     {
         return;
     }
-    gUnk_030008F0 = arg2;
-    gUnk_030008EC = GetObjPool();
+    gStatRecalcKind = arg2;
+    gStatRecalcPool = GetObjPool();
     val = arg1 - 1;
     if (val <= 0)
     {
@@ -1679,10 +1679,10 @@ void sub_8048ACC(u8 *arg0, u8 arg1, u8 arg2)
 // @ 0x08048B30
 void sub_8048B30(u8 param1, u8 param2, u16 param3)
 {
-    gUnk_030008F1 = 0;
-    gUnk_030008F2 = param1;
-    gUnk_030008F3 = param2;
-    gUnk_03000906 = param3;
+    gFxReqTimer = 0;
+    gFxReqKind = param1;
+    gFxReqFrames = param2;
+    gFxReqAnimIdx = param3;
 }
 // @ 0x08048B5C
 void sub_8048B5C(u8 *arg0, u8 arg1)
@@ -1912,82 +1912,82 @@ u8 sub_8048D84(u8 *arg0, u8 *arg1)
 void sub_8048DA4(void)
 {
     u8 i;
-    extern u32 gUnk_03000970; /* 块级 u32 视图: 文件后方 2050 行处另有 Unk_03000970* 视图 (经验109 同址多视图), 本函数只写 0 */
+    extern u32 gBattleDlgPool; /* 块级 u32 视图: 文件后方另有 BattleObj 布局视图 Unk_03000970* (经验109 同址多视图), 本函数只写 0 */
 
-    gUnk_03000949 = 0;
-    gUnk_0300094A = 0;
-    gUnk_0300094B = 0;
-    gUnk_0300094C = 0;
-    gUnk_0300094D = 0;
-    *(u16 *)gUnk_03000950 = 0;
-    gUnk_03000954 = 0;
-    gUnk_03000956 = 0;
-    gUnk_03000958 = 0;
-    gUnk_0300095A = 0;
-    gUnk_03000968 = 0;
-    gUnk_03000969 = 0;
-    gUnk_0300096C = 0;
-    gUnk_03000970 = 0;
-    gUnk_03000979 = 0;
-    gUnk_0300097A = 0;
-    gUnk_0300097B = 0;
-    gUnk_0300097C = 0;
-    gUnk_0300097D = 0;
+    gBattleDlgObjSlot = 0;
+    gBattleDlgCellIdx = 0;
+    gBattleDlgTileCol = 0;
+    gBattleDlgDigitCol = 0;
+    gBattleDlgAnimFrame = 0;
+    *(u16 *)gBattleDlgSegOff = 0;
+    gBattleDlgNextState = 0;
+    gBattleDlgShowVal = 0;
+    gBattleDlgLvUpMask = 0;
+    gBattleDlgShowTarget = 0;
+    gBattleDlgLearnCount = 0;
+    gBattleDlgLearnIdx = 0;
+    gBattleDlgLearnGfx = 0;
+    gBattleDlgPool = 0;
+    gBattleDlgPartyCount = 0;
+    gBattleDlgPartyIdx = 0;
+    gBattleDlgFlashState = 0;
+    gBattleDlgFlashTimer = 0;
+    gBattleDlgFlashPal = 0;
     for (i = 0; i <= 4; i++)
-        gUnk_03000974[i] = 0;
+        gBattleDlgPartySlots[i] = 0;
     for (i = 0; i <= 7; i++)
-        gUnk_03000960[i] = 0;
+        gBattleDlgLearnList[i] = 0;
     DialogCtx_Clear3();
     Bg0_InitClear();
     sub_80196D4(0, 0x02035AC0, 0xB, 2, 2, 1, 0, 0x1C, 4);
-    gUnk_03000949 = 0;
+    gBattleDlgObjSlot = 0;
     gBattleIntroState = 0;
     gBattleIntroPhase = 1;
-    gUnk_03000956 = 0;
-    gUnk_03000958 = 0;
+    gBattleDlgShowVal = 0;
+    gBattleDlgLvUpMask = 0;
     DmaCopy16(3, 0x0861A7A4, 0x0600B7C0, 0x40);
     DmaWait(3);
-    gUnk_03000969 = 0;
-    gUnk_03000968 = 0;
-    gUnk_0300097B = 0;
-    gUnk_0300097C = 0;
+    gBattleDlgLearnIdx = 0;
+    gBattleDlgLearnCount = 0;
+    gBattleDlgFlashState = 0;
+    gBattleDlgFlashTimer = 0;
 }
 // @ 0x08048F0C
 void sub_8048F0C(void)
 {
     u8 *state;
 
-    state = &gUnk_0300097B;
+    state = &gBattleDlgFlashState;
     switch (*state)
     {
         case 0:
             break;
         case 1:
-            sub_804B96C(gUnk_0300097D, 1, 0x10, 0x1C, 0x1F, 4, 4, -1, 2);
-            gUnk_0300097C = 0;
+            sub_804B96C(gBattleDlgFlashPal, 1, 0x10, 0x1C, 0x1F, 4, 4, -1, 2);
+            gBattleDlgFlashTimer = 0;
             Sfx_Play(0x18, 0, 0);
             *state = 2;
             break;
         case 2:
-            if (gUnk_0300097C <= 3)
+            if (gBattleDlgFlashTimer <= 3)
             {
-                gUnk_0300097C++;
+                gBattleDlgFlashTimer++;
             }
             else
             {
-                sub_804C4D8(gUnk_0300097D, 1, 0x10);
-                gUnk_0300097C = 0;
+                sub_804C4D8(gBattleDlgFlashPal, 1, 0x10);
+                gBattleDlgFlashTimer = 0;
                 *state = 3;
             }
             break;
         case 3:
-            if (gUnk_0300097C <= 0xF)
+            if (gBattleDlgFlashTimer <= 0xF)
             {
-                gUnk_0300097C++;
+                gBattleDlgFlashTimer++;
             }
             else
             {
-                gUnk_0300097C = 0;
+                gBattleDlgFlashTimer = 0;
                 *state = 0;
             }
             break;
@@ -2001,7 +2001,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_80492C0);
 INCLUDE_ASM("asm/nonmatchings", sub_80494F0);
 /* 数字翻牌显示: 把 arg1 (u16) 按 10000/1000/100/10 拆成 5 位存栈上数组 digits[0..4]。
  * 引导循环跳过前导零 (首个非零位的下标); val==0 时不跳 (i 归 0 → 显示个位)。
- * i 加上全局计数器 gUnk_0300094C (u8 回绕) 选位, 写 arg0[0]/arg0[0x20] 两行 tilemap
+ * i 加上全局计数器 gBattleDlgDigitCol (u8 回绕) 选位, 写 arg0[0]/arg0[0x20] 两行 tilemap
  * (值 = digit*2 - 0x4EBC/-0x4EBB, 即 +0xFFFFB144/+0xFFFFB145), 计数器 ++。
  * 返回: val==0 → 1; 已显示到最后一位之后 (i>3) → 1; 否则 0 (还有后续位)。
  * ⚠ 除法通道: 第 1 次 (val/10000) 必须 unsigned (__udivsi3, val 强转 u32),
@@ -2036,9 +2036,9 @@ u32 sub_80497B0(u16 *arg0, u16 arg1)
     if (i > 4 && val == 0)
         i = 0;
 
-    i = i + gUnk_0300094C;
+    i = i + gBattleDlgDigitCol;
     i = (u8)i;
-    counter = &gUnk_0300094C;
+    counter = &gBattleDlgDigitCol;
     arg0[0] = digits[i] * 2 - 0x4EBC;
     arg0[0x20] = digits[i] * 2 - 0x4EBB;
     (*counter)++;
@@ -2062,16 +2062,16 @@ INCLUDE_ASM("asm/matchings", sub_80498E0);
 //     u16 ofs;
 //     u8 tile;
 
-//     byte = ((u8 *)gUnk_030009C0)[gUnk_030009BF * 4];
+//     byte = ((u8 *)gResultsDropTablePtr)[gResultsDropSelIdx * 4];
 //     ofs = byte * 8;
-//     frame = gUnk_0300094D;
+//     frame = gBattleDlgAnimFrame;
 //     tile = tbl[ofs + frame];
 //     dest[0] = tile * 2 - 0x5000;
 //     dest[0x20] = tile * 2 - 0x4FFF;
-//     gUnk_0300094D++;
-//     byte = ((u8 *)gUnk_030009C0)[gUnk_030009BF * 4];
+//     gBattleDlgAnimFrame++;
+//     byte = ((u8 *)gResultsDropTablePtr)[gResultsDropSelIdx * 4];
 //     ofs = byte * 8;
-//     frame = gUnk_0300094D;
+//     frame = gBattleDlgAnimFrame;
 //     tile = tbl[ofs + frame];
 //     if (tile == 0)
 //         return 1;
@@ -2172,18 +2172,20 @@ typedef struct
     u8 gap[0x35];
     u8 value;
     u8 remaining[146];
-} Unk_03000970; /* 200 字节 obj; gUnk_03000970 为指向该数组的指针 */
+} Unk_03000970; /* 200 字节 = BattleObj 同布局视图; gBattleDlgPool 为指向该数组的指针;
+                 * +0x35 (value) 即 BattleObj.headA.palSlot (headA@+0x0C + ObjHead.palSlot@+0x29),
+                 * sub_8048F0C 以 sub_804B96C/804C4D8 对该调色板槽做闪光淡变 */
 
-extern u8 gUnk_03000949;
-extern u8 gUnk_0300097B;
-extern u8 gUnk_0300097D;
-extern Unk_03000970 *gUnk_03000970;
+extern u8 gBattleDlgObjSlot;
+extern u8 gBattleDlgFlashState;
+extern u8 gBattleDlgFlashPal;
+extern Unk_03000970 *gBattleDlgPool;
 
 // @ 0x0804AB10
 void sub_804AB10(void)
 {
-    gUnk_0300097D = gUnk_03000970[gUnk_03000949].value;
-    gUnk_0300097B = 1;
+    gBattleDlgFlashPal = gBattleDlgPool[gBattleDlgObjSlot].value;
+    gBattleDlgFlashState = 1;
 }
 // @ 0x0804AB40
 INCLUDE_ASM("asm/nonmatchings", sub_804AB40);
@@ -2200,9 +2202,9 @@ void sub_804ABD0(void)
         ptr[i + 0x20] = 0xB001;
     }
 }
-/* tile 动画帧写入: 按 arg1*18 + gUnk_0300094D*2 索引 gUnk_0862D574 的 u16 帧表,
+/* tile 动画帧写入: 按 arg1*18 + gBattleDlgAnimFrame*2 索引 gUnk_0862D574 的 u16 帧表,
  * 把当前帧写入 dest[0]/dest[0x20] 两处 tilemap (值 = data*2 - 0x5000 / -0x4FFF),
- * 帧号 gUnk_0300094D++ 后检查: >3 或下一帧 == 0xF00 终止符 → 返回 1 (动画结束), 否则 0。 */
+ * 帧号 gBattleDlgAnimFrame++ 后检查: >3 或下一帧 == 0xF00 终止符 → 返回 1 (动画结束), 否则 0。 */
 extern u8 gUnk_0862D574[];
 
 // @ 0x0804ABF8
@@ -2214,17 +2216,17 @@ u32 sub_804ABF8(u16 *dest, u8 arg1)
     u16 off2;
 
     base = gUnk_0862D574;
-    off = gUnk_0300094D * 2 + arg1 * 18;
+    off = gBattleDlgAnimFrame * 2 + arg1 * 18;
     data = *(u16 *)(base + off);
     dest[0] = data * 2 - 0x5000;
     dest[0x20] = data * 2 - 0x4FFF;
 
-    gUnk_0300094D++;
+    gBattleDlgAnimFrame++;
 
-    if (gUnk_0300094D > 3)
+    if (gBattleDlgAnimFrame > 3)
         return 1;
 
-    off2 = gUnk_0300094D * 2 + arg1 * 18;
+    off2 = gBattleDlgAnimFrame * 2 + arg1 * 18;
     if (*(u16 *)(base + off2) == 0xF00)
         return 1;
 
@@ -2240,7 +2242,7 @@ void sub_804AC60(void)
     u8 b;
     u8 *entry;
 
-    b = *(u8 *)(gUnk_030009C8 + gUnk_030009C5);
+    b = *(u8 *)(gResultsStatePtr + gResultsViewKind);
     entry = gUnk_0839D348 + b * 18;
     if (sub_80187B4() & 0x20)
     {

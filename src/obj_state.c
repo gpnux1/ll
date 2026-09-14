@@ -18,7 +18,7 @@ void sub_8044394(BattleObj *obj)
 
     active = 0;
     value = 0;
-    if (obj->slot > 11 && gUnk_03000884 == 0)
+    if (obj->slot > 11 && gObjActSfxLatch == 0)
     {
         switch (obj->slot)
         {
@@ -55,47 +55,47 @@ void sub_8044394(BattleObj *obj)
         if (active == 1)
         {
             Sfx_Play(value, 2, 0);
-            gUnk_03000884 = active;
+            gObjActSfxLatch = active;
         }
     }
 }
 // @ 0x08044414
 void sub_8044414(void)
 {
-    gUnk_03000889 = 0;
+    gSceneTransStep = 0;
 }
 // @ 0x08044420
 u16 sub_8044420(void)
 {
-    return gUnk_03000882;
+    return gActHitDmgAmount;
 }
 // @ 0x0804442C
 void sub_804442C(u8 arg0)
 {
     u8 i;
 
-    gUnk_03000820 = arg0;
-    gUnk_03000826 = 0;
-    gUnk_03000844 = 0;
-    gUnk_03000845 = 0;
-    gUnk_03000856 = 0;
-    gUnk_03000825 = 0;
-    gUnk_0300086A = 1;
-    gUnk_03000884 = 0;
+    gObjActStep = arg0;
+    gObjActResult = 0;
+    gActWaitBusy0 = 0;
+    gActWaitBusy1 = 0;
+    gActWaitBusy2 = 0;
+    gObjActStepTimer = 0;
+    gObjActBranch = 1;
+    gObjActSfxLatch = 0;
     for (i = 0; i <= 0xB; i++)
     {
-        gUnk_03004F90[i] = 0;
+        gObjSlotFxCmd[i] = 0;
     }
 }
 // @ 0x0804448C
 void sub_804448C(void)
 {
-    gUnk_03000865 = 0;
+    gObjActDoneCount = 0;
 }
 // @ 0x08044498
 u8 sub_8044498(void)
 {
-    return gUnk_03000865;
+    return gObjActDoneCount;
 }
 // @ 0x080444A4
 void sub_80444A4(BattleObj *arg0)
@@ -113,15 +113,15 @@ void sub_80444A4(BattleObj *arg0)
 // @ 0x080444E8
 u8 sub_80444E8(void)
 {
-    if (gUnk_03000844 != 0)
+    if (gActWaitBusy0 != 0)
     {
         return 0;
     }
-    if (gUnk_03000845 != 0)
+    if (gActWaitBusy1 != 0)
     {
         return 0;
     }
-    if (gUnk_03000856 != 0)
+    if (gActWaitBusy2 != 0)
     {
         return 0;
     }
@@ -130,50 +130,50 @@ u8 sub_80444E8(void)
 // @ 0x08044514
 void sub_8044514(s16 arg0)
 {
-    gUnk_03000844 = 1;
-    gUnk_03000845 = 0;
-    gUnk_03000856 = 0;
+    gActWaitBusy0 = 1;
+    gActWaitBusy1 = 0;
+    gActWaitBusy2 = 0;
     if (arg0 < 0)
     {
-        gUnk_0300085A = 0xC;
+        gActWaitFrames = 0xC;
     }
     else
     {
-        gUnk_0300085A = arg0;
+        gActWaitFrames = arg0;
     }
-    gUnk_03000857 = 0;
-    gUnk_0300085C = 0;
-    gUnk_03000886 = 0x37;
-    gUnk_03000888 = 0;
+    gActWaitCnt0 = 0;
+    gActWaitCnt1 = 0;
+    gActWaitSfxId = 0x37;
+    gActWaitSfxParam = 0;
 }
 // @ 0x08044574
 void sub_8044574(s16 arg0, u16 arg1, u8 arg2)
 {
-    gUnk_03000844 = 1;
-    gUnk_03000845 = 0;
-    gUnk_03000856 = 0;
+    gActWaitBusy0 = 1;
+    gActWaitBusy1 = 0;
+    gActWaitBusy2 = 0;
     if (arg0 < 0)
     {
-        gUnk_0300085A = 0xC;
+        gActWaitFrames = 0xC;
     }
     else
     {
-        gUnk_0300085A = arg0;
+        gActWaitFrames = arg0;
     }
-    gUnk_03000857 = 0;
-    gUnk_0300085C = 0;
-    gUnk_03000886 = arg1;
-    gUnk_03000888 = arg2;
+    gActWaitCnt0 = 0;
+    gActWaitCnt1 = 0;
+    gActWaitSfxId = arg1;
+    gActWaitSfxParam = arg2;
 }
 // @ 0x080445E0
 u8 *sub_80445E0()
 {
-    return gUnk_03004F90;
+    return gObjSlotFxCmd;
 }
 
 // @ 0x080445E8
-// 按 gUnk_0300083D 遍历 gUnk_03000840[i]&0xF 索引 GetObjPool 槽,
-// obj[0xAC]==arg0[0xAC] 命中时写 gUnk_03004F90[idx]=arg1 (arg1==6 需 sub_8048C30(arg0)==1)。
+// 按 gObjActGroupCount 遍历 gObjActGroupSlots[i]&0xF 索引 GetObjPool 槽,
+// obj[0xAC]==arg0[0xAC] 命中时写 gObjSlotFxCmd[idx]=arg1 (arg1==6 需 sub_8048C30(arg0)==1)。
 // 注: 索引表达式须 `off + (u32)base`(off 在前) 才出目标 `adds r0,r0,r3`; 反序出 `adds r0,r3,r0` (差1B)。
 //     0xF 直接内联不可抽 mask 变量(抽了多出 sub sp 槽与调度差, 曾差 112B)。
 void sub_80445E8(BattleObj *arg0, u8 arg1)
@@ -184,14 +184,14 @@ void sub_80445E8(BattleObj *arg0, u8 arg1)
     u8 *obj;
 
     base = (u8 *)GetObjPool();
-    for (i = 0; i < gUnk_0300083D; i++)
+    for (i = 0; i < gObjActGroupCount; i++)
     {
-        off = (0xF & gUnk_03000840[i]) * 0xC8;
+        off = (0xF & gObjActGroupSlots[i]) * 0xC8;
         obj = (u8 *)(off + (u32)base);
         if (obj[0xAC] == *((u8 *)arg0 + 0xAC))
         {
             if (arg1 != 6 || sub_8048C30((BattleObj *)(arg0)) == 1)
-                gUnk_03004F90[0xF & gUnk_03000840[i]] = arg1;
+                gObjSlotFxCmd[0xF & gObjActGroupSlots[i]] = arg1;
             break;
         }
     }
@@ -211,7 +211,7 @@ u8 sub_80446A4(BattleObj *arg0)
 {
     if (arg0->slot <= 10)
     {
-        return gUnk_03000826;
+        return gObjActResult;
     }
 
     return 0;
@@ -231,7 +231,7 @@ void sub_80446BC(BattleObj *arg0)
     {
         return;
     }
-    if (gUnk_03000884 != 0)
+    if (gObjActSfxLatch != 0)
     {
         return;
     }
@@ -250,7 +250,7 @@ void sub_80446BC(BattleObj *arg0)
         return;
     }
     Sfx_Play(gUnk_0839DBF6[arg0->slot - 0xc][r5], 2, 0);
-    gUnk_03000884 = 1;
+    gObjActSfxLatch = 1;
 }
 // @ 0x08044728
 s32 sub_8044728()

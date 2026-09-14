@@ -1112,8 +1112,8 @@ void Save_LoadSlot0(void)
 {
     u16 i;
 
-    gUnk_03004D44 = 1;
-    gUnk_03004DD0 = 0;
+    gSaveFsmState = 1;
+    gSaveSramBlock = 0;
 
     while (Save_Fsm_ByteResult(1) != 0)
         ;
@@ -1338,8 +1338,8 @@ void sub_801455C(void)
     SpriteNode *obj;
 
     MenuState_Reset();
-    gUnk_03000048.field_4 = 0x60;
-    gUnk_03000048.field_6 = 0x2C;
+    gMenuCursorSprite.x = 0x60;
+    gMenuCursorSprite.y = 0x2C;
     sub_800E668(1);
 
     for (i = 0; i <= 0xE; i++)
@@ -1367,8 +1367,8 @@ void sub_801455C(void)
     gUiSprites[5].statusFlags |= 8;
 
     obj = (SpriteNode *)0x03004380;
-    attr0 = gUnk_03000048.field_6;
-    attr1 = ((gUnk_03000048.field_4 - 0x20) & 0x1FF);
+    attr0 = gMenuCursorSprite.y;
+    attr1 = ((gMenuCursorSprite.x - 0x20) & 0x1FF);
     attr1 += 0x8000;
     attr2 = 0x21C0;
     Sprite_InitChainNode(obj, 1, attr0, attr1, attr2);
@@ -1680,15 +1680,15 @@ u8 *arg3;
 // @ 0x08015E88
 void Save_ResetReadState(void)
 {
-    gUnk_03004D44 = 1;
-    gUnk_03004DD0 = 0;
+    gSaveFsmState = 1;
+    gSaveSramBlock = 0;
 }
 // @ 0x08015EA0
 void Save_StartWrite(void)
 {
     Save_LoadContinue();
-    gUnk_03004D44 = 3;
-    gUnk_03004DD0 = 0;
+    gSaveFsmState = 3;
+    gSaveSramBlock = 0;
     *(u8 *)0x03000221 = 1;
     Msg_ShowById(0x18, 0xB);
 }

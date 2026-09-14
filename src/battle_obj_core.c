@@ -391,20 +391,6 @@ INCLUDE_ASM("asm/nonmatchings", sub_801BE34);
 // @ 0x0801C484
 INCLUDE_ASM("asm/nonmatchings", sub_801C484);
 // @ 0x0801CE80
-typedef struct Unk_08393B28
-{
-    u32 field_0;
-    u32 field_4;
-    u16 field_8;
-    u16 field_A;
-    u16 field_C; /* sub_801CA08/801CE80 复制到 obj->f_B4 */
-    u16 field_E; /* 同上 → obj->f_B6 */
-    u16 field_10;
-    u8 pad_12[2];
-} Unk_08393B28;
-
-extern Unk_08393B28 gUnk_08393B28[];
-
 // @ 0x0801CA08
 /* 战斗对象主头 (headA) 动画切换: kind 选择 animPtr+0x1A 基索引内的动画
  * (variantClass!=0 时 case0/5 改取基索引+2 的变色变体), 查 gUnk_08393B28[idx] 取图形
@@ -470,7 +456,7 @@ void *memcpy(void *, const void *, unsigned long);
 void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
 {
     u8 *p = obj->animPtr;
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
     u16 flag;
     u16 idx;
     u16 v1;
@@ -772,7 +758,7 @@ void sub_801D468(void)
 }
 // @ 0x0801D568
 /* 伤害数字弹出 (战斗结算把伤害写入 obj->dmgAmount 后, 由 sub_801DEDC/sub_801DF90/
- * sub_8020B04 触发): 槽位 tile 基号 = gUnk_0300068C*4+0x158。数值夹 ≤999 拆百/十/个,
+ * sub_8020B04 触发): 槽位 tile 基号 = gDmgPopupSlot*4+0x158。数值夹 ≤999 拆百/十/个,
  * 前导零以 0xFFFF 哨兵抑制 ((s16) 读为 -1 → 字体表空块表项 39); 每块 DMA3 32B 到
  * OBJ VRAM 0x06010000+槽*32 并忙等, 字体基址从 gUnk_0861A004 运行时折叠 -0x60
  * (= gUnk_08619FA4, 表项 39..49)。尾部把 {dmgAmount 原始值, posX-16, posY-8} 记入
@@ -786,7 +772,7 @@ void sub_801D568(BattleObj *arg0)
     u16 num;
     u16 i;
 
-    slot = gUnk_0300068C * 4 + 0x158;
+    slot = gDmgPopupSlot * 4 + 0x158;
     num = arg0->dmgAmount;
     if (num > 999)
         num = 999;
@@ -818,14 +804,14 @@ void sub_801D568(BattleObj *arg0)
         DmaWait(3);
     }
 
-    gUnk_03000670[gUnk_0300068C].field_0 = arg0->dmgAmount;
-    gUnk_03000670[gUnk_0300068C].field_2 = arg0->posX - 16;
-    gUnk_03000670[gUnk_0300068C].field_3 = arg0->posY - 8;
-    gUnk_0300068C++;
+    gUnk_03000670[gDmgPopupSlot].field_0 = arg0->dmgAmount;
+    gUnk_03000670[gDmgPopupSlot].field_2 = arg0->posX - 16;
+    gUnk_03000670[gDmgPopupSlot].field_3 = arg0->posY - 8;
+    gDmgPopupSlot++;
 }
 
 // @ 0x0801D710
-// 弹出数字重绘/重登记 (VRAM 重载后由 sub_801DE44 清零 gUnk_0300068C 后逐对象调用):
+// 弹出数字重绘/重登记 (VRAM 重载后由 sub_801DE44 清零 gDmgPopupSlot 后逐对象调用):
 // kind==0 重画 arg0->f_B2 的 3 位十进制 (前导零以 0xFFFF 哨兵→字体表空块表项39 抑制;
 // digits 的读均用 (s16) 视图使哨兵=-1, |= 的读-改-写保持 u16; 字体基址在源码里从
 // gUnk_0861A004 运行时折叠 -0x60)。kind!=0 画固定图形 [空][空][表项12][表项2]
@@ -842,7 +828,7 @@ void sub_801D710(BattleObj *arg0, u8 kind)
     u16 num;
     u16 i;
 
-    slot = gUnk_0300068C * 4 + 0x158;
+    slot = gDmgPopupSlot * 4 + 0x158;
     num = arg0->dmgAmount;
     if (kind == 0)
     {
@@ -888,10 +874,10 @@ void sub_801D710(BattleObj *arg0, u8 kind)
         DmaWait(3);
     }
 
-    gUnk_03000670[gUnk_0300068C].field_0 = arg0->dmgAmount;
-    gUnk_03000670[gUnk_0300068C].field_2 = arg0->posX - 16;
-    gUnk_03000670[gUnk_0300068C].field_3 = arg0->posY - 8;
-    gUnk_0300068C++;
+    gUnk_03000670[gDmgPopupSlot].field_0 = arg0->dmgAmount;
+    gUnk_03000670[gDmgPopupSlot].field_2 = arg0->posX - 16;
+    gUnk_03000670[gDmgPopupSlot].field_3 = arg0->posY - 8;
+    gDmgPopupSlot++;
 }
 // @ 0x0801D984
 u8 sub_801D984(u8 arg)
@@ -902,13 +888,13 @@ u8 sub_801D984(u8 arg)
     u16 tmp;
 
     r6 = arg;
-    if (gUnk_0300068C != 0)
+    if (gDmgPopupSlot != 0)
     {
-        u8 e = gUnk_0300068E;
+        u8 e = gDmgPopupLevel;
         tmp = (u16)(-((0x14 - e * 2) / e));
         if (e <= 2)
         {
-            r7 = (u8)sub_801768C(0, (s16)tmp, 9 - e, gUnk_0300068D * 2, 3);
+            r7 = (u8)sub_801768C(0, (s16)tmp, 9 - e, gDmgPopupPhase * 2, 3);
         }
         else
         {
@@ -916,7 +902,7 @@ u8 sub_801D984(u8 arg)
         }
     }
 
-    for (i = 0; i < gUnk_0300068C; i++)
+    for (i = 0; i < gDmgPopupSlot; i++)
     {
         GameOamData *o = &gOamBuffer[r6];
         u32 t;
@@ -948,22 +934,22 @@ u32 sub_801DAA0(void)
     u8 i;
 
     ret = 0;
-    if (gUnk_0300068E < 3)
+    if (gDmgPopupLevel < 3)
     {
-        gUnk_0300068D = (gUnk_0300068D + 1) % (10 - gUnk_0300068E);
-        if (gUnk_0300068D >= 9 - gUnk_0300068E)
-            gUnk_0300068E = gUnk_0300068E + 1;
+        gDmgPopupPhase = (gDmgPopupPhase + 1) % (10 - gDmgPopupLevel);
+        if (gDmgPopupPhase >= 9 - gDmgPopupLevel)
+            gDmgPopupLevel = gDmgPopupLevel + 1;
     }
-    else if (gUnk_0300068E <= 0x22)
+    else if (gDmgPopupLevel <= 0x22)
     {
-        gUnk_0300068E = gUnk_0300068E + 1;
+        gDmgPopupLevel = gDmgPopupLevel + 1;
     }
     else
     {
         ret = 1;
-        gUnk_0300068C = 0;
-        gUnk_0300068E = 1;
-        gUnk_0300068D = 0;
+        gDmgPopupSlot = 0;
+        gDmgPopupLevel = 1;
+        gDmgPopupPhase = 0;
         for (i = 0; i < 7; i++)
         {
             gUnk_03000670[i].field_0 = 0;
@@ -991,7 +977,7 @@ void sub_801DB3C(BattleObj *arg0, u8 arg1, u16 arg2)
     u8 delta;
     u16 newval;
     Unk_0839B2B0 *t1;
-    Unk_08393B28 *t2;
+    ObjAnimEntry *t2;
 
     if (arg2 <= 2)
     {
@@ -1029,18 +1015,18 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
         if (arg0->slot == pool[buf[i] * 0xC8 + 0xBE])
             break;
     }
-    gUnk_030006A0[buf[i]].data = (u32)arg0;
-    ListNode_InitKey((UnkNode *)&gUnk_030006A0[buf[i]], arg1);
-    ListNode_InsertSorted(&gUnk_03000690, (UnkNode *)&gUnk_030006A0[buf[i]]);
+    gTaskPoolNodes[buf[i]].data = (u32)arg0;
+    ListNode_InitKey((UnkNode *)&gTaskPoolNodes[buf[i]], arg1);
+    ListNode_InsertSorted(&gTaskPoolHead, (UnkNode *)&gTaskPoolNodes[buf[i]]);
     sub_8045F94((BattleObj *)arg0, 8);
     arg0->dmgAmount = 0;
-    sub_804E7EC(arg0);
+    BattleFxObjs_Add(arg0);
     if (arg0->slot <= 6)
     {
         *(u16 *)&arg0->animPtr = 0;
         arg0->state |= 2;
     }
-    gUnk_030006F0 += 1;
+    gTaskPoolCount += 1;
 }
 
 
@@ -1054,7 +1040,7 @@ void sub_801DD04(BattleObj *obj, u8 idx, u16 val)
     u8 f35;
     /* 摘链用 u32 字指针而非结构体指针: GCC2 别名集按类型划分, 结构体字段存储与
      * 指针标量读取判为无冲突会省掉目标中的两次重载 (经验 150)。 */
-    u8 *arr = (u8 *)gUnk_030006A0;
+    u8 *arr = (u8 *)gTaskPoolNodes;
     u32 off = idx * 0x10;
     u8 *p = (u8 *)arr + 4;
     u32 *pp = (u32 *)(p + off);
@@ -1072,8 +1058,8 @@ void sub_801DD04(BattleObj *obj, u8 idx, u16 val)
     obj->hp = val;
     obj->fxKind = 0;
 
-    if (gUnk_030006F0)
-        gUnk_030006F0--;
+    if (gTaskPoolCount)
+        gTaskPoolCount--;
 
     f2a = idx * 0x16 + 9;
     f35 = (u8)(idx + 1);
@@ -1121,9 +1107,9 @@ void sub_801DE44(void)
     u8 flag;
     u32 ptr;
 
-    gUnk_0300068C = 0;
-    gUnk_0300068E = 1;
-    gUnk_0300068D = 0;
+    gDmgPopupSlot = 0;
+    gDmgPopupLevel = 1;
+    gDmgPopupPhase = 0;
     for (i = 0; i < 7; i++)
     {
         gUnk_03000670[i].field_0 = 0;
@@ -1143,7 +1129,7 @@ void sub_801DE44(void)
 // @ 0x0801DEDC
 void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
 {
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
     u8 *anim;
     int off;
     u16 sub;
@@ -1164,11 +1150,11 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
         entry = &gUnk_08393B28[sub];
         break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
     case 0:
         sub_801D568(arg1);
-        gUnk_0300068D = 0;
+        gDmgPopupPhase = 0;
         break;
     case 1:
     {
@@ -1183,7 +1169,7 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
             if (p->slot != 0xFF && p->variantClass != 8)
                 sub_801D568(p);
         }
-        gUnk_0300068D = 0;
+        gDmgPopupPhase = 0;
         break;
     }
     }
@@ -1191,7 +1177,7 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
 // @ 0x0801DF90
 void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
 {
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
     int off;
     u8 *anim;
     s8 kind = arg0->fxKind;
@@ -1207,11 +1193,11 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
         entry = &gUnk_08393B28[*(u16 *)(anim + off)];
         break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
     case 0:
         sub_801D568(arg1);
-        gUnk_0300068D = 0;
+        gDmgPopupPhase = 0;
         break;
     case 1:
     {
@@ -1226,7 +1212,7 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
             if (p->slot != 0xFF && p->variantClass != 8)
                 sub_801D568(p);
         }
-        gUnk_0300068D = 0;
+        gDmgPopupPhase = 0;
         break;
     }
     }
@@ -1235,9 +1221,9 @@ void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
 u8 sub_801E040(void)
 {
     u8 ret = 0;
-    if (gUnk_03000715 < gUnk_03000714)
+    if (gFxQueueReadIdx < gFxQueueWriteIdx)
     {
-        BattleObj *obj = gUnk_030006F8[gUnk_03000715];
+        BattleObj *obj = gFxQueueObjs[gFxQueueReadIdx];
         u8 *st = &obj->slot;
         if (*st <= 0xA)
         {
@@ -1277,13 +1263,13 @@ u8 sub_801E040(void)
             }
             sub_8045F94((BattleObj *)obj, 8);
         }
-        gUnk_03000715++;
+        gFxQueueReadIdx++;
     }
     else
     {
-        if (gUnk_03000714 != 0)
+        if (gFxQueueWriteIdx != 0)
         {
-            u8 s = gUnk_030006F8[0]->slot;
+            u8 s = gFxQueueObjs[0]->slot;
             if (s <= 0xA)
                 ret = 1;
             else if (s <= 0x70)
@@ -1294,7 +1280,7 @@ u8 sub_801E040(void)
                 ret = 3;
             }
         }
-        gUnk_03000715 = 0;
+        gFxQueueReadIdx = 0;
     }
     return ret;
 }
@@ -1303,28 +1289,28 @@ INCLUDE_ASM("asm/nonmatchings", sub_801E1D8);
 // @ 0x0801E30C
 INCLUDE_ASM("asm/nonmatchings", sub_801E30C);
 // @ 0x0801E4D4
-/* 战斗效果入队 (等价已匹配的 sub_8020B90): 写队列槽 gUnk_030006F8[count] 后 count++,
+/* 战斗效果入队 (等价已匹配的 sub_8020B90): 写队列槽 gFxQueueObjs[count] 后 count++,
  * 对象类型 > 0xB 时同时登记 gUnk_03000718。原 ROM 在 sub_801E4D4/801E30C/801E690 三处
  * 内联展开本逻辑; 因 GCC2 不会内联定义在后面的函数, 此处用 static inline 复现内联形状
  * (全部调用点被集成, 不产生独立副本, 不影响段布局)。 */
 static inline void Inl_QueuePushObj(BattleObj *obj)
 {
-    gUnk_030006F8[gUnk_03000714] = obj;
-    gUnk_03000714++;
+    gFxQueueObjs[gFxQueueWriteIdx] = obj;
+    gFxQueueWriteIdx++;
     if (obj->slot > 0xB)
     {
         gUnk_03000718 = (u32)obj;
     }
 }
 
-/* 由 arg0[0xBC] 选择的效果查表 (gUnk_08393B28[idx].field_10) 决定处理模式:
+/* 由 arg0[0xBC] 选择的效果查表 (gUnk_08393B28[idx].targetMode) 决定处理模式:
  * 0 → 对 arg1 单体做 [0x6C] -= [0xB2] (下溢清零), 回绕则入队;
  * 1 → 对 arg1 起始的 0xC8 步长成员数组 (5 或 7 个, 按 arg1[0xBE] 分档) 逐个执行同一扣减;
  * 其余 → 无操作。任一回绕标志置位则返回 1。注意本函数在 ROM 中无任何调用者(死代码)。 */
 u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
 {
     u8 flags[7];
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
     u16 idx;
     s32 t;
     u32 result;
@@ -1413,14 +1399,14 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
     return result;
 }
 // @ 0x0801E690
-/* 同 sub_801E4D4 的效果扣减引擎 (arg0[0xBC]→animPtr 查 gUnk_08393B28→field_10 模式分派),
+/* 同 sub_801E4D4 的效果扣减引擎 (arg0[0xBC]→animPtr 查 gUnk_08393B28→targetMode 模式分派),
  * 差异仅在查表入口: mode0=*(u16*)(animPtr+2), mode1=*(u16*)(animPtr+8+animSubIdx*2)
  * (即 animPtr+0x3A 处的 u8 索引; 与已匹配 sub_801DF90 的 dispatch 字节同构)。
  * ROM 中无任何调用者(死代码)。 */
 u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
 {
     u8 flags[7];
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
     int off;
     u8 *anim;
     u32 result;
@@ -1871,7 +1857,7 @@ u8 sub_801F76C(BattleObj *obj)
  *    取得技能类别 (0-5) 决定: 0/4=原值, 1=低 nibble, 2=高 nibble (==0x20 映射 0x30),
  *    3/5=0。
  *  - 敌方 (0xB..0x70): 由 animPtr+0x1A (fxKind==1 再加 animPtr[0x29]) 查
- *    gUnk_08393B28, 按其 field_10 模式分派 (0=原值, 1=0, 2=低 nibble ==2 映射 1,
+ *    gUnk_08393B28, 按其 targetMode 模式分派 (0=原值, 1=0, 2=低 nibble ==2 映射 1,
  *    3=高 nibble ==0x20 映射 0x10)。
  *  - 特效/特殊 (>0x70): 表索引改取 animPtr+2 (fxKind==0) 或
  *    animPtr+8+animSubIdx*2 (fxKind==1)。
@@ -1885,7 +1871,7 @@ u8 sub_801F884(BattleObj *obj)
     s32 t;
     u8 *anim;
     int off;
-    Unk_08393B28 *entry;
+    ObjAnimEntry *entry;
 
     if (obj->slot <= 0xA)
     {
@@ -1950,7 +1936,7 @@ u8 sub_801F884(BattleObj *obj)
                 break;
             }
         }
-        switch (entry->field_10)
+        switch (entry->targetMode)
         {
         case 0:
             result = pool[obj->f_BD * 0xC8 + 0xAC];
@@ -2028,9 +2014,9 @@ void sub_801FEBC(BattleObj *arg0, u16 arg1, u8 arg2)
  *      - 未命中且 n>4 时把该对象的 memberIdx (+0xBB) 收进 buf;
  *      - 继续下一节点。
  * 4. count=buf 收集数 (r7):
- *      - count!=0: slot = buf[Rng % count], 再在 gUnk_030006A0 (16B/节点, .data 指向对象) 里
+ *      - count!=0: slot = buf[Rng % count], 再在 gTaskPoolNodes (16B/节点, .data 指向对象) 里
  *        找 memberIdx==slot 的位次 i, 命中则 slot=i;
- *      - count==0 且 slot>=0: 在 gUnk_030006A0 里找 memberIdx 与当前节点数据对象相同的位次。
+ *      - count==0 且 slot>=0: 在 gTaskPoolNodes 里找 memberIdx 与当前节点数据对象相同的位次。
  * 5. 再用 sub_80489E8 收集一个候选槽表 buf (mode 0, 上限 0x100), 在其中找与 slot 相同
  *    memberIdx 的项, 命中则 slot = buf[i] (池槽索引)。
  * 返回 slot (s8; >=0 为有效槽, 调用者据此走 sub_802103C)。
@@ -2045,7 +2031,7 @@ s8 sub_801FF40(u8 mode)
     s8 i;
     u8 count;
     u8 n;
-    Unk_030006A0 *node;
+    TaskPoolNode *node;
     u8 *pool;
 
     slot = -1;
@@ -2057,7 +2043,7 @@ s8 sub_801FF40(u8 mode)
     sub_8018838(((u32 (*)(void))Rng_LcgNext)());
     ((u32 (*)(void))Rng_LcgNext)();
 
-    node = (Unk_030006A0 *)gUnk_03000690.next;
+    node = (TaskPoolNode *)gTaskPoolHead.next;
     count = 0;
 
     while (node->key <= 0xFE)
@@ -2087,7 +2073,7 @@ s8 sub_801FF40(u8 mode)
         slot = buf[((u32 (*)(void))Rng_LcgNext)() % count];
         for (i = 0; i < n; i++)
         {
-            if (*(u8 *)(gUnk_030006A0[i].data + 0xBB) == (s8)slot)
+            if (*(u8 *)(gTaskPoolNodes[i].data + 0xBB) == (s8)slot)
             {
                 slot = i;
                 break;
@@ -2098,7 +2084,7 @@ s8 sub_801FF40(u8 mode)
     {
         for (i = 0; i < n; i++)
         {
-            if (*(u8 *)(node->data + 0xBB) == *(u8 *)(gUnk_030006A0[i].data + 0xBB))
+            if (*(u8 *)(node->data + 0xBB) == *(u8 *)(gTaskPoolNodes[i].data + 0xBB))
             {
                 slot = i;
                 break;
@@ -2320,7 +2306,7 @@ void sub_802093C(BattleObj *arg0)
 // @ 0x08020974
 void sub_8020974(ObjHead *arg0, u16 arg1, u16 arg2, u8 arg3, u16 arg4)
 {
-    Unk_08393B28 *entry = &gUnk_08393B28[arg1];
+    ObjAnimEntry *entry = &gUnk_08393B28[arg1];
 
     sub_801B81C(arg0, arg0->f_2B, arg0->f_2C, arg2, arg3, entry->field_0, entry->field_4, entry->field_8, entry->field_A, arg4);
 }
@@ -2416,7 +2402,7 @@ u8 sub_8020AB0(void)
  * dmgAmount (+0xB2) 自增 1。与 sub_801FF40 的循环体同源。 */
 void sub_8020AE4(void)
 {
-    Unk_030006A0 *node = (Unk_030006A0 *)gUnk_03000690.next;
+    TaskPoolNode *node = (TaskPoolNode *)gTaskPoolHead.next;
 
     while (node->key <= 0xFE)
     {
@@ -2466,9 +2452,9 @@ void sub_8020B54(void)
 {
     u8 i;
     for (i = 0; i < 7; i++)
-        gUnk_030006F8[i] = 0;
-    gUnk_03000714 = 0;
-    gUnk_03000715 = 0;
+        gFxQueueObjs[i] = 0;
+    gFxQueueWriteIdx = 0;
+    gFxQueueReadIdx = 0;
     // The do-while barrier keeps GCC2's byte-store order 714,715,716 (local_alloc tiebreak, 经验 116).
     do
     {
@@ -2478,8 +2464,8 @@ void sub_8020B54(void)
 // @ 0x08020B90
 void sub_8020B90(BattleObj *arg0)
 {
-    gUnk_030006F8[gUnk_03000714] = arg0;
-    gUnk_03000714++;
+    gFxQueueObjs[gFxQueueWriteIdx] = arg0;
+    gFxQueueWriteIdx++;
     if (arg0->slot > 0xB)
     {
         gUnk_03000718 = (u32)arg0;
@@ -2508,7 +2494,7 @@ u8 sub_8020BF0(BattleObj *arg0)
 {
     u8 value;
 
-    value = gUnk_030006F8[0]->slot;
+    value = gFxQueueObjs[0]->slot;
     if ((u8)(value - 0xB) <= 0x65)
     {
         return sub_801E848();
@@ -2524,7 +2510,7 @@ extern UnkFunc20C2C gUnk_0839CE7C[];
 // @ 0x08020C2C
 u8 sub_8020C2C(void)
 {
-    return gUnk_0839CE7C[gUnk_030006F8[0]->slot - 0x71](gUnk_030006F8[0]);
+    return gUnk_0839CE7C[gFxQueueObjs[0]->slot - 0x71](gFxQueueObjs[0]);
 }
 
 // @ 0x08020C58
@@ -2730,9 +2716,9 @@ void sub_802103C(BattleObj *arg0, u8 arg1, u16 arg2)
 void sub_8021064(u8 arg0)
 {
     u8 i;
-    gUnk_0300068C = 0;
-    gUnk_0300068E = 1;
-    gUnk_0300068D = 0;
+    gDmgPopupSlot = 0;
+    gDmgPopupLevel = 1;
+    gDmgPopupPhase = 0;
     for (i = 0; i < 7; i++)
     {
         gUnk_03000670[i].field_0 = 0;

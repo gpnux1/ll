@@ -34,7 +34,6 @@ typedef struct AnimSlot
 typedef struct AnimSlot Unk_030046A0;
 
 extern AnimSlot gAnimSlots[NUM_ANIM_SLOTS];
-#define gUnk_030046A0 gAnimSlots
 
 /* AnimSlot 核心管理与播放 API */
 u8 *AnimSlot_Parse(u16 slot, u8 *src);

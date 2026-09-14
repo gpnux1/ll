@@ -9,35 +9,35 @@
 #include "save.h"
 #include "sound.h"
 
-// INCLUDE_ASM("asm/nonmatchings", SioBattle_ResetState);
+// INCLUDE_ASM("asm/nonmatchings", BattleFx_Reset);
 // @ 0x0804F210
-void SioBattle_ResetState(void)
+void BattleFx_Reset(void)
 {
     u8 i;
 
     for (i = 0; i <= 4; i++)
     {
-        gUnk_03000DF0[i] = 0;
+        gBattleFxObjs[i] = 0;
     }
 
-    gUnk_03000E04 = 0;
-    gUnk_03000E05 = 0;
+    gBattleFxObjCount = 0;
+    gBattleFxState = 0;
 }
 // @ 0x0804F244
-u8 SioBattle_GetState()
+u8 BattleFx_GetObjCount()
 {
-    return gUnk_03000E04;
+    return gBattleFxObjCount;
 }
 // @ 0x0804F250
-void SioBattle_ClearSlots(void)
+void BattleDrops_Clear(void)
 {
     u8 i;
 
     for (i = 0; i <= 9; i++)
     {
-        gUnk_03000E08[i].field_0 = 0;
-        gUnk_03000E08[i].field_2 = 0;
+        gBattleDrops[i].itemId = 0;
+        gBattleDrops[i].count = 0;
     }
 
-    gUnk_03000E30 = 0;
+    gBattleDropCount = 0;
 }

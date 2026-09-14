@@ -52,27 +52,27 @@ void sub_8021184(u8 arg0, u8 *arg1)
             gUnk_0300076A = gMenuSlotStates[idx][0];
             break;
         case 6:
-            if ((s8)gMenuSlotStates[idx][2] < gUnk_03000770)
+            if ((s8)gMenuSlotStates[idx][2] < gMenuListCount)
             {
-                gUnk_03000781 = gMenuSlotStates[idx][1];
-                gUnk_03000782 = gMenuSlotStates[idx][2];
+                gMenuListTop = gMenuSlotStates[idx][1];
+                gMenuListCursor = gMenuSlotStates[idx][2];
             }
             else
             {
-                gUnk_03000781 = (gUnk_03000770 - 1 <= 1) ? 0 : gUnk_03000770 - 3;
-                gUnk_03000782 = gUnk_03000770 - 1;
+                gMenuListTop = (gMenuListCount - 1 <= 1) ? 0 : gMenuListCount - 3;
+                gMenuListCursor = gMenuListCount - 1;
             }
             break;
         case 7:
-            if ((s8)gMenuSlotStates[idx][4] < gUnk_03000808)
+            if ((s8)gMenuSlotStates[idx][4] < gMenuList2Count)
             {
-                gUnk_03000809 = gMenuSlotStates[idx][3];
-                gUnk_0300080A = gMenuSlotStates[idx][4];
+                gMenuList2Top = gMenuSlotStates[idx][3];
+                gMenuList2Cursor = gMenuSlotStates[idx][4];
             }
             else
             {
-                gUnk_03000809 = (gUnk_03000808 - 1 <= 1) ? 0 : gUnk_03000808 - 3;
-                gUnk_0300080A = gUnk_03000808 - 1;
+                gMenuList2Top = (gMenuList2Count - 1 <= 1) ? 0 : gMenuList2Count - 3;
+                gMenuList2Cursor = gMenuList2Count - 1;
             }
             break;
     }
@@ -85,20 +85,20 @@ INCLUDE_ASM("asm/nonmatchings", sub_802151C);
 u8 sub_8021700(void)
 {
     u8 ret = 0;
-    if (gUnk_03000812 < gUnk_03000811)
+    if (gMenuObjLoadIdx < gMenuObjLoadCount)
     {
-        BattleObj *obj = (BattleObj *)(GetObjPool() + gUnk_0300080C[gUnk_03000812] * 0xC8);
-        switch (gUnk_03000813)
+        BattleObj *obj = (BattleObj *)(GetObjPool() + gMenuObjLoadSlots[gMenuObjLoadIdx] * 0xC8);
+        switch (gMenuObjLoadPhase)
         {
             case 0:
                 sub_80207DC(obj, obj->posX, obj->posY, obj->headA.f_1E, obj->headA.palSlot);
-                gUnk_03000813 = 1;
+                gMenuObjLoadPhase = 1;
                 break;
             case 1:
                 if (!(obj->headA.kindFlags & 0x800))
                 {
-                    gUnk_03000812 = gUnk_03000812 + 1;
-                    gUnk_03000813 = 0;
+                    gMenuObjLoadIdx = gMenuObjLoadIdx + 1;
+                    gMenuObjLoadPhase = 0;
                 }
                 break;
         }
@@ -114,14 +114,14 @@ extern u32 DialogCtx_GetField_C_wide(u8) __asm__("DialogCtx_GetField_C");
 // @ 0x08021788
 void sub_8021788(u8 arg0)
 {
-    switch (gUnk_03000816)
+    switch (gMenuWindowPhase)
     {
         case 0:
-            if (gUnk_03000818 & 0x1000)
+            if (gMenuWindowFlags & 0x1000)
             {
                 if (DialogCtx_GetField_C_wide(0) == 0)
                 {
-                    gUnk_03000818 &= ~0x1000;
+                    gMenuWindowFlags &= ~0x1000;
                 }
                 else
                 {
@@ -137,11 +137,11 @@ void sub_8021788(u8 arg0)
             }
             break;
         case 1:
-            gUnk_03000818 |= 0x1000;
-            gUnk_03000816 = 0;
+            gMenuWindowFlags |= 0x1000;
+            gMenuWindowPhase = 0;
             break;
         case 2:
-            gUnk_03000816 = 0;
+            gMenuWindowPhase = 0;
             break;
     }
 }
@@ -229,15 +229,15 @@ INCLUDE_ASM("asm/nonmatchings", sub_8024940);
 // @ 0x0802550C
 void sub_802550C(u8 value)
 {
-    gUnk_03000816 = value;
+    gMenuWindowPhase = value;
 }
 // @ 0x08025518
 INCLUDE_ASM("asm/nonmatchings", sub_8025518);
 // @ 0x08025638
 void sub_8025638(void)
 {
-    gUnk_03000814 = -1;
-    gUnk_03000815 = -1;
+    gMenuSelSlot0 = -1;
+    gMenuSelSlot1 = -1;
 }
 // @ 0x08025650
 void sub_8025650(arg0, arg1) u8 *arg0;
@@ -285,14 +285,14 @@ void sub_80256E4(u16 *base)
     s32 bits;
     s32 y;
 
-    for (row = gUnk_03000781; row < (s8)gUnk_03000781 + 3 && row < gUnk_03000770; row = (u8)(row + 1))
+    for (row = gMenuListTop; row < (s8)gMenuListTop + 3 && row < gMenuListCount; row = (u8)(row + 1))
     {
-        bits = gUnk_03000784 >> row;
+        bits = gMenuListRowBits >> row;
         palette = 1;
         if ((bits & 1) != 0)
-            palette = (row == (s8)gUnk_03000782) ? 2 : 0;
+            palette = (row == (s8)gMenuListCursor) ? 2 : 0;
         palette += 0xB;
-        y = (row - (s8)gUnk_03000781) * 2 + 8;
+        y = (row - (s8)gMenuListTop) * 2 + 8;
         BgMap_PalFillRect(base, palette, 8, y, 9, 2);
     }
 }
@@ -303,13 +303,13 @@ void sub_802576C(u8 *obj)
     u8 style;
     u8 selected;
 
-    for (i = gUnk_03000809; i < gUnk_03000809 + 3 && i < gUnk_03000808; i++)
+    for (i = gMenuList2Top; i < gMenuList2Top + 3 && i < gMenuList2Count; i++)
     {
-        selected = gUnk_0300080A;
+        selected = gMenuList2Cursor;
         style = 0;
         if (i == selected)
             style = 2;
-        BgMap_PalFillRect(obj, style + 0xB, 8, (i - gUnk_03000809) * 2 + 8, 9, 2);
+        BgMap_PalFillRect(obj, style + 0xB, 8, (i - gMenuList2Top) * 2 + 8, 9, 2);
     }
 }
 // @ 0x080257D8

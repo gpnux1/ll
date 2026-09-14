@@ -123,15 +123,15 @@ void PaletteEffects_Update(void)
     {
         for (i = 0; i <= 3; i++)
         {
-            if (gUnk_03000010[i] != 0 && (gUnk_03000010[i] & 4) == 0)
+            if (gMenuEntAnimFlags[i] != 0 && (gMenuEntAnimFlags[i] & 4) == 0)
             {
-                gUnk_03000020[i]++;
-                if ((gUnk_03000020[i] >> gUnk_03000018[i]) >= gUnk_03000014[i])
+                gMenuEntAnimCounter[i]++;
+                if ((gMenuEntAnimCounter[i] >> gMenuEntAnimShift[i]) >= gMenuEntAnimThreshold[i])
                 {
-                    if ((gUnk_03000010[i] & 2) != 0)
-                        gUnk_03000010[i] = 0;
+                    if ((gMenuEntAnimFlags[i] & 2) != 0)
+                        gMenuEntAnimFlags[i] = 0;
                     else
-                        gUnk_03000020[i] = 0;
+                        gMenuEntAnimCounter[i] = 0;
                 }
             }
         }
@@ -139,9 +139,9 @@ void PaletteEffects_Update(void)
 }
 
 /* 调色板 DMA 上传: 平时整表刷新; 若 gPaletteFxMode 非零则走特效流程 PaletteFx_Step。
- * 逐项: 标志 gUnk_03000010[i] 非零且未设 bit2 → 计算表内偏移:
- *   idx = gUnk_03000020[i] >> gUnk_03000018[i];  byte = gUnk_03000038[i][idx];
- *   src = gMenuEntPaletteFrames + (byte << 5) + 2;  → DMA3 拷贝 32 字节到 gUnk_03000028[i]。 */
+ * 逐项: 标志 gMenuEntAnimFlags[i] 非零且未设 bit2 → 计算表内偏移:
+ *   idx = gMenuEntAnimCounter[i] >> gMenuEntAnimShift[i];  byte = gMenuEntAnimFrameTbl[i][idx];
+ *   src = gMenuEntPaletteFrames + (byte << 5) + 2;  → DMA3 拷贝 32 字节到 gMenuEntPalDest[i]。 */
 extern const u16 gMenuEntPaletteFrames[];
 
 // @ 0x08009370
@@ -158,16 +158,16 @@ void PaletteTransfer_Update(void)
         PalTransfer_Flush();
         for (i = 0; i <= 3; i++)
         {
-            if (gUnk_03000010[i] != 0 && (gUnk_03000010[i] & 4) == 0)
+            if (gMenuEntAnimFlags[i] != 0 && (gMenuEntAnimFlags[i] & 4) == 0)
             {
                 u32 src;
                 u32 off;
                 u8 *base;
 
-                off = ((u32)(*(u8 *)(gUnk_03000038[i] + (gUnk_03000020[i] >> gUnk_03000018[i]))) << 5) + 2;
+                off = ((u32)(*(u8 *)(gMenuEntAnimFrameTbl[i] + (gMenuEntAnimCounter[i] >> gMenuEntAnimShift[i]))) << 5) + 2;
                 base = (u8 *)gMenuEntPaletteFrames;
                 src = (u32)(base + off);
-                DmaSet(3, src, gUnk_03000028[i], 0x80000010);
+                DmaSet(3, src, gMenuEntPalDest[i], 0x80000010);
             }
         }
     }
@@ -318,7 +318,7 @@ void MenuEnt_ClearStates(void)
 
     for (i = 0; i < 4; i++)
     {
-        gUnk_03000010[i] = 0;
+        gMenuEntAnimFlags[i] = 0;
     }
 }
 /* 选项/菜单条目描述表 (0x087EA138): 每项指向 {u8 count; count 条变长记录}, 由 MenuEnt_ParseDesc 逐条解析 */
@@ -366,18 +366,18 @@ void MenuEnt_ParseRange(u8 arg0, u8 arg1)
 // @ 0x08009B04
 void MenuEnt_Unlock(u8 arg0)
 {
-    gUnk_03000010[arg0] &= 0xFB;
+    gMenuEntAnimFlags[arg0] &= 0xFB;
 }
 // @ 0x08009B1C
 void MenuEnt_Lock(u8 arg0)
 {
-    gUnk_03000010[arg0] |= 4;
+    gMenuEntAnimFlags[arg0] |= 4;
 }
 
 // @ 0x08009B34
 u8 MenuEnt_GetState(u8 arg0)
 {
-    return gUnk_03000010[arg0];
+    return gMenuEntAnimFlags[arg0];
 }
 
 // @ 0x08009B44
@@ -405,16 +405,16 @@ void Palette_FillWhite(void)
 // @ 0x08009B84
 u8 *MenuEnt_ParseDesc(u8 arg0, u8 *src)
 {
-    gUnk_03000010[arg0] = src[0];
-    gUnk_03000018[arg0] = src[1];
+    gMenuEntAnimFlags[arg0] = src[0];
+    gMenuEntAnimShift[arg0] = src[1];
     src += 2;
-    gUnk_03000028[arg0] = (*src << 5) + 0x05000002;
+    gMenuEntPalDest[arg0] = (*src << 5) + 0x05000002;
     src++;
-    gUnk_03000014[arg0] = *src;
+    gMenuEntAnimThreshold[arg0] = *src;
     src++;
-    gUnk_03000038[arg0] = src;
-    src += gUnk_03000014[arg0];
-    gUnk_03000020[arg0] = 0;
+    gMenuEntAnimFrameTbl[arg0] = src;
+    src += gMenuEntAnimThreshold[arg0];
+    gMenuEntAnimCounter[arg0] = 0;
     return src;
 }
 /* 静态地图物件图形槽装载: gUnk_0808EA0C 每组 8 字节 = 2 条 4 字节记录
@@ -777,7 +777,7 @@ u8 statIdx;
  *   写入的是 **表下标+1** (所以 skills[] 存的是行号, 0xFF = 空)
  * → 等 `ItemFindSlot` / `ItemGetValue` 的调用方语义查清后再统一改名。*/
 
-/* 从 gUnk_08093418 筛出满足条件的行, 把 **行号+1** 填进 PlayerStats.skills[8],
+/* 从 gSkillLearnTable 筛出满足条件的行, 把 **行号+1** 填进 PlayerStats.skills[8],
  * 不足 8 个用 0xFF 补齐。
  *
  * 入选条件: [1] 高 nibble == groupId (groupId<=1 归为 0), 并且
@@ -807,15 +807,15 @@ void Stats_BuildSkillList(u8 *skills, u8 lv, u8 groupId)
     count = 0;
     for (i = 0; i <= 0x2F; i++)
     {
-        if (groupId != (gUnk_08093418[i * 5 + 1] >> 4))
+        if (groupId != (gSkillLearnTable[i * 5 + 1] >> 4))
             continue;
         flag = 0;
-        if (gUnk_08093418[i * 5] == 0xFF)
+        if (gSkillLearnTable[i * 5] == 0xFF)
         {
             if (gPartyMemberIds[0] == 1)
                 flag = 1;
         }
-        else if (gUnk_08093418[i * 5] <= lvLimit)
+        else if (gSkillLearnTable[i * 5] <= lvLimit)
             flag = 1;
         if (flag == 0)
             continue;
@@ -1261,8 +1261,8 @@ u8 ItemFindSlot(u8 arg0, u8 arg1)
 
     for (i = 0; i <= 0x2F; i++)
     {
-        if (arg1 == (gUnk_08093418[i * 5 + 1] >> 4))
-            if ((gUnk_08093418[i * 5]) == adjusted)
+        if (arg1 == (gSkillLearnTable[i * 5 + 1] >> 4))
+            if ((gSkillLearnTable[i * 5]) == adjusted)
                 return i + 1;
     }
 
@@ -1287,7 +1287,7 @@ void Party_InitStats(void)
 // @ 0x0800A958
 u8 ItemGetValue(u8 arg0)
 {
-    return gUnk_08093418[(arg0 - 1) * 5 + 4];
+    return gSkillLearnTable[(arg0 - 1) * 5 + 4];
 }
 // @ 0x0800A970
 void sub_800A970(void *arg0)
@@ -1374,9 +1374,9 @@ void EquipItem(u8 arg0, u8 newEquip, u8 equipSlotId)
     Stats_RecalcEquip(arg0);
 }
 
-// sub_800AA60 = AddInventoryItem
+// Inventory_AddItem = AddInventoryItem
 // @ 0x0800AA60
-void sub_800AA60(u8 itemId, u8 count)
+void Inventory_AddItem(u8 itemId, u8 count)
 {
     s32 totalCount;
 

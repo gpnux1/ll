@@ -121,7 +121,7 @@ void NewGame_Init(void)
     gUnk_03000002 = 0;
     gScenePhase = 0;
     gSceneLoadToggle = 0;
-    gUnk_03002608 = 0;
+    gTitleFadeTimer = 0;
     gPartyFollowFlags = 0;
     gWarpAnimState = 0;
     gScreenIdleEventFlags[0] = 0;

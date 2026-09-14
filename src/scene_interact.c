@@ -18,49 +18,49 @@ u8 sub_8031580(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -79,49 +79,49 @@ u8 sub_8031714(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -140,49 +140,49 @@ u8 sub_80318A8(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -201,49 +201,49 @@ u8 sub_8031A3C(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -262,49 +262,49 @@ u8 sub_8031BD0(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -323,49 +323,49 @@ u8 sub_8031D64(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -384,49 +384,49 @@ u8 sub_8031EF8(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -445,49 +445,49 @@ u8 sub_803208C(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -506,49 +506,49 @@ u8 sub_8032220(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);
@@ -567,49 +567,49 @@ u8 sub_80323B4(BattleObj *obj)
     u16 f2b;
 
     result = 0;
-    switch (gUnk_03000889)
+    switch (gSceneTransStep)
     {
         case 0:
-            gUnk_03000825 = 0;
-            gUnk_03000867 = 0x10;
-            gUnk_03000868 = 0;
+            gObjActStepTimer = 0;
+            gSceneFadeOut = 0x10;
+            gSceneFadeIn = 0;
             f2a = obj->headA.kindFlags | 0x10;
             obj->headA.kindFlags = f2a;
             sub_801A2AC(0x710, 0x10, 0);
             Sfx_Play(0x5A, 0, 0);
-            gUnk_03000889 = 1;
+            gSceneTransStep = 1;
             break;
         case 1:
-            if (gUnk_03000825 <= 9)
+            if (gObjActStepTimer <= 9)
             {
-                gUnk_03000868 = sub_801768C(0, 0x10, 0xA, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, gUnk_03000868);
-                gUnk_03000825 += 1;
+                gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, gSceneFadeIn);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
-                gUnk_03000889 = 2;
+                gObjActStepTimer = 0;
+                gSceneTransStep = 2;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                gUnk_03000867 = sub_801768C(0x10, -0x10, 0x14, gUnk_03000825, 2);
-                sub_801A2AC(0x710, gUnk_03000867, 0x10);
-                gUnk_03000825 += 1;
+                gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+                sub_801A2AC(0x710, gSceneFadeOut, 0x10);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000825 = 0;
+                gObjActStepTimer = 0;
                 f2b = obj->headA.kindFlags | 0x200;
                 obj->headA.kindFlags = f2b;
-                gUnk_03000889 = 3;
+                gSceneTransStep = 3;
             }
             break;
         case 3:
             Sfx_StopTrack(0);
-            gUnk_03000889 = 0x15;
+            gSceneTransStep = 0x15;
             break;
         case 0x15:
             sub_801A2AC(0, 0, 0);

@@ -22,12 +22,12 @@ handler 读 `data[1..]` 参数、执行动作、推进 `*ptr`、返回 1=继续�
 |---|---|---|---|
 | 0x08050014 | ✅C | `ScriptPump_Run` | 脚本主泵 (见上); 按键边沿存 gUnk_03000F2E/03000F2C 并传给 sub_80182A8 |
 | 0x0805008C | ✅C | `sub_805008C` | 逐帧后台服务 (VBlank_UpdateGameScreen 末尾调用, ScriptPump_Run 姊妹): 按 E70 状态位依次消费 bit4 窗口拷贝 (opcode∈{0,0x17} 时即便无请求位也主动做一次) / bit6 FlushTileDma / bit8 BgTiles_LoadSet(0) / bit9 LZ_UncompressChunk, 解压完且 bit10 时 PC=gUnk_02016200+gUnk_02016000[gUnk_03000E69] (gUnk_03000E69=脚本槽索引, 新符号) |
-| 0x08052580 | ✅C | `Script_ResetVM` | VM 复位: 指针=02016200, 状态=0, gUnk_03000ECB=1/03000ECC=0xC, gUnk_03000E78(调用栈深)=0, gUnk_03000E80[8](返回地址栈)=0, gUnk_03000ECA=0 |
+| 0x08052580 | ✅C | `Script_ResetVM` | VM 复位: 指针=02016200, 状态=0, gUnk_03000ECB=1/03000ECC=0xC, gUnk_03000E78(调用栈深)=0, gUnk_03000E80[8](返回地址栈)=0, gScriptStreamDepth=0 |
 | 0x08052574 | ✅C | `Script_GetFlags` | 返回 gUnk_03000E70 (调用方用 bit0 判断脚本忙) |
 | 0x080526A0 | ✅C | `sub_80526A0` | 脚本 VM 启动/跳转: arg1==2 → 指针=gUnk_02016200+gUnk_02016000[arg0], arg1==3 不动, 其它复位到 gUnk_02016200; 然后清 8 个 u16 局部槽 gScriptLocalSlots[0..7]=0xFFFF + 置 E70 bit0 + 清 gUnk_03000E72 (gScriptLocalSlots = gUnk_03000ED8 的 u16[] 视图别名, 新符号) |
 | 0x0804FA94 | ✅C | `sub_804FA94` | 脚本条件跳转 (任一 flag 置位版, 镜像 804F974): 遍历 data[1]/2 个 u16 flag id (≤0x1FF 查 EventFlags_Test 否则 SwitchFlags_Test(id-0x200)), 任一真 → 指针=gUnk_02016200+gUnk_02016000[data[2]], 全假 → 指针推进 data+count+3; 经 gUnk_0862D434 函数指针表调用 |
 | 0x08052728 | ✅C | `Script_Abort` | arg0=1: 指针复位+停; 3: 仅停 |
-| 0x08051230 | ✅C | `Op_ScriptStop` | opcode: 停 VM, 清 gUnk_03000EA0[]/03000EC0[](数量=03000ECA), 非 0x200 模式指针复位 |
+| 0x08051230 | ✅C | `Op_ScriptStop` | opcode: 停 VM, 清 gScriptStreamCursorStack[]/gScriptStreamSetIdStack[](数量=gScriptStreamDepth), 非 0x200 模式指针复位 |
 | 0x0804F210 | ✅C | `SioBattle_ResetState` | 清 gUnk_03000DF0[0..4] + 03000E04/03000E05 (通信对战状态) |
 | 0x0804F244 | ✅C | `SioBattle_GetState` | 返回 03000E04 |
 | 0x0804F250 | ✅C | `SioBattle_ClearSlots` | 清 gUnk_03000E08[10] 每项前 2 字节 + 03000E30 |

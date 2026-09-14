@@ -20,9 +20,9 @@
 | 0x080210C0 | ✅C | `Obj_StartJumpArc` | 0xB0\|=0x2000, 0x66=3, 调 sub_801B81C(10 参对象 setter, 跳跃抛物线表 gUnk_0839B2A4[0]) |
 | 0x08021130 | ✅C | `TileAnim_Reset` | 清 gUnk_03000788[10][5] + 07BA (tile 动画状态) — System_Init 调用 |
 | 0x08021184 | ✅C | `Obj_SyncSlotState` (匹配 2026-09-06) | 对象槽号同步: arg1+0xBE 槽号→idx(非零-1), switch((s8)arg0) case 0/3/6/7 更新 gUnk_0300076A/76C/770/781/782/808/809/80A (步长5表 gUnk_03000788[idx][k]) |
-| 0x08021700 | ✅C | `ObjSpawn_StepAll` | 逐对象生成步进: gUnk_0300080C[idx]*0xC8 取对象, 两阶段 (07DC 初始化→等 bit11) |
-| 0x0802550C | ✅C | `MenuStyle_Set` | gUnk_03000816=value |
-| 0x08025638 | ✅C | `PickSlots_Reset` | gUnk_03000814/815=-1 |
+| 0x08021700 | ✅C | `ObjSpawn_StepAll` | 逐对象生成步进: gMenuObjLoadSlots[idx]*0xC8 取对象, 两阶段 (07DC 初始化→等 bit11) |
+| 0x0802550C | ✅C | `MenuStyle_Set` | gMenuWindowPhase=value |
+| 0x08025638 | ✅C | `PickSlots_Reset` | gMenuSelSlot0/815=-1 |
 | 0x0802576C | ✅C | `PickList_Draw` | 选择列表 3 项绘制 (sub_801A074, 选中样式 0xD/0xF) |
 
 ## 未匹配 (24 个)
@@ -37,7 +37,7 @@
 - `gUnk_03000748[11]` = 对象已生成标记; `gUnk_03000758[11]/0763` = 特效生成队列
 - `gUnk_03000618-624` = 对象滑动参数组; `gUnk_03000670[7]` = tile 动画对 (Unk_8021064)
 - `gUnk_0300068C/68D/68E` = 生成队列头/计数/标志; `gUnk_03000788[10][5]/07BA` = tile 动画
-- `gUnk_03000808-816` = 选择列表状态 (范围/选中/样式); 0300080C[] = 待生成对象 idx 表
+- `gMenuList2Count/2Top/2Cursor`(0x03000808-080A) = 第二选择列表窗口; `gMenuObjLoadSlots[5]/Count/Idx/Phase`(0x0300080C-0813) = 菜单成员精灵装载队列; `gMenuSelSlot0/1`(0x0814/0815, 恒 -1)/`gMenuWindowPhase`(0x0816)/`gMenuWindowFlags`(0x0818, bit0x1000) = 菜单窗口状态
 - 对象池 0x02037028 (`sub_8018864`), 0xC8/对象, 关键字段: 0xB0(状态16), 0xBD(动画), 0xBE(槽), 0xBF/C0(朝向/参数), 0x24(bit11=移动完成), 0x35-38(坐标), 0x66(样式)
 
 ## 调用图证据 (2026-08-31)

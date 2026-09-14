@@ -20,37 +20,37 @@ u8 sub_80405A4(BattleObj *obj)
     u8 result;
 
     result = 0;
-    switch (gUnk_03000820)
+    switch (gObjActStep)
     {
         case 0:
-            gUnk_03000824 = obj->headA.palSlot;
-            gUnk_03000822 = obj->headA.f_1E;
-            gUnk_03000828 = obj->posX;
-            gUnk_03000829 = obj->posY;
-            gUnk_03000825 = 0;
+            gObjActSavedPal = obj->headA.palSlot;
+            gObjActSavedF2A = obj->headA.f_1E;
+            gObjActSavedX = obj->posX;
+            gObjActSavedY = obj->posY;
+            gObjActStepTimer = 0;
             if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x45 && (sub_80187B4() & 0x220) == 0)
             {
                 u16 f2a = obj->headA.kindFlags | 0x20;
                 obj->headA.kindFlags = f2a;
-                gUnk_03000820 = 2;
+                gObjActStep = 2;
             }
             else
             {
-                gUnk_03000820 = 9;
+                gObjActStep = 9;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                obj->posX = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
-                gUnk_03000825 += 1;
+                obj->posX = sub_801768C(gObjActSavedX, -gObjActSavedX, 0x14, gObjActStepTimer, gObjActStep);
+                gObjActStepTimer += 1;
             }
             else
             {
                 sub_80207A4();
                 obj->slot = 0xFF;
                 obj->variantClass = 7;
-                gUnk_03000820 = 9;
+                gObjActStep = 9;
             }
             break;
         case 9:
@@ -77,21 +77,21 @@ u8 sub_8042200(BattleObj *obj)
     u8 result;
 
     result = 0;
-    switch (gUnk_03000820)
+    switch (gObjActStep)
     {
         case 0:
-            gUnk_03000824 = obj->headA.palSlot;
-            gUnk_03000822 = obj->headA.f_1E;
+            gObjActSavedPal = obj->headA.palSlot;
+            gObjActSavedF2A = obj->headA.f_1E;
             sub_801CA08((BattleObj *)obj, 3, 0x1B4, 0xD, result);
-            gUnk_03000820 = 2;
+            gObjActStep = 2;
             break;
         case 2:
             if (obj->headA.kindFlags & 0x1000)
             {
                 sub_804C3A4(obj->headA.palSlot, sub_801B954((ObjHead *)(&obj->headA)));
                 obj->headA.kindFlags &= 0xEFFF;
-                sub_80207DC((BattleObj *)obj, obj->posX, obj->posY, gUnk_03000822, gUnk_03000824);
-                gUnk_03000820 = 9;
+                sub_80207DC((BattleObj *)obj, obj->posX, obj->posY, gObjActSavedF2A, gObjActSavedPal);
+                gObjActStep = 9;
             }
             break;
         case 9:
@@ -110,34 +110,34 @@ u8 sub_8042AB4(BattleObj *obj)
     u8 result;
 
     result = 0;
-    switch (gUnk_03000820)
+    switch (gObjActStep)
     {
         case 0:
-            gUnk_03000824 = obj->headA.palSlot;
-            gUnk_03000822 = obj->headA.f_1E;
-            gUnk_03000828 = obj->posX;
-            gUnk_03000829 = obj->posY;
-            gUnk_03000825 = 0;
+            gObjActSavedPal = obj->headA.palSlot;
+            gObjActSavedF2A = obj->headA.f_1E;
+            gObjActSavedX = obj->posX;
+            gObjActSavedY = obj->posY;
+            gObjActStepTimer = 0;
             if ((sub_80187B4() & 0x200) == 0)
             {
                 u16 f2a = obj->headA.kindFlags | 0x20;
                 obj->headA.kindFlags = f2a;
-                gUnk_03000820 = 2;
+                gObjActStep = 2;
             }
             else
             {
-                gUnk_03000820 = 0x12;
+                gObjActStep = 0x12;
             }
             break;
         case 2:
-            if (gUnk_03000825 <= 0x13)
+            if (gObjActStepTimer <= 0x13)
             {
-                obj->posX = sub_801768C(gUnk_03000828, -gUnk_03000828, 0x14, gUnk_03000825, gUnk_03000820);
-                gUnk_03000825 += 1;
+                obj->posX = sub_801768C(gObjActSavedX, -gObjActSavedX, 0x14, gObjActStepTimer, gObjActStep);
+                gObjActStepTimer += 1;
             }
             else
             {
-                gUnk_03000820 = 9;
+                gObjActStep = 9;
             }
             break;
         case 9:

@@ -104,12 +104,12 @@ void MenuState_Reset(void)
     gMenuCursorGrp = 0;
     gMenuCursorSel = 0;
 
-    gUnk_03000048.field_0 = 1;
-    gUnk_03000048.field_1 = 0;
-    gUnk_03000048.field_2 = 0;
-    gUnk_03000048.field_3 = 0;
-    gUnk_03000048.field_4 = 0x18;
-    gUnk_03000048.field_6 = 8;
+    gMenuCursorSprite.statusFlags = 1;
+    gMenuCursorSprite.animTimer = 0;
+    gMenuCursorSprite.lerpFrame = 0;
+    gMenuCursorSprite.oamSlotId = 0;
+    gMenuCursorSprite.x = 0x18;
+    gMenuCursorSprite.y = 8;
 
     for (i = 0; i < 16; i++)
     {
@@ -323,8 +323,8 @@ void BattleIntro_Setup(void)
     u16 attr2;
     struct SpriteNode *obj = (struct SpriteNode *)0x03004380;
 
-    attr0 = gUnk_03000048.field_6;
-    attr1 = ((gUnk_03000048.field_4 - 0x20) & 0x1FF);
+    attr0 = gMenuCursorSprite.y;
+    attr1 = ((gMenuCursorSprite.x - 0x20) & 0x1FF);
     attr1 += 0x8000;
     attr2 = 0x21C0;
     Sprite_InitChainNode(obj, 1, attr0, attr1, attr2);
@@ -415,8 +415,8 @@ void sub_800E668(u8 arg0)
         gUnk_03000185 = 1;
     }
 
-    gUnk_03000048.field_C = gUnk_03000048.field_4;
-    gUnk_03000048.field_E = gUnk_03000048.field_6;
+    gMenuCursorSprite.moveStartX = gMenuCursorSprite.x;
+    gMenuCursorSprite.moveStartY = gMenuCursorSprite.y;
 
     if (gTitleIntroState == TITLE_INTRO_DISABLED)
     {
@@ -434,11 +434,11 @@ void sub_800E668(u8 arg0)
         ptr = &gUnk_087EB214[gMenuCursorGrp][gMenuCursorSel];
     }
 
-    gUnk_03000048.field_8 = ptr->x;
-    gUnk_03000048.field_A = ptr->y;
+    gMenuCursorSprite.moveEndX = ptr->x;
+    gMenuCursorSprite.moveEndY = ptr->y;
 
-    gUnk_03000048.field_2 = 8;
-    gUnk_03000048.field_0 &= 0xFE;
+    gMenuCursorSprite.lerpFrame = 8;
+    gMenuCursorSprite.statusFlags &= 0xFE;
 }
 
 // @ 0x0800E71C
@@ -933,7 +933,7 @@ u8 sub_800FA24(void)
     u8 partyIdx;
     u16 amt;
 
-    gUnk_030001C8 = 0;
+    gMenuResultCode = 0;
     gUnk_030001B0 = 0x10;
 
     partyIdx = gMenuCursorStack[0] - 1;
@@ -989,8 +989,8 @@ void sub_800FDEC(void)
     u8 cnt;
     const EnemyCharaStat *e;
 
-    gUnk_030001B9 = 0xFF;
-    gUnk_030001BA = 0xFF;
+    gItemPagePrevId = 0xFF;
+    gItemPageNextId = 0xFF;
 
     id = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)];
     if (id > 8)
@@ -1019,7 +1019,7 @@ void sub_800FDEC(void)
                  && (e->formRace & 0xF) == type
                  && gInventory[i] != 0)
                 {
-                    gUnk_030001B9 = i;
+                    gItemPagePrevId = i;
                     cnt++;
                 }
                 i--;
@@ -1028,7 +1028,7 @@ void sub_800FDEC(void)
             }
         }
         if (cnt == 0)
-            gUnk_030001B9 = cnt;
+            gItemPagePrevId = cnt;
     }
 
     i = gItemUseCtx[4];
@@ -1045,7 +1045,7 @@ void sub_800FDEC(void)
          && (e->formRace & 0xF) == type
          && gInventory[i] != 0)
         {
-            gUnk_030001BA = i;
+            gItemPageNextId = i;
             cnt++;
         }
         i++;
@@ -1270,11 +1270,11 @@ INCLUDE_ASM("asm/nonmatchings", sub_80104F8);
 INCLUDE_ASM("asm/nonmatchings", sub_8010624);
 // @ 0x08010770
 /* 道具/技能菜单的"确认使用"处理 (被 sub_800B374 附近的菜单确认逻辑调用)。
- * arg0 = 0: 对全队执行 (回复类道具, gUnk_030001C5==5 时走全队 hp 恢复循环,
+ * arg0 = 0: 对全队执行 (回复类道具, gItemUseEffectType==5 时走全队 hp 恢复循环,
  *            否则保存游标并返回上一层菜单 sub_800E668(0xFF));
  * arg0 != 0: 对单个成员执行。
- * 尾部对 gUnk_030001C3==0x3E (无角色) 清 gPartyFollowFlags 的 bit7,
- * 否则按消耗量 gUnk_030001C4 扣减该成员的 mp。 */
+ * 尾部对 gItemUseId==0x3E (无角色) 清 gPartyFollowFlags 的 bit7,
+ * 否则按消耗量 gItemUseMpCost 扣减该成员的 mp。 */
 void sub_8010770(u8 arg0)
 {
     u8 n;
@@ -1282,14 +1282,14 @@ void sub_8010770(u8 arg0)
     u8 id;
 
     n = 0;
-    if (sub_8010300(gUnk_030001C3) != 0)
+    if (sub_8010300(gItemUseId) != 0)
     {
-        if (gUnk_030001C3 != 0x26)
+        if (gItemUseId != 0x26)
         {
             gUnk_030001B0 = 0x10;
             if (arg0 == 0)
             {
-                if (gUnk_030001C5 == 5)
+                if (gItemUseEffectType == 5)
                 {
                     i = 0;
                     id = gPartyMemberIds[0];
@@ -1297,9 +1297,9 @@ void sub_8010770(u8 arg0)
                     {
                         if (id != 0)
                             id--;
-                        if (gUnk_030001C6 != 0)
+                        if (gItemUseHealHp != 0)
                         {
-                            gPartyStats[id].hp += gUnk_030001C6;
+                            gPartyStats[id].hp += gItemUseHealHp;
                             if (gPartyStats[id].hp > gPartyStats[id].max_hp)
                                 gPartyStats[id].hp = gPartyStats[id].max_hp;
                         }
@@ -1334,9 +1334,9 @@ void sub_8010770(u8 arg0)
                     id--;
                 if (gPartyStats[id].hp < gPartyStats[id].max_hp)
                 {
-                    if (gUnk_030001C6 != 0)
+                    if (gItemUseHealHp != 0)
                     {
-                        gPartyStats[id].hp += gUnk_030001C6;
+                        gPartyStats[id].hp += gItemUseHealHp;
                         if (gPartyStats[id].hp > gPartyStats[id].max_hp)
                             gPartyStats[id].hp = gPartyStats[id].max_hp;
                     }
@@ -1350,7 +1350,7 @@ void sub_8010770(u8 arg0)
                 }
                 else
                 {
-                    gUnk_030001C8 = 0x24;
+                    gMenuResultCode = 0x24;
                     Sfx_Play(3, 0, 0);
                 }
             }
@@ -1361,7 +1361,7 @@ void sub_8010770(u8 arg0)
         }
         if (n == 0)
             return;
-        if (gUnk_030001C3 == 0x3E)
+        if (gItemUseId == 0x3E)
         {
             gPartyFollowFlags &= 0x7F;
             sub_800F128(0, gMenuCursorStack[gMenuCursorGrp]);
@@ -1370,7 +1370,7 @@ void sub_8010770(u8 arg0)
         id = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)];
         if (id != 0)
             id--;
-        gPartyStats[id].mp -= gUnk_030001C4;
+        gPartyStats[id].mp -= gItemUseMpCost;
     }
     else
     {

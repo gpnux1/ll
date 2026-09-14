@@ -765,7 +765,7 @@ const u32 gUnk_08087500[] = INCBIN_U32("data/raw_data/unk_8087500.bin");
  *   (例 off_87E96C8[3]=0x08087792 而 [4]=0x0808777e)。按表序声明会打乱地址 → 整张 ROM 位移。
  *   表索引只写进注释。
  *
- * 【段1】队伍成员名字文本块 (off_87E96B4, 5 项, 由 gUnk_030047B4 选, TextBlocks_Render 渲染)
+ * 【段1】队伍成员名字文本块 (off_87E96B4, 5 项, 由 gCameraPanDuration 选, TextBlocks_Render 渲染)
  *   格式: [x][y][pal] [字符码...] 0xFF, 整块再以 0xFF 结束; 0xFE = 转义前缀 (后跟高位字节)。
  *   字符码按 charmap.txt 解码, 结果写在各块注释里。
  * 【段2】夹在中间的其它数据 (3 项, 未定性)
@@ -1653,8 +1653,8 @@ const MapViewportBounds gMapViewportBoundsTable[290] = {
 /* 菜单实体描述组 (0x0808A04C..0x0808A234, 488 B)。由 0x087EA138 的 26 项指针表
  * gUnk_087EA138[groupIdx] 指向各组。每组 = {u8 count; count 条记录},
  * 每条记录 = {u8 flags; u8 animShift; u8 palIdx; u8 strlen; u8 glyphs[strlen]}:
- *   - flags: 实体状态位 (MenuEnt_ParseDesc 写入 gUnk_03000010; bit1=锁定)
- *   - animShift: 帧计数器右移量 (PaletteTransfer_Update 用 gUnk_03000020>>shift
+ *   - flags: 实体状态位 (MenuEnt_ParseDesc 写入 gMenuEntAnimFlags; bit1=锁定)
+ *   - animShift: 帧计数器右移量 (PaletteTransfer_Update 用 gMenuEntAnimCounter>>shift
  *     做调色板动画序列下标)
  *   - palIdx: 调色板槽号 (DMA 目标 0x05000002 + palIdx<<5)
  *   - strlen/glyphs: 调色板动画序列 (每字节 = gMenuEntPaletteFrames 的帧号,

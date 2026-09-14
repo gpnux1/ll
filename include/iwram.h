@@ -34,38 +34,46 @@ struct LzHeader
 };
 
 typedef struct LzHeader LzHeader;
-#define Unk_LzData LzHeader
 
 extern u16 gUnk_03000000;
 extern u16 gUnk_03000002;
-extern u16 gUnk_03000004;
+extern u16 gBlendFadeStep;
+#define gUnk_03000004 gBlendFadeStep
 extern u8 gLogoAnimDirection;
-#define gUnk_03000008 gLogoAnimDirection
 extern u8 gLogoSpriteNodes[2];
-#define gUnk_0300000A gLogoSpriteNodes
 extern u16 gLogoAnimTimer;
-#define gUnk_0300000C gLogoAnimTimer
-extern u8 gUnk_03000010[4];
-extern u8 gUnk_03000014[4];
-extern u8 gUnk_03000018[4];
-extern u16 gUnk_03000020[4];
-extern u32 gUnk_03000028[4];
-extern u8 *gUnk_03000038[4];
+/* ---- 菜单实体调色板动画 (MenuEnt_ParseDesc 写入, PaletteTransfer_Update 消费) */
+extern u8 gMenuEntAnimFlags[4];
+#define gUnk_03000010 gMenuEntAnimFlags
+extern u8 gMenuEntAnimThreshold[4];
+#define gUnk_03000014 gMenuEntAnimThreshold
+extern u8 gMenuEntAnimShift[4];
+#define gUnk_03000018 gMenuEntAnimShift
+extern u16 gMenuEntAnimCounter[4];
+#define gUnk_03000020 gMenuEntAnimCounter
+extern u32 gMenuEntPalDest[4];
+#define gUnk_03000028 gMenuEntPalDest
+extern u8 *gMenuEntAnimFrameTbl[4];
+#define gUnk_03000038 gMenuEntAnimFrameTbl
 
 typedef struct
 {
-    u8 field_0;
-    u8 field_1;
-    u8 field_2;
-    u8 field_3;
-    u16 field_4;
-    u16 field_6;
-    u16 field_8;
-    u16 field_A;
-    u16 field_C;
-    u16 field_E;
-} Unk_03000048;
-extern Unk_03000048 gUnk_03000048;
+    u8 statusFlags; /* bit0=显示 */
+    u8 animTimer;
+    u8 lerpFrame; /* 插值倒计时 8→0 */
+    u8 oamSlotId;
+    u16 x; /* attr1=(x-0x20)&0x1FF */
+    u16 y; /* 直作 attr0 */
+    u16 moveEndX; /* 目标 (ptr->x) */
+    u16 moveEndY;
+    u16 moveStartX; /* 滑动起点 */
+    u16 moveStartY;
+} MenuCursorSprite;
+/* ---- 菜单光标精灵 (滑动选择光标, menu/menu_ui/text_engine 共享):
+ * 与 UISpriteEntity 前 0x10B 同布局 (0x48 区仅 0x10 大小, 无 baseTileId/pad);
+ * 目标位姿取 gUnk_087EB1F4/214/22C[gMenuCursorGrp][gMenuCursorSel] */
+extern MenuCursorSprite gMenuCursorSprite;
+#define gUnk_03000048 gMenuCursorSprite
 
 typedef struct
 {
@@ -102,18 +110,26 @@ extern u8 gUnk_030001AF;
 extern u8 gUnk_030001B0;
 extern u8 gUnk_030001B1; /* 0x030001B1: 道具目标向下搜索开关 (非 0 才搜"上一个") */
 extern u8 gItemUseCtx[];
-extern u8 gUnk_030001B9; /* 0x030001B9: 上一个可用目标 (0xFF=无) */
-extern u8 gUnk_030001BA; /* 0x030001BA: 下一个可用目标 (0xFF=无) */
+/* ---- 道具详情翻页可用项缓存 (0x030001B9/0x030001BA, 2026-09-14 claude804AF60 定名):
+ * sub_800FDEC 从 gItemUseCtx[0]/[4] 锚点分别向后/向前扫描"当前成员可用"的道具
+ * (gCharaBaseData[i].resistFlags & 成员位 && (formRace & 0xF)==类型 && gInventory[i]!=0),
+ * 命中即停; 无命中写 0, 初值 0xFF=无。消费者 sub_800C2F8 (翻页导航: 非 0xFF 才响键+播音)。 */
+extern u8 gItemPagePrevId; /* 0x030001B9 (原 gUnk_030001B9): 上一个可用道具 id (0xFF=无, 0=无命中) */
+extern u8 gItemPageNextId; /* 0x030001BA (原 gUnk_030001BA): 下一个可用道具 id (同上) */
 /* 0x030001BC: 7 个装备属性差值指示字形 id (0xB=平/0xC=升/0xD=降);
  * 索引序 atk(0),def(1),agl(2),men(3),res(4),luc(5),noa(6)。
  * 由 sub_800FF10 填写, sub_800B374 读取后交给 Text 渲染。 */
 extern u8 gStatArrowIds[];
-/* 0x030001C3: 当前菜单选中的道具/技能 id (sub_800F128 写入, sub_8010300/sub_8010770 读取; 0x3E=无角色, 0x26=传送) */
-extern u8 gUnk_030001C3;
-extern u8 gUnk_030001C4; /* 0x030001C4: sub_8010300 写入的 MP 消耗量, sub_8010770 扣减 */
-extern u8 gUnk_030001C5; /* 0x030001C5: 道具表 [1]&0xF (使用类型) */
-extern u8 gUnk_030001C6; /* 0x030001C6: 道具表 [3] (回复量) */
-extern u16 gUnk_030001C8;
+/* ---- 道具使用效果参数 (0x030001C3..0x030001C6, 2026-09-14 claude804AF60 定名):
+ * 选择道具时由 sub_800F128/sub_8010300 填写, 确认使用 sub_8010770 消费。
+ * 效果参数源 = ROM 道具效果表 0x08093418 (5 字节/项: [1]&0xF=类型, [3]=HP回复量)。 */
+extern u8 gItemUseId;         /* 0x030001C3 (原 gUnk_030001C3): 待使用道具 id (0x26=传送(WarpTable_Check), 0x3E=无角色道具) */
+extern u8 gItemUseMpCost;     /* 0x030001C4 (原 gUnk_030001C4): 使用 MP 消耗 (sub_8010300 按成员计算; 0→判 MP 不足, 结果码 0x1D) */
+extern u8 gItemUseEffectType; /* 0x030001C5 (原 gUnk_030001C5): 使用类型 = 表[1]&0xF (5=全队 HP 恢复) */
+extern u8 gItemUseHealHp;     /* 0x030001C6 (原 gUnk_030001C6): HP 回复量 = 表[3] (0=恢复满) */
+/* 0x030001C8: 菜单挂起结果/画面码槽 (u16): 各菜单 handler 写入 (0x14/0x15/0x16=画面切换,
+ * 0x1A/0x1D/0x23/0x24/0x27=动作结果, 0x24=无效果), 主状态机 sub_800B374 轮询, 非 0 即分发。 */
+extern u16 gMenuResultCode; /* 0x030001C8 (原 gUnk_030001C8) */
 
 extern u8 *gMsgTable[];
 
@@ -123,38 +139,33 @@ extern u8 gSkillMenuTmpA;
 extern u8 gSkillMenuTmpB;
 extern u8 gPartyMenuIdx;
 extern u8 gSkillMenuPage;
-extern u8 gUnk_03000229;
+extern u8 gMenuItemId;    ///< 0x03000229 (原 gUnk_03000229) 道具界面光标处道具 id (InvUi_Main 存储; 80146A8 据此索引 gUnk_03004980 数量表)
 extern u8 gUnk_03000204;
 extern u8 gUnk_03000208;
 extern u32 gUnk_03000210;
-extern u8 gUnk_0300022B;
-extern u32 gUnk_0300022C;
+extern u8 gItemPocketIdx; ///< 0x0300022A (原未登记) 道具分类页 (sub_8015658: sub_800AADC 类别映射, 4→5/>4→6; 8014A68 消费)
+extern u8 gInvUiMode;     ///< 0x0300022B (原 gUnk_0300022B) 道具界面打开模式标志 (sub_801417C 存档菜单路径置位; 80146A8/8014A68 分支)
+extern u32 gMenuItemIcon; ///< 0x0300022C (原 gUnk_0300022C) 光标道具图标 tile 基址 (InvUi_Main 存储; sub_8015658 清零/重绘)
 /* Option sound-test state. BGM/SFX rows are displayed as ??? until a valid
  * save enables them. The playing BGM byte stores id+1 so zero means stopped. */
 extern u16 gSoundTestSfxId;
-#define gCardAlbumCursor gSoundTestSfxId
-#define gUnk_03000230 gSoundTestSfxId
 extern u8 gSoundTestBgmId;
-#define gCardAlbumPage gSoundTestBgmId
-#define gUnk_03000232 gSoundTestBgmId
 extern u8 gSoundTestPlayingBgmIdPlusOne;
-#define gCardCursorY gSoundTestPlayingBgmIdPlusOne
-#define gUnk_03000233 gSoundTestPlayingBgmIdPlusOne
 /* Number of PRESS START update frames left before attract mode. */
 extern u8 gTitleAttractCountdown;
-#define gTitleFadeStep gTitleAttractCountdown
-#define gUnk_03000234 gTitleAttractCountdown
 extern u16 gCardRecvId;
-#define gUnk_03000236 gCardRecvId
 extern u16 gCardSendId;
-#define gUnk_03000238 gCardSendId
 extern u8 gUnk_03000240;
 extern u8 *gObjPoolPtr;
 extern u32 gUnk_03000248;
-extern u16 gUnk_03000310;
+/* ---- 输入/波浪 (sio_link.c): gKeysHeld=本帧按键(~REG_KEYINPUT, gGstate312=新按下),
+ * gKeyIgnoreTimer=输入屏蔽倒计时(sub_8018744 装 10 帧); gWave*=BattleFx_Init 参数 */
+extern u16 gKeysHeld;
+#define gUnk_03000310 gKeysHeld
 extern u16 gGstate312;
 extern u16 gGstate314;
-extern u8 gUnk_03000316;
+extern u8 gKeyIgnoreTimer;
+#define gUnk_03000316 gKeyIgnoreTimer
 extern u8 gUnk_03000317;
 extern UnkNode gUnk_03000318; // 战斗待机行动链表头 (ListNode_Init)
 extern u16 gGstate324;
@@ -179,31 +190,47 @@ typedef struct
 extern Unk_03000348 gDialogCtx[];
 
 extern u16 gFlashFlags;
-extern u16 gUnk_03000386;
-extern u16 gUnk_03000390[];
+/* ---- 逐行 BG 波浪滚动引擎 (sio_link.c, 与 SIO 无关): WaveTablePtr=运行时生成波形表指针
+ * (常指 gUnk_02036EC0), WaveAngle/AngleVel=相位/步进(%360), WaveRowOffset=逐行偏移表,
+ * WaveBgHofsTbl/VofsTbl=BG HOFS/VOFS 寄存器地址表 */
+extern u16 gWaveAngle;
+#define gUnk_03000386 gWaveAngle
+extern u16 gWaveRowOffset[];
+#define gUnk_03000390 gWaveRowOffset
 
-extern u8 gUnk_030004D4;
-extern u8 gUnk_030004D5;
-extern u8 gUnk_030004D6;
-extern u8 gUnk_030004D7;
-extern u32 gUnk_030004D0;
-extern u32 gUnk_030004D8[4];
-extern u32 gUnk_030004E8[4];
+extern u8 gWaveAngleVel;
+#define gUnk_030004D4 gWaveAngleVel
+extern u8 gWaveAmp;
+#define gUnk_030004D5 gWaveAmp
+extern u8 gWaveRowStep;
+#define gUnk_030004D6 gWaveRowStep
+extern u8 gWaveMode;
+#define gUnk_030004D7 gWaveMode
+extern u32 gWaveTablePtr;
+#define gUnk_030004D0 gWaveTablePtr
+extern u32 gWaveBgHofsTbl[4];
+#define gUnk_030004D8 gWaveBgHofsTbl
+extern u32 gWaveBgVofsTbl[4];
+#define gUnk_030004E8 gWaveBgVofsTbl
 
-extern u8 gUnk_030004F8;
+extern u8 gBgLoadSlot;
+#define gUnk_030004F8 gBgLoadSlot
 
 typedef struct
 {
-    u16 field_0;
-    u16 field_2;
-    u16 field_4;
-    u16 field_6;
-    u16 field_8;
-    u16 field_A;
-    u16 field_C;
-    u16 field_E;
-} Unk_03000500;
-extern Unk_03000500 gUnk_03000500;
+    u16 bg0Hofs; /* +0x00 备份, 写回 REG_BG0HOFS (sub_801A2AC 族) */
+    u16 bg0Vofs; /* +0x02 */
+    u16 bg1Hofs; /* +0x04 */
+    u16 bg1Vofs; /* +0x06 */
+    u16 bg2Hofs; /* +0x08 */
+    u16 bg2Vofs; /* +0x0A */
+    u16 bg3Hofs; /* +0x0C */
+    u16 bg3Vofs; /* +0x0E */
+} BgScrollBackup;
+/* ---- BG 滚动偏移备份 (field_0..E = BG0..BG3 的 HOFS/VOFS 成对备份,
+ * sub_801A2AC 族写回 REG_BGxHOFS/VOFS; 波浪引擎经 gWaveBgHofsTbl/VofsTbl 逐行覆盖) */
+extern BgScrollBackup gBgScrollBackup;
+#define gUnk_03000500 gBgScrollBackup
 extern u16 gBattleUiFlags;
 extern u8 gUnk_03000512;
 extern u8 gUnk_03000514;
@@ -218,17 +245,25 @@ extern u16 gUnk_0300061E;
 extern u16 gUnk_03000620;
 extern u16 gUnk_03000622;
 extern u8 gUnk_03000624;
-extern u8 gUnk_0300068C;
-extern u8 gUnk_0300068D;
-extern u8 gUnk_0300068E;
+/* ---- 伤害数字弹出 (sub_801D568 族: 弹槽 tile 基号=*4+0x158, 相位/级数控制滚动) */
+extern u8 gDmgPopupSlot;
+#define gUnk_0300068C gDmgPopupSlot
+extern u8 gDmgPopupPhase;
+#define gUnk_0300068D gDmgPopupPhase
+extern u8 gDmgPopupLevel;
+#define gUnk_0300068E gDmgPopupLevel
 extern u32 gUnk_0300062C;
 extern u8 gUnk_03000630;
 extern u8 *gUnk_03000638[12];
 extern u8 gUnk_03000668;
 extern u8 gUnk_03000669;
-extern struct BattleObj *gUnk_030006F8[]; /* 战斗效果/步进队列 (7 槽), 消费者 sub_801E040 */
-extern u8 gUnk_03000714;
-extern u8 gUnk_03000715;
+extern struct BattleObj *gFxQueueObjs[]; /* 战斗效果/步进队列 (7 槽), 消费者 sub_801E040 */
+#define gUnk_030006F8 gFxQueueObjs
+/* ---- 战斗效果/步进队列游标 (队列=gUnk_030006F8[7]) */
+extern u8 gFxQueueWriteIdx;
+#define gUnk_03000714 gFxQueueWriteIdx
+extern u8 gFxQueueReadIdx;
+#define gUnk_03000715 gFxQueueReadIdx
 extern u8 gUnk_03000716;
 
 /* 战斗"待选池"链节点 (16B, 步长 0x10): 前 12 字节就是 UnkNode, 故 gUnk_030006A0[i]
@@ -237,17 +272,25 @@ extern u8 gUnk_03000716;
  * 链表头 0x03000690 是 UnkNode 哨兵 (ListNode_Init, key=0xFF), 遍历条件恒为 key <= 0xFE。
  * data 指向 BattleObj*。消费者: sub_801DC20 (挂入), sub_801DD04 (摘链),
  * sub_801FF40 (挑选, 读 data 对象 memberIdx), sub_8020AE4 (逐帧 dmgAmount+1)。 */
-typedef struct Unk_030006A0
+typedef struct TaskPoolNode
 {
     u8 key;
     u8 pad_1[3];
-    struct Unk_030006A0 *prev;
-    struct Unk_030006A0 *next;
+    struct TaskPoolNode *prev;
+    struct TaskPoolNode *next;
     u32 data;
-} Unk_030006A0;
-extern Unk_030006A0 gUnk_030006A0[];
-extern UnkNode gUnk_03000690;  /* 待选池链表头: UnkNode 哨兵 (key=0xFF), 遍历取 ->next */
-extern u8 gUnk_030006F0;       /* 待选池计数: sub_801DC20 挂入时 ++, sub_801DD04 摘链时 -- */
+} TaskPoolNode;
+extern TaskPoolNode gTaskPoolNodes[];
+#define gUnk_030006A0 gTaskPoolNodes
+/* ---- 战斗"待选池" (等待被选中的对象池, 术语沿旧注释): sub_801DC20 挂入
+ * (ListNode_InsertSorted 按 key 排序, 节点=TaskPoolNodes[池槽 0..4], Count++),
+ * sub_801DD04 摘链 (Count--); 在池期间 dmgAmount 逐帧 +1 作蓄力权重 (sub_8020AE4),
+ * sub_801FF40 按权重挑选对象出战。邻接 gFxQueueObjs=效果/步进队列 (死亡/特效入队,
+ * gFxQueueReadIdx/WriteIdx 游标, 消费者 sub_801E040 按槽类重放登场) */
+extern UnkNode gTaskPoolHead;  /* 待选池链表头: UnkNode 哨兵 (key=0xFF), 遍历取 ->next */
+#define gUnk_03000690 gTaskPoolHead
+extern u8 gTaskPoolCount;       /* 待选池计数: sub_801DC20 挂入时 ++, sub_801DD04 摘链时 -- */
+#define gUnk_030006F0 gTaskPoolCount
 extern u32 gUnk_03000718;
 extern u8 gUnk_0300071C;
 extern u32 gUnk_03000730;
@@ -270,56 +313,110 @@ extern u16 gUnk_0300076E;
 extern s8 gUnk_0300076A;
 extern u16 gUnk_0300076C;
 extern u16 gUnk_0300076E;
-extern u8 gUnk_03000770;
-extern u8 gUnk_03000781;
-extern u8 gUnk_03000782;
-extern u16 gUnk_03000784;
+/* 菜单/演出选择列表窗口活动状态 (0x03000770..0x03000784, 2026-09-14 zcode-menulist-770 定名)。
+ * 演出 handler sub_8023820 构建: 扫描候选槽 (0xFF 终止) 逐项追加到 gMenuListItems,
+ * gMenuListCount 计数 (≤9, 数组 0x778..0x780 恰好 9 字节), 过滤通过项在 gMenuListRowBits
+ * 置位; 多处复位序列 = 四字段全清 0。渲染 sub_80256E4: 3 行可见窗口, 行 = Top..Top+2 且
+ * < Count, 行样式 = RowBits bit→高亮(2)/可选(0), 未置位→暗淡(1); 选中行 = Cursor。
+ * sub_8021184 case6 从 gMenuSlotStates[idx][1]/[2] 同步 Top/Cursor (越界则吸附到末项)。
+ * 0x771-0x777 与 0x783 为纯填充 (全 ROM 零访问); 第二平行窗口 = 0x03000808/809/80A (未名)。 */
+extern u8 gMenuListCount;  ///< 0x03000770 (原 gUnk_03000770) 列表项数
+extern u8 gMenuListItems[9]; ///< 0x03000778 (原未登记) 列表项 id (槽号)
+extern u8 gMenuListTop;    ///< 0x03000781 (原 gUnk_03000781) 滚动窗口顶项
+extern u8 gMenuListCursor; ///< 0x03000782 (原 gUnk_03000782) 选中项 (绝对下标)
+extern u16 gMenuListRowBits; ///< 0x03000784 (原 gUnk_03000784) 行样式位图 (bit n = 项 n 高亮/可选)
 extern u8 gMenuSlotStates[][5];
-#define gUnk_03000788 gMenuSlotStates
-extern u8 gUnk_03000808;
-extern u8 gUnk_03000809;
-extern u8 gUnk_0300080A;
-extern u8 gMenuMasterCursor;
-#define gUnk_030007BA gMenuMasterCursor
-extern u8 gUnk_0300080C[];
-extern u8 gUnk_03000811;
-extern u8 gUnk_03000812;
-extern u8 gUnk_03000813;
-extern s8 gUnk_03000814;
-extern s8 gUnk_03000815;
-extern u8 gUnk_03000816;
-extern u16 gUnk_03000818;
-extern u8 gUnk_03000820;
-extern u16 gUnk_03000822;
-extern u8 gUnk_03000824;
-extern u8 gUnk_03000825;
-extern u16 gUnk_03000826;
-extern u8 gUnk_03000828;
-extern u8 gUnk_03000829;
-extern u8 gUnk_03000830[]; ///< 0xC 字节 ID 缓冲 (0x830..0x83B), sub_80489E8 的输出表
-extern u8 gUnk_0300083C;  ///< 上表的项数
-extern u8 gUnk_0300083D;
-extern u8 *gUnk_03000840;
-extern u8 gUnk_03000844;
-extern u8 gUnk_03000845;
-extern u8 gUnk_03000856;
-extern u8 gUnk_03000857;
-extern u8 gUnk_03000858;
-extern u16 gUnk_0300085A;
-extern u8 gUnk_0300085C;
-extern u8 gUnk_03000865;
-extern u8 gUnk_03000867;
-extern u8 gUnk_03000868;
-extern u8 gUnk_0300086A;
-extern u8 gUnk_0300086B;
+/* ---- 菜单第二选择列表窗口 (0x03000808..0x0300080A, 与 gMenuList* 平行; 2026-09-14 claude804AF60 定名):
+ * 消费者全部字节级核对 —— 渲染 sub_802576C (3 行窗口: i = Top..Top+2 且 < Count,
+ * 行样式 = (i==Cursor)?2:0, BgMap_PalFillRect(base, 0xB+style, 8, (i-Top)*2+8, 9, 2));
+ * 同步 sub_8021184 case7 (从 gMenuSlotStates[idx][3]/[4] 取 Top/Cursor, 越界吸附末项,
+ * 与 case6 对 gMenuList* 的处理相同); 逐项绘制 sub_8024940 (行数据取 0x030007C8[4B 步长])。
+ * 0x80B 为纯填充 (全 ROM 零访问)。 */
+extern u8 gMenuList2Count;  ///< 0x03000808 (原 gUnk_03000808) 第二列表项数
+extern u8 gMenuList2Top;    ///< 0x03000809 (原 gUnk_03000809) 滚动窗口顶项
+extern u8 gMenuList2Cursor; ///< 0x0300080A (原 gUnk_0300080A) 选中项 (绝对下标)
+extern u8 gMenuMasterCursor; /* 0x030007BA (声明沿用原文件位次) */
+/* ---- 菜单成员精灵装载队列 (0x0300080C..0x03000813): sub_802151C 开菜单时把
+ * 候选池槽中 fxKind(+0xBC)==3 的成员写入 Slots[Count] 并把其 fxKind 清 0;
+ * sub_8021700 逐帧消费: Phase0 = sub_80207DC(obj, posX, posY, f_1E, palSlot) 出精灵
+ * → Phase1, Phase1 = 等 headA.kindFlags bit11 (0x800 装载中) 清零 → Idx++/Phase=0;
+ * 全部装完 (Idx>=Count) 返回 1。装载期间菜单窗口等待。 */
+extern u8 gMenuObjLoadSlots[5]; ///< 0x0300080C (原 gUnk_0300080C) 待装载 BattleObj 池槽号
+extern u8 gMenuObjLoadCount;    ///< 0x03000811 (原 gUnk_03000811) 队列长度
+extern u8 gMenuObjLoadIdx;      ///< 0x03000812 (原 gUnk_03000812) 当前装载下标
+extern u8 gMenuObjLoadPhase;    ///< 0x03000813 (原 gUnk_03000813) 0=出精灵 1=等装载完成
+/* ---- 菜单选择/窗口状态 (0x03000814..0x03000818):
+ * SelSlot0/1 (s8): 全 ROM 仅写 -1 (sub_8025638 复位, sub_80230BC/8023820/8024940 关菜单时),
+ * 唯一读者 sub_8022710 以 ldrsb 有符号读并判 >=0 —— 本版恒为无选择 (-1), 疑废弃/预留槽。
+ * WindowPhase/Flags: 菜单窗口生命周期 —— sub_802151C 开菜单: Flags=0 + Phase=1;
+ * sub_8021788 Phase1: Flags|=0x1000 (窗口 BG 开) → Phase=0, Phase0: DialogCtx 条件满足清
+ * 0x1000; Phase2 (sub_802192C 关闭路径) → Phase=0; sub_8023820/8024940 演出分支亦写。 */
+extern s8 gMenuSelSlot0;        ///< 0x03000814 (原 gUnk_03000814) 选择槽 0 (恒 -1)
+extern s8 gMenuSelSlot1;        ///< 0x03000815 (原 gUnk_03000815) 选择槽 1 (恒 -1)
+extern u8 gMenuWindowPhase;     ///< 0x03000816 (原 gUnk_03000816) 菜单窗口相位 (0=活动 1=开启中 2=关闭中)
+extern u16 gMenuWindowFlags;    ///< 0x03000818 (原 gUnk_03000818) 窗口标志 (bit0x1000=窗口开启)
+/* ---- BattleTask 物件演出引擎工作区 (sub_804442C 复位; handler=event_actor/event_hub/cutscene_mgr):
+ * gObjActStep=步骤PC(0起手/1-2动画/5-8等待/9收尾/0x12-0x1F细分), SavedF2A/SavedPal=动画恢复参数,
+ * StepTimer=步骤帧计数(插值t), Result=演出结果, SavedX/Y=原始坐标, GroupCount/GroupSlots=多对象
+ * 组登记(低4位=池槽), ActWait*=等待窗互斥(全0=放行 sub_80444E8), SceneFadeOut/In=场景淡出/入量,
+ * MoveFromX/Y=移动插值起点, SfxLatch=一次性音效闩, SceneTransStep=场景切换PC (sub_8044394族) */
+extern u8 gObjActStep;
+#define gUnk_03000820 gObjActStep
+extern u16 gObjActSavedF2A;
+#define gUnk_03000822 gObjActSavedF2A
+extern u8 gObjActSavedPal;
+#define gUnk_03000824 gObjActSavedPal
+extern u8 gObjActStepTimer;
+#define gUnk_03000825 gObjActStepTimer
+extern u16 gObjActResult;
+#define gUnk_03000826 gObjActResult
+extern u8 gObjActSavedX;
+#define gUnk_03000828 gObjActSavedX
+extern u8 gObjActSavedY;
+#define gUnk_03000829 gObjActSavedY
+/* 当前动作候选目标槽位表 (0xC 项: 槽号; sub_80489E8 输出 — event_hub:634 mode1 敌侧,
+ * sub_8032EA0 mode0 我侧, 消费者按 [i]*0xC8 取目标) */
+extern u8 gTargetSlotList[];
+extern u8 gTargetSlotCount;   /* 候选数 (sub_80489E8 返回值) */
+extern u8 gObjActGroupCount;
+#define gUnk_0300083D gObjActGroupCount
+extern u8 *gObjActGroupSlots;
+#define gUnk_03000840 gObjActGroupSlots
+extern u8 gActWaitBusy0;
+#define gUnk_03000844 gActWaitBusy0
+extern u8 gActWaitBusy1;
+#define gUnk_03000845 gActWaitBusy1
+extern u8 gActWaitBusy2;
+#define gUnk_03000856 gActWaitBusy2
+extern u8 gActWaitCnt0;
+#define gUnk_03000857 gActWaitCnt0
+extern u8 gActEventCount;
+#define gUnk_03000858 gActEventCount
+extern u16 gActWaitFrames;
+#define gUnk_0300085A gActWaitFrames
+extern u8 gActWaitCnt1;
+#define gUnk_0300085C gActWaitCnt1
+extern u8 gObjActDoneCount; ///< 0x03000865 (原 gUnk_03000865) 对象演出完成计数: sub_803FF54 步进器 case 在 obj->slot=0xFF/variantClass=7/gObjActStep=0x38 后 ++; sub_804448C 清 0 (BattleTask_Run 开场), getter sub_8044498 供 ObjGroup_AnyEvent 等待 !=0
+extern u8 gSceneFadeOut;
+#define gUnk_03000867 gSceneFadeOut
+extern u8 gSceneFadeIn;
+#define gUnk_03000868 gSceneFadeIn
+extern u8 gObjActBranch;
+#define gUnk_0300086A gObjActBranch
+extern u8 gObjActParam;
+#define gUnk_0300086B gObjActParam
 extern u16 gUnk_0300086C; ///< sub_803E58C 动画基准表项 (0x350/0x353/0x356, 加 1/2 变体)
-extern u8 gUnk_0300086E;
-extern u8 gUnk_0300086F; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
-extern u16 gUnk_03000882;
-extern u8 gUnk_03000884;
-extern u16 gUnk_03000886;
-extern u8 gUnk_03000888;
-extern u8 gUnk_03000889;
+extern u8 gObjActMoveFromX;
+#define gUnk_0300086E gObjActMoveFromX
+extern u8 gObjActMoveFromY; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
+#define gUnk_0300086F gObjActMoveFromY
+extern u16 gActHitDmgAmount; ///< 0x03000882 (原 gUnk_03000882) 战斗脚本族 (sub_8040690/8042E70 等) 从 BattleObj.dmgAmount(+0xB2) 快照的当前伤害值; getter sub_8044420, 合击/连锁处理 (sub_801BE34/801C484) 累加进 0x03000742; 战斗脚本 case 起手清 0
+extern u8 gObjActSfxLatch;
+#define gUnk_03000884 gObjActSfxLatch
+extern u16 gActWaitSfxId;   ///< 0x03000886 (原 gUnk_03000886) 演出等待结束音效号: sub_8044514 置默认 0x37, sub_8044574 由脚本参数给定; 等待结束时 Sfx_Play(本值,0,gActWaitSfxParam) (sub_803F658 合击状态机等)
+extern u8 gActWaitSfxParam; ///< 0x03000888 (原 gUnk_03000888) 上述 Sfx_Play 第 3 参 (sub_8044574 arg2 / 默认 0)
+extern u8 gSceneTransStep;
+#define gUnk_03000889 gSceneTransStep
 extern u8 gUnk_0300088B; ///< sub_80489E8 返回的参演角色数 (sub_8028AD8 登记)
 extern u8 gUnk_0300088C; ///< 当前处理角色下标 (sub_8028AD8)
 extern u8 gUnk_03000890[]; ///< 角色 obj 池槽号表 (sub_80489E8 输出, 按 0x8C 下标; sub_8028AD8)
@@ -329,45 +426,73 @@ extern u8 gUnk_0300089C[]; ///< 暂存 headA.palSlot (sub_8028AD8)
 extern u16 gUnk_030008A0[]; ///< 暂存 headA.f_1E (sub_8028AD8)
 extern u8 gUnk_030008A4; ///< 当前相位/组下标 (sub_8028AD8)
 extern u8 gUnk_030008A5; ///< sub_802A154 演出序号 (0..2, 索引 gUnk_0839DF90 的 (x,y) 对)
-extern u32 gUnk_030008EC;
+extern u32 gStatRecalcPool;
+#define gUnk_030008EC gStatRecalcPool
 extern u8 gChoiceListLen;
-extern u8 gUnk_0300094A;
-extern u8 gUnk_0300094B;
-extern u8 gUnk_0300094C;
-extern u8 gUnk_0300094D;
-extern u8 gUnk_03000949; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u32 gUnk_03000950;
-extern u8 gUnk_03000954; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u16 gUnk_03000956;
-extern u8 gUnk_03000958;
-extern u16 gUnk_0300095A; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u8 gUnk_03000960[];
-extern u8 gUnk_03000968;
-extern u8 gUnk_03000969;
-extern s8 gUnk_030009BE;
-extern s8 gUnk_030009BF;
-extern u32 gUnk_030009C0;
-extern u8 gUnk_030009C4;
-extern s8 gUnk_030009C5;
-extern u32 *gUnk_030009C8;
+/* 战斗结算/展示渲染状态簇 (0x03000949..0x0300097D, 2026-09-14 zcode-dlg-9xx 定名):
+ * 主状态机 = sub_8048FB8 (按 gBattleIntroState 分派 22 态, battle task @0x08017E00 逐帧调用;
+ * 尾部每帧调 sub_8048F0C 调色板闪光机)。渲染 = 命令表驱动: 段表 gUnk_0839B2E0 (u16,
+ * 0xFFF0 分隔, sub_804AB40/80494F0 切段) + 0x02035AC0 DialogCtx BG map 写入
+ * (sub_80492C0: 段内格光标 0x94A, 列光标 0x94B; 格 opcode 0x6E0-0x6E6 分派
+ * tile 动画/数字/图形; 数字位光标 0x94C 持久, tile 动画帧号 0x94D)。
+ * 业务流: 参战遍历 (0x974/0x979/0x97A, sub_80489E8 输出) → EXP 结算
+ * (0x956=sub_80453D8 累加, 0x958=sub_80454A4 升级位掩码) → 升级能力值滚动
+ * (0x956←0x95A 目标值, sub_8049AD8 逐 stat 恢复) → 升级习得列表
+ * (0x960/0x968/0x969/0x96C, sub_8045860 收集 + sub_804ACC0 图形段)。
+ * 复位: sub_8048DA4 清 0x03000948-0x0300097D。 */
+extern u8 gBattleDlgObjSlot; ///< 0x03000949 当前展示对象 BattleObj pool 槽号 (sub_80494F0 case10 ++/case11 =0; pool[0x949].headA.palSlot → 0x97D)
+extern u8 gBattleDlgCellIdx; ///< 0x0300094A 段命令格光标 (0x950 段内 u16 下标; 格动画完成时 ++, 切段清 0)
+extern u8 gBattleDlgTileCol; ///< 0x0300094B BG map 列光标 (0x02035AC0 行内 tile x, 每格 ++; sub_80492C0 目的地偏移)
+extern u8 gBattleDlgDigitCol; ///< 0x0300094C 多位数字位光标 (sub_80497B0 跨调用持久, 不切段不清)
+extern u8 gBattleDlgAnimFrame; ///< 0x0300094D tile 动画帧号 (sub_804ABF8/9958/98E0; >3 或 0xF00 终止符结束)
+extern u32 gBattleDlgSegOff; ///< 0x03000950 当前命令段字节偏移 (gUnk_0839B2E0 内, = 段起点*2; sub_804AB40 返回值)
+extern u8 gBattleDlgNextState; ///< 0x03000954 结算子状态暂存 (sub_80494F0 返回值; sub_8048FB8 case20 → gBattleIntroState)
+extern u16 gBattleDlgShowVal; ///< 0x03000956 正在显示/滚动的数值 (EXP=sub_80453D8, 金钱=sub_804542C, 升级后能力值←0x95A)
+extern u8 gBattleDlgLvUpMask; ///< 0x03000958 升级成员位掩码 (sub_80454A4 发放 EXP 返回; bit i=成员 i 升级)
+extern u16 gBattleDlgShowTarget; ///< 0x0300095A 数值滚动目标 (= 能力新值-旧值 后的实际新值, sub_8049AD8; 完成时 → 0x956)
+extern u8 gBattleDlgLearnList[8]; ///< 0x03000960 升级习得 id 列表 (id-1; sub_8045860 推进 obj[0xAA] 学习等级收集)
+extern s8 gBattleDlgLearnCount; ///< 0x03000968 习得列表长度 (sub_8045860 返回; 94F0 按 (s8) 比较)
+extern u8 gBattleDlgLearnIdx; ///< 0x03000969 习得列表遍历光标
+extern u16 *gBattleDlgLearnGfx; ///< 0x0300096C 当前习得项图形段指针 (sub_804ACC0 切 0x0839B462 段表返回; sub_8049B70 消费)
+extern s8 gResultsDropCount;
+#define gUnk_030009BE gResultsDropCount
+extern s8 gResultsDropSelIdx;
+#define gUnk_030009BF gResultsDropSelIdx
+extern u32 gResultsDropTablePtr;
+#define gUnk_030009C0 gResultsDropTablePtr
+extern u8 gResultsStepDone;
+#define gUnk_030009C4 gResultsStepDone
+extern s8 gResultsViewKind;
+#define gUnk_030009C5 gResultsViewKind
+extern u32 *gResultsStatePtr;
+#define gUnk_030009C8 gResultsStatePtr
 extern u8 gChoiceSubIdx;
-extern u8 gUnk_030008F0;
-extern u8 gUnk_030008F1;
-extern u8 gUnk_030008F2;
-extern u8 gUnk_030008F3;
-extern u16 gUnk_03000906;
-extern u16 gUnk_03000908;
+/* ---- 战斗结算/属性计算 (sub_80494F0 结算总驱动; BattleDrops_Roll 写掉落表): 
+ * Results*=结果屏掉落/视图状态, SkillHealAmount=技能回血量, StatRecalc*=能力重算
+ * (sub_8048ACC 递归重算 statMods), FxReq*=能力变化演出请求(sub_8048B30, 第三参=
+ * gUnk_08393B28 效果索引) */
+extern u8 gStatRecalcKind;
+#define gUnk_030008F0 gStatRecalcKind
+extern u8 gFxReqTimer;
+#define gUnk_030008F1 gFxReqTimer
+extern u8 gFxReqKind;
+#define gUnk_030008F2 gFxReqKind
+extern u8 gFxReqFrames;
+#define gUnk_030008F3 gFxReqFrames
+extern u16 gFxReqAnimIdx;
+#define gUnk_03000906 gFxReqAnimIdx
+extern u16 gSkillHealAmount;
+#define gUnk_03000908 gSkillHealAmount
 extern u8 gBattleIntroState;      ///< 战斗开场 BGM/淡入演出状态机 (sub_8049C1C): 0..4
 extern u8 gBattleIntroTimer;      ///< 上述状态机的帧计数
 extern u8 gBattleIntroObj[];      ///< 战斗开场对象的 ObjHead (sub_804AD60 用 sub_801B81C 装配)
 extern u8 gBattleIntroPhase;      ///< 开场阶段标志 (0/1/2, sub_804ADE0/ADF8 设置)
-extern u16 *gUnk_0300096C;
-extern u8 gUnk_03000974[]; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u8 gUnk_03000979; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u8 gUnk_0300097A; // 2026-09-11 zcode-engine 登记 (sub_8048DA4)
-extern u8 gUnk_0300097B;
-extern u8 gUnk_0300097C;
-extern u8 gUnk_0300097D;
+extern u8 gBattleDlgPartySlots[5]; ///< 0x03000974 参战成员槽号表 (sub_80489E8(pool,·,0,0x7F) 输出, 0..4 号位)
+extern u8 gBattleDlgPartyCount; ///< 0x03000979 参战成员数 (sub_80489E8 返回)
+extern u8 gBattleDlgPartyIdx; ///< 0x0300097A 参战遍历光标 (sub_8048FB8 case1/2 逐个登场动画)
+extern u8 gBattleDlgFlashState; ///< 0x0300097B 调色板闪光状态机状态 (sub_8048F0C: 0=空闲 1=启动 2/3=等待; sub_804AB10 置 1)
+extern u8 gBattleDlgFlashTimer; ///< 0x0300097C 调色板闪光帧计数 (sub_8048F0C)
+extern u8 gBattleDlgFlashPal; ///< 0x0300097D 闪光对象的 OBJ 调色板槽 (= pool[0x949].headA.palSlot; sub_804B96C/804C4D8 淡变)
 extern u8 gBattleIntroFadeFlag;   ///< sub_804ADF8 复位 (淡入/开场演出标志)
 
 /* 战斗转场/擦除 (wipe) 效果 (sub_804AE2C 逐帧更新, sub_804B1EC 复位, sub_804B1F8 启动):
@@ -389,13 +514,16 @@ extern u8 gWipeMinY;        ///< 受影响 OAM 的最小 VPos
 extern u8 gWipeMaxY;        ///< 受影响 OAM 的最大 VPos+高度
 extern u8 gWipeProgress;    ///< 擦除推进量 (遮挡高度)
 extern u16 gWipeCtl;        ///< 转场控制字
-extern u16 gUnk_03000AE0;
-extern u16 gUnk_03000AE2;
-extern u8 gUnk_03000AE4; // 2026-09-11 zcode-engine 登记 (sub_804B288)
-extern u8 gUnk_03000AE5; // 2026-09-11 zcode-engine 登记 (sub_804B288)
+extern u16 gObjPalSlotUsed; ///< 0x03000AE0 OBJ 调色板槽占用位图 bit0-15 (gObjPalAnim@AE8 系统的 16 槽; 装载/占用置位 sub_804C2FC/804C364, 释放清位 sub_804C3A4, 找空槽扫描 sub_804B654/804B96C)
+extern u16 gBgPalSlotUsed;  ///< 0x03000AE2 BG 调色板槽占用位图 bit0-15 (gBgPalAnim@BE8 系统的 16 槽; 装载/占用置位 sub_804C548/804C5B8, 释放清位 sub_804C5F8, 找空槽扫描 sub_804BBDC mode3/804BF14)
+extern u8 gUnk_03000AE4; ///< 战斗动画子系统状态字节 (与 AE0/AE2 位图同簇): 全 ROM 唯一消费 = sub_804B288 复位 strb 0 清零; 无任何读者 (2026-09-14 E0 全 ROM 扫描: 字面池/基址偏移/字半字区间重叠/数据指针均无)。AE6/AE7 未登记
+extern u8 gUnk_03000AE5; ///< 同 gUnk_03000AE4: 仅 sub_804B288 清零, 无读者 — 语义不可考, 勿臆测改名
 /* 调色板动画条目 (16 字节 × 16 项 = 256 字节)。
- * 0x03000AE8 = BG 调色板动画表 (目的 0x05000200 / 镜像 0x02036AC0);
- * 0x03000BE8 = OBJ 调色板动画表 (目的 0x05000000 / 镜像 0x02036CC0); 布局相同。
+ * 0x03000AE8 = OBJ 调色板动画表 (目的 0x05000200 = OBJ 调色板 RAM / 镜像 0x02036AC0);
+ * 0x03000BE8 = BG 调色板动画表 (目的 0x05000000 = BG 调色板 RAM / 镜像 0x02036CC0); 布局相同。
+ * ⚠ 2026-09-14 纠正: 旧命名 gBgPalAnim(AE8)/gObjPalAnim(BE8) 的 BG/OBJ 标签与 GBA 硬件互换
+ * (E0: BG palette=0x05000000..0x1FF, OBJ palette=0x05000200..0x3FF; E2: AE8 系槽全部经
+ * headA.palSlot 作精灵调色板装载/释放 — battle_obj_core.c:153/2672, event_hub.c:92 等), 已互换。
  * ctrl 低 4 位 = opcode: 0=空(0xFF), 1=流式(sub_804B3C0), 2=精灵动画(sub_804B458),
  * 3=淡变(sub_804B4D0); bit4=0x10 方向, bit5=0x20 禁止颜色重置, bit6=0x40 循环方向。
  * RGB 增量 (dR/dG/dB) 与 shift 供 sub_804B56C 做 src + delta*weight>>shift 插值。 */
@@ -415,9 +543,9 @@ typedef struct
     s8 dB;         /* +0xE B 增量 */
     u8 shift;      /* +0xF 插值移位/除数 */
 } PaletteAnimEntry;
-extern PaletteAnimEntry gBgPalAnim[];   /* 0x03000AE8 BG 调色板动画表 (目的 0x05000200 / 镜像 0x02036AC0) */
+extern PaletteAnimEntry gObjPalAnim[];  /* 0x03000AE8 OBJ 调色板动画表 (目的 0x05000200 / 镜像 0x02036AC0; 旧名 gBgPalAnim) */
 extern u16 gUnk_03000CE8; // 2026-09-11 zcode-engine 登记 (sub_804B288)
-extern PaletteAnimEntry gObjPalAnim[];  /* 0x03000BE8 OBJ 调色板动画表 (目的 0x05000000 / 镜像 0x02036CC0) */
+extern PaletteAnimEntry gBgPalAnim[];   /* 0x03000BE8 BG 调色板动画表 (目的 0x05000000 / 镜像 0x02036CC0; 旧名 gObjPalAnim) */
 extern u8 gObjTargetCache[]; ///< 每 obj 池槽 (0..10) 缓存的目标对象索引 (f_BD): 0xFF=未选, sub_804CEBC 初始化, sub_804CA2C 族惰性赋值
 typedef struct
 {
@@ -437,51 +565,122 @@ extern InvListEntry gInvPageDeltas[];
 extern InvListEntry gObjInvBackup[];
 extern u8 gInvPageDeltaCount;
 extern u8 gInvPendingApplyCount;
-extern u8 gUnk_03000DDE;
-/* 0x03000DE6/0x03000DE8: 物件状态机 (sub_804E0E4) 在切场景前保存的
- * obj+0x2A (u16) 与 obj+0x35 (u8), 供 sub_801CBA4 恢复用。 */
-extern u16 gUnk_03000DE6;
-extern u8 gUnk_03000DE8;
-extern u32 gUnk_03000DF0[];
-extern u8 gUnk_03000E04;
-extern u8 gUnk_03000E05;
-typedef struct
+/* ---- 物件使用演出 (ItemUseFx_Update 按 obj[0xA4] 分派 ItemUseFx_RunConsumable/ItemUseFx_RunWeapon 两台同构
+ * 状态机, 状态机 PC 共用 gItemUseFxState 0..13, 返回 1 = 演出结束; ItemUseFx_Reset 复位)。
+ * E3 道具名 (gItemNames): RunWeapon 分支 ids 0x19..0x31 = 武器攻击道具 (アイスハンマー/
+ * フレイムロッド 等, 其中 8 个有 dmgAmount 预设 0xA7..0xAD/2), RunConsumable 分支 ids
+ * 0xDD..0xE4 = 回复/辅助消耗品 (ヒールガム/エンジェルティア 等)。
+ *  - gItemUseFxState: 状态机 PC。0 起手保存动画参数 → 1 播动画(Sfx 0x17) → 2 等帧尾并
+ *    用 SavedF2A/SavedPalSlot 恢复原动画 → 5/6 等音轨 → 7/8 从目标 headB 帧表
+ *    (sub_801B8FC) 取循环区间 → 9 目标 headB+0x58 当前帧在 [LoopFrom,LoopTo) 内逐帧
+ *    循环, 每圈 LoopsDone++, 播满 LoopCount 圈 → 10..12 等窗口/收尾 → 13 结束。
+ *  - gItemUseFxLoopFrom/To (u16): headB 循环帧区间 (RunWeapon case8, 末记录 +2);
+ *    gItemUseFxLoopCount (u8): 圈数 (case0 固定 3); gItemUseFxLoopsDone (u8): 已播圈数。
+ *  - gItemUseFxSavedF2A (u16)/SavedPalSlot (u8): case0 保存的 obj+0x2A (headA.f_1E)
+ *    与 obj+0x35 (headA.palSlot), 供 sub_801CBA4 恢复用。 */
+extern u8 gItemUseFxState;    /* 0x03000DDE */
+extern u16 gItemUseFxLoopFrom; /* 0x03000DE0 */
+extern u16 gItemUseFxLoopTo;   /* 0x03000DE2 */
+extern u8 gItemUseFxLoopCount; /* 0x03000DE4 */
+extern u8 gItemUseFxLoopsDone; /* 0x03000DE5 */
+extern u16 gItemUseFxSavedF2A;    /* 0x03000DE6 */
+extern u8 gItemUseFxSavedPalSlot; /* 0x03000DE8 */
+/* 布局视图 (0x03000DDE..0x03000DE8+2)。0x03000DDF 与 0x03000DE9..0x03000DEF 未用 (无字面量引用)。
+ * ⚠ 匹配输入约定: 未匹配的 ItemUseFx_RunWeapon 候选 C 应使用扁平符号 (gItemUseFxState 等) ——
+ * ROM 字面量 0x03000DDE/DE0/DE2/DE4/DE5 与之一一对应; 结构体成员访问会改写寻址形状 (基址+偏移)
+ * 破坏字节匹配。结构体仅作布局文档/语义分组。 */
+typedef struct ItemUseFx
 {
-    u8 field_0;
-    u8 field_2;
-    u16 padding;
-} Unk_03000E08;
-extern Unk_03000E08 gUnk_03000E08[];
-extern u8 gUnk_03000E30;
+    u8 state;        /* +0x00 = gItemUseFxState (PC 0..13) */
+    u8 pad_1;
+    u16 loopFrom;    /* +0x02 = gItemUseFxLoopFrom (目标 headB 循环帧起点) */
+    u16 loopTo;      /* +0x04 = gItemUseFxLoopTo (循环帧终点) */
+    u8 loopCount;    /* +0x06 = gItemUseFxLoopCount (圈数, 固定 3) */
+    u8 loopsDone;    /* +0x07 = gItemUseFxLoopsDone (已播圈数) */
+    u16 savedF2A;    /* +0x08 = gItemUseFxSavedF2A */
+    u8 savedPalSlot; /* +0x0A = gItemUseFxSavedPalSlot */
+    u8 pad_B;
+} ItemUseFx;
+extern ItemUseFx gItemUseFx; /* 0x03000DDE (结构体基址视图) */
+/* ---- 多对象同步演出登记 (sub_801DC20 建对象时经 BattleFxObjs_Add 登记, 上限 5;
+ * BattleFx_Update 播放: [0]=模板, 模板 obj+0x3C 起 0x30B (headB 块) 复制给其余对象,
+ * 播完清全体 state 的 0x2000 跳跃位; BattleFx_Reset 清, sub_801BE34 驱动) */
+extern u32 gBattleFxObjs[];     /* 0x03000DF0 (5 项) */
+extern u8 gBattleFxObjCount;    /* 0x03000E04 (BattleFx_GetObjCount 返回值) */
+extern u8 gBattleFxState;       /* 0x03000E05 (BattleFx_Update 状态机 PC 0/1/2/4) */
+/* 布局视图 (0x03000DF0..0x03000E05+1)。0x03000E06/7 未用。匹配输入约定同上:
+ * 已匹配函数用扁平符号, 候选 C 亦然 (ROM 字面量 = 各地址)。 */
+typedef struct BattleFx
+{
+    u32 objs[5]; /* +0x00 = gBattleFxObjs[0..4], [0]=模板 */
+    u8 objCount; /* +0x14 = gBattleFxObjCount */
+    u8 state;    /* +0x15 = gBattleFxState (BattleFx_Update PC 0/1/2/4) */
+    u8 pad_16[2];
+} BattleFx;
+extern BattleFx gBattleFx; /* 0x03000DF0 (结构体基址视图) */
+/* ---- 战后掉落结果表 (BattleDrops_Roll: 按敌方/special 槽号查 LUT 0x0839D9B8[101]/0x0839DBB1[]
+ * 两段式掷取 (60% 门 + 阈值), 任一我方装备效果字段5==4 (幸运系装备) 时道具 id +15
+ * 升稀有档 (E3: 0xDDヒールガム→0xECドラゴンリング, 0xE3ポイズンクリーン→0xF2ドロボウのこころ),
+ * 去重写入本表
+ * 并经 Inventory_AddItem 直接进背包; *out=本表, 返回记录数。消费者 sub_80494F0 战斗结算流程:
+ * 数量→gUnk_030009BE, 表指针→gUnk_030009C0) */
+typedef struct BattleDropEntry
+{
+    u8 itemId; /* 0x03000E08[i]+0: 道具 id (E3: 传 Inventory_AddItem 索引 gInventory) */
+    u8 count;  /* +1: 同 id 掷中次数 (E3: Inventory_AddItem 的增量) */
+    u16 pad_2;
+} BattleDropEntry;
+extern BattleDropEntry gBattleDrops[]; /* 0x03000E08 (容量>=10, 死代码 BattleDrops_Clear 清 i<=9) */
+extern u8 gBattleDropCount;            /* 0x03000E30 已用记录数 */
+/* 布局视图 (0x03000E08..0x03000E30)。容量恰为 10: items[10] 末尾与 count 相邻 (E0 相邻性),
+ * 且 BattleDrops_Roll 追加记录时无上界检查 (>10 个不同道具会覆写 count, 未观察到)。
+ * 匹配输入约定同上: BattleDrops_Roll/BattleDrops_Clear 候选 C 用扁平符号
+ * (ROM 字面量 0x03000E08/0x03000E30 与之一一对应)。 */
+typedef struct BattleDrops
+{
+    BattleDropEntry items[10]; /* +0x00 = gBattleDrops[0..9] */
+    u8 count;                  /* +0x28 = gBattleDropCount */
+} BattleDrops;
+extern BattleDrops gBattleDropsBlk; /* 0x03000E08 (结构体基址视图) */
 extern u8 gScriptReturnSetId; /* 0x03000E68 ScriptSet_Load 记挂的脚本集号; 脚本退场时还原到 gEnvScriptSetId */
 extern u8 gScriptPendingEntry; /* 0x03000E69 mode==2 记挂的入口号, 解压完成后跳 entryTbl[本值] */
 extern u32 gScriptCursor; /* 0x03000E6C: 脚本 VM PC 槽, 存当前 opcode 字节地址 (EWRAM 脚本区) */
 extern u16 gScriptVmFlags;
-#define gUnk_03000E70 gScriptVmFlags
 extern u8 gScriptDialogPhase;
-#define gUnk_03000E72 gScriptDialogPhase
 extern u8 gUnk_03000E74;
 extern u8 gScriptCallStackDepth;
-#define gUnk_03000E78 gScriptCallStackDepth
 extern u32 gScriptCallStack[];
-#define gUnk_03000E80 gScriptCallStack
-extern u32 gUnk_03000EA0[];
-extern u8 gUnk_03000EC0[];
-extern u8 gUnk_03000EC8;
-extern u8 gUnk_03000EC9;
-extern u8 gUnk_03000ECA;
+/* 脚本 VM 流式子脚本 (OP_SCRIPT_STREAM_LZ=0x15 / OP_SCRIPT_RETURN_CHUNK=0x16) 调用栈,
+ * 与同集 gosub 栈 gScriptCallStackDepth/gScriptCallStack 平行; 容量各 8 项 (区域 0x20 字节):
+ * 进子脚本时压入调用方上下文, 返回时弹出并恢复; 深度无边界检查 (Script_ResetVM 清零)。 */
+extern u32 gScriptStreamCursorStack[]; /* 0x03000EA0: 每层保存的调用方字节码指针 (STREAM_LZ 写入, RETURN_CHUNK 恢复到 gScriptCursor) */
+extern u8 gScriptStreamSetIdStack[];   /* 0x03000EC0: 每层保存的调用方脚本集号 (弹栈时还原 gScriptReturnSetId, 同时镜像 gScriptCurSetId) */
+extern u8 gScriptStreamEntry;          /* 0x03000EC8: STREAM_LZ 记录的子脚本入口号槽 (仅写入; 匹配 asm 中存储先于新操作数读取, 全工程无读者) */
+extern u8 gScriptStreamSetId;          /* 0x03000EC9: STREAM_LZ 记录的子脚本集号槽 (同上, 与 gScriptStreamEntry 成对) */
+extern u8 gScriptStreamDepth;          /* 0x03000ECA: 流式子脚本嵌套深度 (=EA0/EC0 栈顶计数, 进 ++/出 --/复位清 0) */
 extern u8 gDialogWindowTileX;
-#define gUnk_03000ECB gDialogWindowTileX
 extern u8 gDialogWindowTileY;
-#define gUnk_03000ECC gDialogWindowTileY
-extern u8 gUnk_03000ED8;
-extern u16 gScriptLocalSlots[];
-extern u16 gUnk_03000EE8[];
-extern u16 gUnk_03000F24;
-extern u8 gUnk_03000F2A;
-extern u16 gUnk_03000F2C;
-extern u8 gUnk_03000F30;
-extern u16 gUnk_03000F2E;
+/* 脚本 VM 局部槽 + 对话 tile DMA/绘制状态簇 (0x03000ED8..0x03000F30, 2026-09-14 zcode-tile-edx 定名):
+ * - gScriptLocalSlots: 脚本 VM 8 个 u16 局部槽 (ScriptPump_JumpToEntry 全置 0xFFFF;
+ *   ScriptPump_Run 每帧经 sub_80182A8(按键, 本表) 刷新按键等待槽)。
+ * - TileDma 族: 对话 BG 动态 tile 装载 (LZ/块从 ROM 解到 0x0203DE00 暂存, FlushTileDma
+ *   DMA 刷到 VRAM 0x0600B800, 64B/块)。gTileDmaAllocTable[30] = 已登记动态 tile 值
+ *   (0xE0+i 重定向, sub_805063C 线性查重), gTileDmaCount = 登记数 (= 待刷块数)。
+ * - gTextDrawPos/gTileAnimFrameIdx/gTileAnimCharIdx: 脚本文本/图块绘制坐标 (x|y<<8)
+ *   与 tile 动画状态 (帧表 gUnk_0862D574 按 charIdx*18 选、frameIdx*2 取帧)。
+ * - gScriptKeyState/gScriptKeysPressed: 脚本活动期间的按键状态与本帧新按下沿
+ *   (ScriptPump_Run: keys=~REG_KEYINPUT, pressed=keys&~prev)。
+ * - gScriptCurSetId: 当前调用栈层的脚本集 id (sub_80513A0 从 gScriptStreamSetIdStack[栈深] 取)。 */
+extern u16 gScriptLocalSlots[8]; ///< 0x03000ED8 (原 gUnk_03000ED8 u8 视图废弃)
+extern u16 gTileDmaAllocTable[30]; ///< 0x03000EE8 (原 gUnk_03000EE8; TileDma_Reset 清 0..0x1D)
+extern u16 gTileDmaCount; ///< 0x03000F24 (原 gUnk_03000F24; 登记数 = 待刷块数)
+extern u16 gTileDmaLastBlockIdx; ///< 0x03000F26 (原未登记; sub_80501B8 尾部写 = gTileDmaCount-1, 全 ROM 单写点, 强推断)
+extern u16 gTextDrawPos; ///< 0x03000F28 (原未登记; sub_8050720 从脚本 data[2]/data[3] 组装 x|y<<8)
+extern u8 gTileAnimFrameIdx; ///< 0x03000F2A (原 gUnk_03000F2A; sub_805063C 写帧后 ++, sub_805144C 归零)
+extern u8 gTileAnimCharIdx; ///< 0x03000F2B (原未登记; sub_805144C 从脚本数据装载, 选 0x0862D574 动画表项)
+extern u16 gScriptKeyState; ///< 0x03000F2C (原 gUnk_03000F2C)
+extern u16 gScriptKeysPressed; ///< 0x03000F2E (原 gUnk_03000F2E)
+extern u8 gScriptCurSetId; ///< 0x03000F30 (原 gUnk_03000F30)
 
 extern u16 gSoundTaskFlags;
 extern u16 gPlayingSongId;
@@ -498,7 +697,6 @@ extern u8 gSwitchFlags[0x50];
 
 extern s32 gSioRecvWord;
 extern u8 gGameState;
-#define gMainGameState gGameState
 extern u32 gGameTimer; // 3001948
 extern u32 gUnk_03001950[14];
 extern u16 gHBlankScrollCounter;
@@ -510,7 +708,6 @@ extern u16 gHeldKeysRaw;
 extern u8 gHBlankWaveV[];
 
 extern u8 gMainLoopMode;
-#define gMainTaskSlot gMainLoopMode
 // 0x03001AD0: gSioRecvPacket (declared in menu.h)
 extern u32 gSioLinkState;
 extern u8 gHBlankWaveRow;
@@ -585,7 +782,6 @@ extern u8 gRandCursor;
 
 
 extern u32 gCardExchangeStatus;
-#define gUnk_030025A8 gCardExchangeStatus
 extern u8 gPlayerMoveDir;
 extern s16 gCameraPosX;
 extern u8 gUnk_030025B8;
@@ -596,7 +792,6 @@ extern u16 gEncounterCounter;
 extern u8 gDialogueActive;
 extern u16 gFollowerHistY[8];
 extern u8 gTitleIntroState;
-#define gCutsceneActive gTitleIntroState
 extern u8 gSceneEntryFlag;
 extern u16 gCameraTargetX;
 extern s16 gCameraPosY;
@@ -604,7 +799,6 @@ extern s16 gCameraPosY;
 extern u16 gScenePhase;
 extern u8 gLogoEffectState;
 extern u16 gTitleFadeTimer;
-#define gUnk_03002608 gTitleFadeTimer
 extern u8 gWarpAnimState;
 
 extern u8 gSpriteHeight;
@@ -816,16 +1010,14 @@ extern u32 gCutsceneAnimScripts[];
 
 extern u8 gPendingGfxSlot;
 extern u16 gBlendCoefficients;
-extern u16 gUnk_03004604;
+extern u16 gWindowTransitionProgress;
 /* Iris-transition progress (0 = closed, 240 = fully open). */
-#define gWindowTransitionProgress gUnk_03004604
 extern u8 gSceneTransitionArg;
 extern u8 gCameraDrawMode;
 extern u16 gHBlankEffectMode;
 extern u16 gMoveCmdSetId;
 extern u8 gUnk_03004618;
-extern u16 gUnk_0300461C;
-#define gCameraPanStartY gUnk_0300461C
+extern u16 gCameraPanStartY;
 
 /* 已看过的开场整屏图位图: bit i ↔ gScreenIdleIconPageMap[i] (地图 ID);
  * bit 13 (地图 0x78) 由事件标志 0xFD 解锁 (ScreenIdleIcons_BuildList) */
@@ -840,8 +1032,7 @@ extern u8 gScreenIdleIconIds[];
 extern u8 gScreenIdleIconCursor;
 
 extern u8 *gChoiceListPtr;
-extern u16 gUnk_03004630;
-#define gCameraPanTargetX gUnk_03004630
+extern u16 gCameraPanTargetX;
 extern u8 gMapScriptSetId; /* 0x03004634 当前地图环境脚本集号 (来自 MapSceneDescriptor.scriptSetId, MapScene_Load 消费) */
 extern u8 gSpawnTileY;
 /* MapZone_FindAt 命中的区域动作号 (0..4, 0xFF=未命中); MapZone_Trigger 按它分发 */
@@ -859,8 +1050,7 @@ extern u16 gBlendControl;
 extern u16 gScreenFadeFlags;
 extern u16 gIntroBgTileSetIndex; // 0=主 tile组(0x06000000), 1=备用8-tile组(0x06000C00) — IntroBg 暂存态
 /* Per-frame snapshot consumed while building each transition scanline. */
-extern u16 gUnk_03004668;
-#define gWindowTransitionProgressSnapshot gUnk_03004668
+extern u16 gWindowTransitionProgressSnapshot;
 extern u8 gChoiceCursor;
 
 typedef struct
@@ -883,8 +1073,7 @@ extern u16 gObjGraphicsSetId;
 extern u16 gDrawCamY;
 extern u16 gUnk_03004688;
 extern u8 gSpawnTileX;
-extern u16 *gUnk_03004694;
-#define gPendingPortraitPalette gUnk_03004694
+extern u16 *gPendingPortraitPalette;
 extern u16 gBg1ScrollMode;
 
 #include "anim_slot.h"
@@ -898,21 +1087,18 @@ extern u8 gSpawnFacingDir;
 extern s16 gScreenFadeProgress;
 extern u16 gUnk_030047AC;
 extern u16 gCurrentMapId;
-extern u8 gUnk_030047B4;
-#define gCameraPanDuration gUnk_030047B4
+extern u8 gCameraPanDuration;
 extern u8 gChoiceDestY;
 extern u8 gChoiceGroupIdx;
 
 extern u16 gDrawCamX;
 extern u16 gUnk_030047C4;
 extern u16 gIntroBgTransferStage; // 0=无, 1=tiles 已暂存 0x02020000, 2=tilemap 已暂存
-extern u8 *gUnk_030047CC;
-#define gPendingPortraitGfx gUnk_030047CC
+extern u8 *gPendingPortraitGfx;
 // extern Unk_03004670 gSlotPalId;
 extern u8 gSlotPalId[];
 /* 每个精灵表槽位(0..11)当前使用的调色板编号, 0xFF = 该槽空。写: SetSlotPalId。 */
-extern u16 gUnk_030047DC;
-#define gCameraPanStartX gUnk_030047DC
+extern u16 gCameraPanStartX;
 
 extern u8 gMapNpcSetId;
 extern u16 gUnk_030047EC;
@@ -940,25 +1126,20 @@ extern u8 gEncounterEnabled;
 extern u8 gChoiceDestX;
 
 extern u16 gBG2ScrollY;
-extern u16 gUnk_03004830;
-#define gCameraPanTargetY gUnk_03004830
+extern u16 gCameraPanTargetY;
 
 /* Third ScreenFade_Start argument; currently only its initialization is observed. */
 extern s16 gScreenFadeParam;
 extern u8 gZoneCheckTileXs[4];
 
-extern u8 gUnk_0300483C;
+extern u8 gPendingPortraitSlot;
 /* 0 = no upload; otherwise portrait position + 1. */
-#define gPendingPortraitSlot gUnk_0300483C
 
 extern u8 gWin0HWaveTable[];
 /* 81 packed WIN0H boundaries generated for the iris transition. */
-#define gWindowTransitionScanlineTable gWin0HWaveTable
 /* Nonzero while ScreenFx_SetMode has an in-flight window/palette transition. */
 extern u8 gScreenTransitionState;
-#define gSceneSubState gScreenTransitionState
-extern u8 gUnk_03004844;
-#define gCameraPanStep gUnk_03004844
+extern u8 gCameraPanStep;
 
 extern u16 gBG2ScrollX;
 extern u16 gBG3ScrollX;
@@ -1067,12 +1248,10 @@ typedef struct
 extern PlayerStats gPartyStats[];
 
 extern u8 gSaveFsmState;
-#define gUnk_03004D44 gSaveFsmState
 extern u16 gUnk_03004D48;
 
 extern u8 gUnk_03004D4C;
 extern u8 gActiveSaveSlot;
-#define gUnk_03004D50 gActiveSaveSlot
 extern u8 gSaveTimers[];
 
 extern u16 gUnk_03004DBC;
@@ -1082,7 +1261,6 @@ extern u8 gSaveBusyA;
 extern u8 gSaveFlags[];
 
 extern u8 gSaveSramBlock;
-#define gUnk_03004DD0 gSaveSramBlock
 extern u8 gSaveUiParam;
 extern u8 gSaveBusyB;
 extern u16 gSavedDispCnt; /* 0x03004DDC 存档菜单进入前的 REG_DISPCNT */
@@ -1092,16 +1270,17 @@ extern u16 gUnk_03004DE4;
 extern u8 gSioState[];
 
 /* SIO 多机通信会话状态 (0x03004DF0)。gSioState 的结构化视图 (同址别名 gUnk_03004DF0):
- * 现存已匹配子函数按 u8 下标访问, 本结构供新匹配使用; 字段语义名待 SIO 族匹配后统一。 */
+ * 现存已匹配子函数按 u8 下标访问, 本结构供新匹配使用; 字段语义名待 SIO 族匹配后统一 (recvAccumMap/recvDoneMap/swapPending/
+ * frameHasPacket/peerReady 已落地 2026-09-14 zcode; unk_8/unk_A/unk_18 及缓冲方向待定)。 */
 typedef struct
 {
     u8 isParent; // 0x00 1=主机(parent) 0=从机 (Sio_IsHost/SetReady 视作 mode)
     u8 stage; // 0x01 连接阶段
-    u8 unk_2; // 0x02 收包位图累积
-    u8 unk_3; // 0x03 收到位图
-    u8 unk_4; // 0x04 包双缓冲交换标志
-    u8 unk_5; // 0x05 帧完成标志 (本帧有包)
-    u8 unk_6; // 0x06 对端就绪
+    u8 recvAccumMap; // 0x02 收包位图累积
+    u8 recvDoneMap; // 0x03 收到位图
+    u8 swapPending; // 0x04 包双缓冲交换标志
+    u8 frameHasPacket; // 0x05 帧完成标志 (本帧有包)
+    u8 peerReady; // 0x06 对端就绪
     u8 errorFlags; // 0x07 SIO Error 位
     u8 unk_8;
     u8 sioInterrupted; // 0x09 串行 IRQ 已处理
@@ -1116,8 +1295,9 @@ typedef struct
     void *unk_28; // 0x28 接收缓冲 B
     void *unk_2C; // 0x2C 收包双缓冲 (sub_8016E80 交换)
     void *unk_30; // 0x30
-} Unk_03004DF0;
-extern Unk_03004DF0 gUnk_03004DF0;
+} SioCommState;
+extern SioCommState gSioCommState;
+#define gUnk_03004DF0 gSioCommState
 
 typedef struct
 {
@@ -1152,7 +1332,8 @@ typedef struct
 
 extern Unk_03004F80 gSioXferCtx;
 
-extern u8 gUnk_03004F90[];
+extern u8 gObjSlotFxCmd[];
+#define gUnk_03004F90 gObjSlotFxCmd
 
 extern u16 gUnk_03007FF8;
 

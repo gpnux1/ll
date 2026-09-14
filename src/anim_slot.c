@@ -660,7 +660,7 @@ void AnimSlot_BankReload(void)
     }
 }
 
-/* 用 DMA0 把 gWindowTransitionScanlineTable 里的一个 WIN0H 值按扫描线喂给 REG_WIN0H,
+/* 用 DMA0 把 gWin0HWaveTable 里的一个 WIN0H 值按扫描线喂给 REG_WIN0H,
  * 索引 = VCOUNT 的三角波 (0→81→0 跨一屏) → 窗口水平边界随扫描线摆动。
  *
  * ⚠ 全 ROM 无调用点 (code.s 里 6360 个 bl 全部已符号化, 没有 `bl Win0H_WaveDmaByVCount`;
@@ -699,7 +699,7 @@ void Win0H_WaveDmaByVCount(void)
     {
         waveIdx = 0x51 - waveIdx;
     }
-    DmaSet(0, gWindowTransitionScanlineTable + (waveIdx * 2), (void *)REG_ADDR_WIN0H, 0xE0400001);
+    DmaSet(0, gWin0HWaveTable + (waveIdx * 2), (void *)REG_ADDR_WIN0H, 0xE0400001);
 }
 // @ 0x080089E0
 void ScreenFx_SetMode(u16 mode)

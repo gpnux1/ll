@@ -321,7 +321,7 @@ void sub_801869C(void)
 // @ 0x08018744
 void sub_8018744(void)
 {
-    gUnk_03000316 = 10;
+    gKeyIgnoreTimer = 10;
 }
 extern u8 gUnk_080936A0[];
 
@@ -472,22 +472,22 @@ void sub_80188BC(void)
     u16 keys;
     u16 tmp;
 
-    if ((s8)gUnk_03000316 <= 0)
+    if ((s8)gKeyIgnoreTimer <= 0)
         goto readkeys;
-    gUnk_03000316--;
-    tmp = gUnk_03000316;
+    gKeyIgnoreTimer--;
+    tmp = gKeyIgnoreTimer;
     if ((s8)tmp > 0)
         goto clear;
 readkeys:
     keys = (u16)~REG_KEYINPUT;
-    gGstate312 = keys & ~gUnk_03000310;
-    gUnk_03000310 = keys;
+    gGstate312 = keys & ~gKeysHeld;
+    gKeysHeld = keys;
     goto tail;
 clear:
     gGstate312 = 0;
-    gUnk_03000310 = 0;
+    gKeysHeld = 0;
 tail:
-    sub_80182A8(gUnk_03000310, gGstate330);
+    sub_80182A8(gKeysHeld, gGstate330);
 }
 // @ 0x08018928
 void sub_8018928(void)
@@ -549,10 +549,10 @@ extern const Unk_087ED394 gUnk_087ED394[];
 extern const u8 gUnk_0861A4A4[];
 extern const u8 gUnk_0809C834[];
 extern u8 gUnk_02036EC0[];
-extern u32 gUnk_030004D0;
-extern u32 gUnk_030004D8[4];
-extern u32 gUnk_030004E8[4];
-extern u8 gUnk_030004D7;
+extern u32 gWaveTablePtr;
+extern u32 gWaveBgHofsTbl[4];
+extern u32 gWaveBgVofsTbl[4];
+extern u8 gWaveMode;
 
 void sub_8018BF8();
 void sub_804C548();
@@ -602,25 +602,25 @@ void sub_8018A58(u8 unused)
     DmaFill16(3, 0, &gUnk_02036EC0, 0xB4 * 2);
     DmaWait(3);
 
-    gUnk_030004D0 = (u32)gUnk_02036EC0;
+    gWaveTablePtr = (u32)gUnk_02036EC0;
     sub_804C548((u32)gUnk_0809C834, 0xB, 3);
-    gUnk_030004D7 = 0;
-    gUnk_030004D8[0] = REG_ADDR_BG0HOFS;
-    gUnk_030004D8[1] = REG_ADDR_BG1HOFS;
-    gUnk_030004D8[2] = REG_ADDR_BG2HOFS;
-    gUnk_030004D8[3] = REG_ADDR_BG3HOFS;
-    gUnk_030004E8[0] = REG_ADDR_BG0VOFS;
-    gUnk_030004E8[1] = REG_ADDR_BG1VOFS;
-    gUnk_030004E8[2] = REG_ADDR_BG2VOFS;
-    gUnk_030004E8[3] = REG_ADDR_BG3VOFS;
-    gUnk_03000500.field_2 = 0;
-    gUnk_03000500.field_0 = 0;
-    gUnk_03000500.field_6 = 0;
-    gUnk_03000500.field_4 = 0;
-    gUnk_03000500.field_A = 0;
-    gUnk_03000500.field_8 = 0;
-    gUnk_03000500.field_E = 0;
-    gUnk_03000500.field_C = 0;
+    gWaveMode = 0;
+    gWaveBgHofsTbl[0] = REG_ADDR_BG0HOFS;
+    gWaveBgHofsTbl[1] = REG_ADDR_BG1HOFS;
+    gWaveBgHofsTbl[2] = REG_ADDR_BG2HOFS;
+    gWaveBgHofsTbl[3] = REG_ADDR_BG3HOFS;
+    gWaveBgVofsTbl[0] = REG_ADDR_BG0VOFS;
+    gWaveBgVofsTbl[1] = REG_ADDR_BG1VOFS;
+    gWaveBgVofsTbl[2] = REG_ADDR_BG2VOFS;
+    gWaveBgVofsTbl[3] = REG_ADDR_BG3VOFS;
+    gBgScrollBackup.bg0Vofs = 0;
+    gBgScrollBackup.bg0Hofs = 0;
+    gBgScrollBackup.bg1Vofs = 0;
+    gBgScrollBackup.bg1Hofs = 0;
+    gBgScrollBackup.bg2Vofs = 0;
+    gBgScrollBackup.bg2Hofs = 0;
+    gBgScrollBackup.bg3Vofs = 0;
+    gBgScrollBackup.bg3Hofs = 0;
     BgLoad_Finish();
 }
 // @ 0x08018BF8
@@ -814,23 +814,23 @@ void BattleFx_UpdateTable(void)
         case 0:
             break;
         case 1:
-            gUnk_03000386 = ((s16)gUnk_03000386 + gUnk_030004D4) % 360;
-            for (i = 0, tmp = gUnk_03000386; i <= 0x9F;)
+            gWaveAngle = ((s16)gWaveAngle + gWaveAngleVel) % 360;
+            for (i = 0, tmp = gWaveAngle; i <= 0x9F;)
             {
-                gUnk_03000390[i] = (s8)((s8 *)gUnk_030004D0)[(s16)tmp % 360];
+                gWaveRowOffset[i] = (s8)((s8 *)gWaveTablePtr)[(s16)tmp % 360];
                 i++;
-                tmp = (u16)(tmp + gUnk_030004D6);
+                tmp = (u16)(tmp + gWaveRowStep);
             }
             break;
         case 2:
         {
             int diff;
-            if ((s16)gUnk_03000386 <= 0x10F)
+            if ((s16)gWaveAngle <= 0x10F)
             {
-                gUnk_03000386 = (u16)(gUnk_03000386 + gUnk_030004D4);
+                gWaveAngle = (u16)(gWaveAngle + gWaveAngleVel);
                 for (i = 0x50; i <= 0x9F; i++)
                 {
-                    diff = gUnk_03000386 - i;
+                    diff = gWaveAngle - i;
                     tmp = (s16)diff >> 2;
                     if (tmp > 24)
                     {
@@ -843,16 +843,16 @@ void BattleFx_UpdateTable(void)
                     switch (gFlashFlags & 0xF0)
                     {
                     case 0x10:
-                        gUnk_03000390[i] = tmp;
+                        gWaveRowOffset[i] = tmp;
                         break;
                     case 0x20:
-                        gUnk_03000390[i] = 24 - tmp;
+                        gWaveRowOffset[i] = 24 - tmp;
                         break;
                     }
                 }
                 for (i = 0; i <= 0x4F; i++)
                 {
-                    gUnk_03000390[i] = gUnk_03000390[0xA0 - i];
+                    gWaveRowOffset[i] = gWaveRowOffset[0xA0 - i];
                 }
             }
             else
@@ -872,24 +872,24 @@ void BattleFx_UpdateTable(void)
         case 1:
         {
             s16 j;
-            for (j = gUnk_03000386; j < ((s16)gUnk_03000386 + 18); j++)
+            for (j = gWaveAngle; j < ((s16)gWaveAngle + 18); j++)
             {
-                ((s8 *)gUnk_030004D0)[j] = (int)((float)(int)gUnk_030004D5 * gCosTable[j] - (float)(int)gUnk_030004D5 * gSinTable[j] + (float)(int)gUnk_030004D5);
+                ((s8 *)gWaveTablePtr)[j] = (int)((float)(int)gWaveAmp * gCosTable[j] - (float)(int)gWaveAmp * gSinTable[j] + (float)(int)gWaveAmp);
             }
             if (j <= 359)
             {
-                gUnk_03000386 = j;
+                gWaveAngle = j;
             }
             else
             {
                 gFlashFlags = (gFlashFlags & ~0x2000) | 0x1000;
-                gUnk_03000386 = 0;
+                gWaveAngle = 0;
             }
         }
         break;
         case 2:
             gFlashFlags = (gFlashFlags & ~0x2000) | 0x1000;
-            gUnk_03000386 = 0;
+            gWaveAngle = 0;
             break;
         }
     }
@@ -897,8 +897,8 @@ void BattleFx_UpdateTable(void)
 // @ 0x080199E0
 // 淡出步进: flags=gFlashFlags; 若 flags&0x1000 按低 nibble 分派。
 // case1: 4 通道循环, bits=(u8*)0x030004D7, 第 i 位为 1 时把
-//   gUnk_03000390[*(vu16*)0x04000006 & 0xFF] 写入 gUnk_030004D8[i], 其 >>1 写入 gUnk_030004E8[i]。
-// case2: REG_BLDY = gUnk_03000390[*(u8*)0x04000006]; 再按 flags&0xF00 设 REG_BLDCNT
+//   gWaveRowOffset[*(vu16*)0x04000006 & 0xFF] 写入 gWaveBgHofsTbl[i], 其 >>1 写入 gWaveBgVofsTbl[i]。
+// case2: REG_BLDY = gWaveRowOffset[*(u8*)0x04000006]; 再按 flags&0xF00 设 REG_BLDCNT
 //   (0x100→0xBF, 0x200→0xFF)。case2 的 bldy/tbl/port 三指针预载 + i=0xFF 之间形成
 //   arm_reorg 调度窗口, 使 movs r4,#0xff 落入 ldr→ldrb 延迟槽 (规则128/134 族)。
 void sub_80199E0(void)
@@ -922,14 +922,14 @@ void sub_80199E0(void)
             {
                 if ((bits[0] >> i) & 1)
                 {
-                    *(u16 *)gUnk_030004D8[i] = gUnk_03000390[*(vu16 *)0x04000006 & 0xFF];
-                    *(u16 *)gUnk_030004E8[i] = gUnk_03000390[*(vu16 *)0x04000006 & 0xFF] >> 1;
+                    *(u16 *)gWaveBgHofsTbl[i] = gWaveRowOffset[*(vu16 *)0x04000006 & 0xFF];
+                    *(u16 *)gWaveBgVofsTbl[i] = gWaveRowOffset[*(vu16 *)0x04000006 & 0xFF] >> 1;
                 }
             }
             break;
         case 2:
             bldy = (vu16 *)0x04000054;
-            tbl = gUnk_03000390;
+            tbl = gWaveRowOffset;
             port = (u8 *)0x04000006;
             i = 0xFF;
             *bldy = tbl[*port];
@@ -956,13 +956,13 @@ void sub_8019AD0(u8 arg0, u16 arg1)
     v &= 0xF0FF;
     v |= 2;
     gFlashFlags = arg1 | v | 0x1000;
-    gUnk_03000386 = 0;
+    gWaveAngle = 0;
     *(vu16 *)0x04000048 = 0x3F;
     *(vu16 *)0x04000040 = 0xF0;
     *(vu16 *)0x04000044 = 0x2A0;
     REG_DISPCNT |= 0x2000;
-    gUnk_030004D4 = arg0;
-    gUnk_030004D5 = 0;
+    gWaveAngleVel = arg0;
+    gWaveAmp = 0;
     switch (gFlashFlags & 0xF0)
     {
     case 0x10:
@@ -1179,12 +1179,12 @@ void BattleFx_Init(u8 arg0, u8 arg1, u8 arg2, u8 arg3)
     if (gFlashFlags & 0x1000)
         gFlashFlags &= ~0x1000;
 
-    gUnk_03000386 = 0;
+    gWaveAngle = 0;
 
-    gUnk_030004D4 = arg0;
-    gUnk_030004D5 = arg1;
-    gUnk_030004D6 = arg2;
-    gUnk_030004D7 = arg3;
+    gWaveAngleVel = arg0;
+    gWaveAmp = arg1;
+    gWaveRowStep = arg2;
+    gWaveMode = arg3;
 }
 // @ 0x0801A1DC
 void BattleFx_Stop(void)
@@ -1196,7 +1196,7 @@ void BattleFx_Stop(void)
         gFlashFlags &= 0xBFFF;
     }
 
-    gUnk_030004D7 = 0;
+    gWaveMode = 0;
 }
 
 // @ 0x0801A218
@@ -1248,27 +1248,27 @@ extern u8 *gUnk_087EBDF0[];
 // @ 0x0801A2EC
 void sub_801A2EC(void)
 {
-    if (gUnk_030004F8 <= 3)
+    if (gBgLoadSlot <= 3)
     {
-        LZ77UnCompVram(gUnk_087EBDF0[gUnk_030004F8], (void *)(0x06008000 + gUnk_030004F8 * 0x1000));
-        gUnk_030004F8++;
+        LZ77UnCompVram(gUnk_087EBDF0[gBgLoadSlot], (void *)(0x06008000 + gBgLoadSlot * 0x1000));
+        gBgLoadSlot++;
     }
 }
 // @ 0x0801A324
 void BgLoad_Reset(void)
 {
-    gUnk_030004F8 = 0;
+    gBgLoadSlot = 0;
     return;
 }
 // @ 0x0801A330
 void BgLoad_Finish(void)
 {
-    gUnk_030004F8 = 4;
+    gBgLoadSlot = 4;
 }
 // @ 0x0801A33C
 u8 BgLoad_GetPos(void)
 {
-    return gUnk_030004F8;
+    return gBgLoadSlot;
 }
 // @ 0x0801A348
 void sub_801A348(void)
@@ -1287,14 +1287,14 @@ void sub_801A35C(void)
 void BgScrolls_WriteAll(void)
 {
 
-    REG_BG0HOFS = gUnk_03000500.field_0;
-    REG_BG0VOFS = gUnk_03000500.field_2;
-    REG_BG1HOFS = gUnk_03000500.field_4;
-    REG_BG1VOFS = gUnk_03000500.field_6;
-    REG_BG2HOFS = gUnk_03000500.field_8;
-    REG_BG2VOFS = gUnk_03000500.field_A;
-    REG_BG3HOFS = gUnk_03000500.field_C;
-    REG_BG3VOFS = gUnk_03000500.field_E;
+    REG_BG0HOFS = gBgScrollBackup.bg0Hofs;
+    REG_BG0VOFS = gBgScrollBackup.bg0Vofs;
+    REG_BG1HOFS = gBgScrollBackup.bg1Hofs;
+    REG_BG1VOFS = gBgScrollBackup.bg1Vofs;
+    REG_BG2HOFS = gBgScrollBackup.bg2Hofs;
+    REG_BG2VOFS = gBgScrollBackup.bg2Vofs;
+    REG_BG3HOFS = gBgScrollBackup.bg3Hofs;
+    REG_BG3VOFS = gBgScrollBackup.bg3Vofs;
 }
 typedef union
 {
@@ -1306,7 +1306,7 @@ void sub_801A3A8(u8 arg0, u16 arg1, u16 arg2)
 {
     U0500_arr *u;
 
-    u = (U0500_arr *)&gUnk_03000500;
+    u = (U0500_arr *)&gBgScrollBackup;
     u->array[arg0][0] = arg1;
     u->array[arg0][1] = arg2;
 }

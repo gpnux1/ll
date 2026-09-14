@@ -162,14 +162,14 @@ void Win0H_WaveDmaByVCount();
 void HBlankWave_BuildTables(u16 mode);
 void HBlankWave_ApplyLineScroll(u16 scanline);
 u32 LZ_UncompressChunk(void); // @0x08000D5C 分块 LZ 流式解压 gLzContext, 返回 0 = 全部完成
-void LZ_InitContext(u8 *dest, struct Unk_LzData *arg1, u32 arg2);
+void LZ_InitContext(u8 *dest, struct LzHeader *arg1, u32 arg2);
 void ScreenFx_SetMode(u16);
 void AnimSlots_Release();
 void AnimSlots_StepAll();
 void BgTiles_LoadUiSet(u8);
 void BgScroll_LoadFromTable(u16);
 void PlayerSheets_Load();
-void AnimSlot_LoadSet(u8, u8); // LoadSpriteAnimSet: 把 gUnk_087EA1A0[setId] 一组精灵动画模型装入 gUnk_030046A0[startSlot..]
+void AnimSlot_LoadSet(u8, u8); // LoadSpriteAnimSet: 把 gUnk_087EA1A0[setId] 一组精灵动画模型装入 gAnimSlots[startSlot..]
 #define LoadSpriteAnimSet AnimSlot_LoadSet
 void AnimSlot_Pause(u8);
 void AnimSlot_Resume(u8);
@@ -227,9 +227,9 @@ void sub_800A970(void *);
 void sub_800A978(void *);
 void FullHealParty();
 void EquipItem(u8, u8, u8);
-void sub_800AA60(u8, u8); // AddInventoryItem: add item to inventory (cap 99)
+void Inventory_AddItem(u8, u8); // AddInventoryItem: add item to inventory (cap 99)
 void sub_800AA84(u8, u8); // RemoveInventoryItem: remove item from inventory (floor 0)
-#define AddInventoryItem    sub_800AA60
+#define AddInventoryItem    Inventory_AddItem
 #define RemoveInventoryItem sub_800AA84
 void Silver_Add(s32);
 void Silver_Sub(s32);
@@ -547,6 +547,31 @@ typedef struct BattleObj
     u8 f_C3;                               /* +0xC3 动画附属参数 (801CA08 case3/4 写 animPtr[0x23]/[0x24]; 出场=0x10 (80200E8); 80264C0/803E58C/803ED34/8040690/80419E0/8042E70 等战斗对象逐帧大量读取; 语义未定) */
     u8 pad_C4[0xC8 - 0xC4];                /* +0xC4..0xC7 (出场 +0xC4=0x10 (80200E8); 8020228/802031C 写) */
 } BattleObj;
+
+/* 0x08393B28 战斗对象动画/特效资源表 (E0: 992 项 × 0x14B, 0x08393B28..0x083988A8 全部
+ * field_0 为合法 ROM 指针; 项内两个 ROM 指针 + 图形参数)。BattleObj.animPtr 数据块中的
+ * u16 索引 (+0/+2/+6/+8+idx*2/+0x1A/+0x20) 均指向本表 (801CA08/801CE80/801EA70/801F884 族)。
+ * field_0/field_4 = ROM 数据指针, field_8/field_A/field_C/field_E = 装配参数
+ * (sub_801B81C headA/headB; field_C/E 另复制到 obj->f_B4/f_B6, 801CA08 case3/4, 801CE80 case1)。
+ * targetMode (+0x10, 原 field_10) = 目标作用模式, E2 三组独立消费者:
+ *   - sub_801F884 目标匹配键 (敌方 0xB..0x70): 0=取 +0xAC 原值, 1=0(调用者不过滤),
+ *     2=低 nibble(==2→1), 3=高 nibble(==0x20→0x10);
+ *   - sub_801DEDC/DF90/E4D4/E690 效果弹数字: 0=单体, 1=全场;
+ *   - slot≥0x71 特殊对象目标选取族 (sub_804D1B4..804DCD8): 0=f_BD=随机存活候选, 1=f_BD=0。
+ * 表值分布 (E0): 958×0, 24×1, 1×2, 9×3。 */
+typedef struct ObjAnimEntry
+{
+    u32 field_0;
+    u32 field_4;
+    u16 field_8;
+    u16 field_A;
+    u16 field_C; /* 复制到 obj->f_B4 (语义未定) */
+    u16 field_E; /* 复制到 obj->f_B6 (语义未定) */
+    u16 targetMode;
+    u8 pad_12[2];
+} ObjAnimEntry;
+
+extern ObjAnimEntry gUnk_08393B28[];
 
 void ObjGfxLoad_Copy(ObjHead *, ObjHead *);
 void sub_801A684(ObjHead *);
@@ -1044,13 +1069,13 @@ void sub_804DE8C();
 u8 sub_804DF14(InvListEntry *);
 void sub_804DF74(InvListEntry *, u8 *, u8);
 void sub_804DFD8(u16 *, u8, u8, u8 *, u8, u8, u8);
-u8 sub_804E0E4(BattleObj *arg0, u32 arg1);
-u8 sub_804E2AC(u8 *, u32);
+u8 ItemUseFx_RunConsumable(BattleObj *arg0, u32 arg1);
+u8 ItemUseFx_RunWeapon(u8 *, u32);
 s8 sub_804E6DC(BattleObj *obj, u8 value);
 s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2);
-void sub_804E7EC();
-u8 sub_804E85C(void);
-void sub_804E9DC();
+void BattleFxObjs_Add();
+u8 BattleFx_Update(void);
+void BattleDrops_Roll();
 void sub_804EC04();
 void sub_804EEC4(void);
 void sub_804EF00(u8);
@@ -1058,15 +1083,15 @@ void sub_804EF50(void);
 u8 sub_804EF90(u8);
 void sub_804EFDC(u8 *, u8, u8, u8 *, u8);
 u8 sub_804F050(u8);
-void sub_804F07C();
-u8 sub_804F088(BattleObj *arg0, u32 arg1);
+void ItemUseFx_Reset();
+u8 ItemUseFx_Update(BattleObj *arg0, u32 arg1);
 u8 sub_804F0B8(BattleObj *, s32); // CheckObjectKindSlot: 比较 equipSlots[4]/[5] (+0x91/+0x92) 两个候选 id, 返 1/2/0
 #define CheckObjectKindSlot sub_804F0B8
 s8 sub_804F10C(u8, u8);
 u8 sub_804F17C(u8 *outSlots, u8, u8); // 收集版: 命中的槽下标写入 outSlots[0..n-1], 返 n
-void SioBattle_ResetState();
-u8 SioBattle_GetState();
-void SioBattle_ClearSlots();
+void BattleFx_Reset();
+u8 BattleFx_GetObjCount();
+void BattleDrops_Clear();
 void sub_804F280();
 #define Op_CharaControl sub_804F280
 u32 Op_CameraPan(u32 *);

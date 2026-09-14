@@ -336,7 +336,7 @@ s32 Sio_LinkTask(void)
 
             if (gSioRecvWord == -1)
             {
-                gUnk_030025A8 = 5;
+                gCardExchangeStatus = 5;
                 gSioLinkState = 6;
                 break;
             }
@@ -347,7 +347,7 @@ s32 Sio_LinkTask(void)
                 {
                     Sio_ClearSlot();
                     gSioLinkState = 4;
-                    gUnk_030025A8 = 2;
+                    gCardExchangeStatus = 2;
                 }
                 gSioRetryTimer--;
                 break;
@@ -361,7 +361,7 @@ s32 Sio_LinkTask(void)
                     {
                         Sio_ClearSlot();
                         gSioLinkState = 4;
-                        gUnk_030025A8 = 2;
+                        gCardExchangeStatus = 2;
                     }
                     else
                     {
@@ -374,13 +374,13 @@ s32 Sio_LinkTask(void)
                     {
                         Sio_ClearSlot();
                         gSioLinkState = 5;
-                        gUnk_030025A8 = 3;
+                        gCardExchangeStatus = 3;
                     }
-                    else if (gUnk_030025A8 == 0)
+                    else if (gCardExchangeStatus == 0)
                     {
                         gSioSession.unk5E = 1;
                         gSioSession.unk2 = 1;
-                        gUnk_030025A8 = 1;
+                        gCardExchangeStatus = 1;
                     }
                     break;
 
@@ -388,7 +388,7 @@ s32 Sio_LinkTask(void)
                 case 0x102:
                 case 0x103:
                 case 0x104:
-                    gUnk_030025A8 = 3;
+                    gCardExchangeStatus = 3;
                     gSioLinkState = 5;
                     break;
 
@@ -414,7 +414,7 @@ s32 Sio_LinkTask(void)
             Sio_ClearSlot();
             break;
         case 8:
-            if (gUnk_030025A8 == 0)
+            if (gCardExchangeStatus == 0)
             {
                 Sio_ClearSlot();
                 gSioLinkState = 0;
@@ -473,7 +473,7 @@ void System_SoftReset(u32 arg0)
     gUnk_03004D40 = 0;
     gCameraSnapFlag = 0;
     gDialogueActive = 0;
-    gUnk_0300483C = 0;
+    gPendingPortraitSlot = 0;
     gAfterBattleCounter = 0;
 }
 
@@ -686,7 +686,7 @@ void VBlankWaitExit_PumpSound(void)
 }
 
 // @ 0x08000FD0
-void LZ_InitContext(u8 *dest, struct Unk_LzData *arg1, u32 arg2)
+void LZ_InitContext(u8 *dest, struct LzHeader *arg1, u32 arg2)
 {
     u8 *ptr;
 

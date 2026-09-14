@@ -200,11 +200,11 @@ void sub_804DFD8(u16 *arg0, u8 arg1, u8 arg2, u8 *arg3, u8 arg4, u8 arg5, u8 arg
     }
 }
 // @ 0x0804E0E4
-/* 物件使用演出状态机 (gUnk_03000DDE 0..13)。返回 1 = 演出结束。
+/* 物件使用演出状态机 (gItemUseFxState 0..13)。返回 1 = 演出结束。
  * 前段按 obj[0xA4] (0xDD..0xE4) 选出一对参数 (a, b) 供 case 4 传给 sub_801EEE4;
  * 后段是状态机: 0 起手→1 播动画→2 等 0x1000 →3 等 0x800 →4 播完→13 收尾。
  * 与 event_hub.c sub_8034440 / event_actor.c 的同族状态机同型 (zero/keys 临时同样式)。 */
-u8 sub_804E0E4(BattleObj *arg0, u32 arg1)
+u8 ItemUseFx_RunConsumable(BattleObj *arg0, u32 arg1)
 {
     u8 result;
     u8 a;
@@ -247,17 +247,17 @@ u8 sub_804E0E4(BattleObj *arg0, u32 arg1)
         break;
     }
 
-    switch (gUnk_03000DDE)
+    switch (gItemUseFxState)
     {
     case 0:
         sub_8020DE4();
-        gUnk_03000DDE = 1;
-        gUnk_03000DE6 = arg0->headA.f_1E;
-        gUnk_03000DE8 = arg0->headA.palSlot;
+        gItemUseFxState = 1;
+        gItemUseFxSavedF2A = arg0->headA.f_1E;
+        gItemUseFxSavedPalSlot = arg0->headA.palSlot;
         break;
     case 1:
         sub_801CBA4(arg0, 6, 0x1B4, 0xD, 0);
-        gUnk_03000DDE = 2;
+        gItemUseFxState = 2;
         Sfx_Play(0x17, 0, 0);
         break;
     case 2:
@@ -270,35 +270,35 @@ u8 sub_804E0E4(BattleObj *arg0, u32 arg1)
             keys = arg0->headA.kindFlags & 0xEFFF;
             zero = 0;
             arg0->headA.kindFlags = keys;
-            sub_801CBA4(arg0, zero, gUnk_03000DE6, gUnk_03000DE8, zero);
+            sub_801CBA4(arg0, zero, gItemUseFxSavedF2A, gItemUseFxSavedPalSlot, zero);
             keys = arg0->headA.kindFlags | 0x100;
             arg0->headA.kindFlags = keys;
-            gUnk_03000DDE = 3;
+            gItemUseFxState = 3;
         }
         break;
     case 3:
         if (!(arg0->headA.kindFlags & 0x800))
         {
             arg0->headA.kindFlags &= 0xFEFF;
-            gUnk_03000DDE = 4;
+            gItemUseFxState = 4;
         }
         break;
     case 4:
         if ((u8)sub_801EEE4(arg0, arg1, 0, a, b) == 1)
         {
-            gUnk_03000DDE = 0xD;
+            gItemUseFxState = 0xD;
         }
         break;
     case 13:
         result = 1;
-        gUnk_03000DDE = 0;
+        gItemUseFxState = 0;
         break;
     }
 
     return result;
 }
 // @ 0x0804E2AC
-INCLUDE_ASM("asm/nonmatchings", sub_804E2AC);
+INCLUDE_ASM("asm/nonmatchings", ItemUseFx_RunWeapon);
 // @ 0x0804E6DC
 s8 sub_804E6DC(BattleObj *obj, u8 value)
 {
@@ -372,70 +372,70 @@ static inline u8 CheckObj(u8 *obj)
 }
 
 // @ 0x0804E7EC
-void sub_804E7EC(u8 *obj)
+void BattleFxObjs_Add(u8 *obj)
 {
     u8 slot = CheckObj(obj);
 
     if (slot != 0)
     {
         (obj + slot)[0x90] = 0;
-        gUnk_03000DF0[gUnk_03000E04] = (u32)obj;
-        gUnk_03000E04++;
+        gBattleFxObjs[gBattleFxObjCount] = (u32)obj;
+        gBattleFxObjCount++;
     }
 }
 // @ 0x0804E85C
-/* 物件"演出"状态机 (gUnk_03000E05, 返回 1 = 全部播完)。
- * gUnk_03000DF0 是对象指针表, 第 0 项是模板对象 (其余对象从它复制状态块):
+/* 物件"演出"状态机 (gBattleFxState, 返回 1 = 全部播完)。
+ * gBattleFxObjs 是对象指针表, 第 0 项是模板对象 (其余对象从它复制状态块):
  *   0: 起手 — sub_8020CC4 播开场, 标记 obj[0x66]=3 → 1
  *   1: 等 obj[0x54] 的 0x800 清掉, 然后把模板的 0x30 字节状态块 (obj+0x3C)
  *      复制到每个后续对象 → 2
  *   2: 等 obj[0x54] 的 0x1000, 刷新演出帧, 清所有对象 obj[0xB0] 的 0x2000 位 → 4
  *   4: 逐对象调 sub_804612C 收尾, 返回 1 */
-#define ObjSlot(n) ((u8 *)gUnk_03000DF0[n])
+#define ObjSlot(n) ((u8 *)gBattleFxObjs[n])
 
 typedef struct
 {
     u32 w[12]; /* obj+0x3C 起 0x30 字节的状态块 */
 } ObjBlk;
 
-u8 sub_804E85C(void)
+u8 BattleFx_Update(void)
 {
     u8 result;
     u8 i;
 
     result = 0;
 
-    switch (gUnk_03000E05)
+    switch (gBattleFxState)
     {
     case 0:
         sub_8020CC4(ObjSlot(0), ObjSlot(0)[0xBF], ObjSlot(0)[0xC0], 0x2EA, 0xE, 0xA6, 0x104);
         ObjSlot(0)[0x66] = 3;
-        gUnk_03000E05 = 1;
+        gBattleFxState = 1;
         break;
     case 1:
         if (!(*(u16 *)(ObjSlot(0) + 0x54) & 0x800))
         {
             *(u16 *)(ObjSlot(0) + 0x54) &= 0xFEFF;
-            for (i = 1; i < gUnk_03000E04; i++)
+            for (i = 1; i < gBattleFxObjCount; i++)
             {
                 *(ObjBlk *)(ObjSlot(i) + 0x3C) = *(ObjBlk *)(ObjSlot(0) + 0x3C);
             }
-            gUnk_03000E05 = 2;
+            gBattleFxState = 2;
         }
         break;
     case 2:
         if (*(u16 *)(ObjSlot(0) + 0x54) & 0x1000)
         {
             sub_804C3A4(ObjSlot(0)[0x65], (u8)sub_801B954((ObjHead *)(ObjSlot(0) + 0x3C)));
-            for (i = 0; i < gUnk_03000E04; i++)
+            for (i = 0; i < gBattleFxObjCount; i++)
             {
                 *(u16 *)(ObjSlot(i) + 0xB0) &= 0xDFFF;
             }
-            gUnk_03000E05 = 4;
+            gBattleFxState = 4;
         }
         break;
     case 4:
-        for (i = 0; i < gUnk_03000E04; i++)
+        for (i = 0; i < gBattleFxObjCount; i++)
         {
             sub_804612C((BattleObj *)(ObjSlot(i)), 0xA, 1);
         }
@@ -446,7 +446,7 @@ u8 sub_804E85C(void)
     return result;
 }
 // @ 0x0804E9DC
-INCLUDE_ASM("asm/nonmatchings", sub_804E9DC);
+INCLUDE_ASM("asm/nonmatchings", BattleDrops_Roll);
 // @ 0x0804EC04
 INCLUDE_ASM("asm/nonmatchings", sub_804EC04);
 // @ 0x0804EEC4
@@ -548,12 +548,12 @@ u8 sub_804F050(u8 arg0)
     return i;
 }
 // @ 0x0804F07C
-void sub_804F07C(void)
+void ItemUseFx_Reset(void)
 {
-    gUnk_03000DDE = 0;
+    gItemUseFxState = 0;
 }
 // @ 0x0804F088
-u8 sub_804F088(BattleObj *arg0, u32 arg1)
+u8 ItemUseFx_Update(BattleObj *arg0, u32 arg1)
 {
     if (arg0->slot > 0xAU)
     {
@@ -561,9 +561,9 @@ u8 sub_804F088(BattleObj *arg0, u32 arg1)
     }
     if (*((u8 *)arg0 + 0xA4) > 0xDCU)
     {
-        return sub_804E0E4(arg0, arg1);
+        return ItemUseFx_RunConsumable(arg0, arg1);
     }
-    return sub_804E2AC(arg0, arg1);
+    return ItemUseFx_RunWeapon(arg0, arg1);
 }
 
 // 检查战斗对象 arg0 的两个装备槽候选 (+0x91/+0x92 = equipSlots[4]/[5]) 哪个

@@ -36,7 +36,7 @@ TEXT_ORDER = [
     "src/battle_obj_core.o", "src/scene_obj_fx.o", "src/event_actor.o",
     "src/scene_interact.o", "src/event_hub.o", "src/cutscene_mgr.o",
     "src/obj_state.o", "src/battle_engine.o", "src/battle_anim.o",
-    "src/battle_rewards.o", "src/obj_pool.o", "src/sio_battle.o",
+    "src/battle_rewards.o", "src/obj_pool.o", "src/battle_fx.o",
     "src/script_vm.o", "src/sound.o",
     "asm/m4a_asm.o", "src/m4a.o", "asm/libagbsyscall.o", "src/agb_sram.o",
     "libgcc", "libc",

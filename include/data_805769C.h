@@ -65,7 +65,6 @@ extern const u8 *const gUnk_087EA1A0[248];
 /* 0x08091948, 2216 B: NPC 槽组表 (MapScene_LoadNpcSlotIds/Sprites_LoadMapNPCs) */
 extern const u8 gMapNpcSlotGroups[];
 #define byte_8091948 gMapNpcSlotGroups
-#define gUnk_08091948 gMapNpcSlotGroups
 
 /* 0x080921F0, 88 B: 职业x八维属性 成长曲线号表 9x8 (sub_8009F70) */
 extern const u8 gClassStatCurveTable[];
@@ -86,7 +85,6 @@ extern const u8 gStatGrowthTail[];
 /* 0x08093418, 648 B: 技能/道具表 (byte_8093418 312B + byte_8093550 336B) */
 extern const u8 gSkillLearnTable[];
 #define byte_8093418 gSkillLearnTable
-#define gUnk_08093418 gSkillLearnTable
 extern const u8 byte_8093550[];
 
 /* 0x080936A0, 6536 B: 消息文本 (0xFF 分隔主消息池) */

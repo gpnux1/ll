@@ -661,8 +661,8 @@ u8 sub_8016B30(u8 arg0, u8 arg1)
 void SaveUi_OpenLoad(void)
 {
     Save_LoadContinue();
-    gUnk_03004D44 = 3;
-    gUnk_03004DD0 = 0xC;
+    gSaveFsmState = 3;
+    gSaveSramBlock = 0xC;
     gSaveModeFlag = 0;
     Msg_ShowById(0x18U, 0xBU);
 }
@@ -700,8 +700,8 @@ u16 *Text_TileAt(u8 x, u8 y)
 void sub_8016C44(void)
 {
     SpriteNode *ptr = &gSpriteNodePool[112]; // 03004380
-    gUnk_03000048.field_6 = 0;
-    gUnk_03000048.field_4 = 0;
+    gMenuCursorSprite.y = 0;
+    gMenuCursorSprite.x = 0;
     Sprite_InitChainNode(ptr, 1, 0, 0x81E0, 0x21C0);
     gSpriteRenderQueue[0] = ptr;
     sub_800E668(0);
@@ -883,70 +883,70 @@ void sub_8016FC0(void)
     u16 recv[4];
 
     *(vu64 *)recv = REG_SIOMLT_RECV;
-    gUnk_03004DF0.errorFlags = SIO_MULTI_CNT->Error;
+    gSioCommState.errorFlags = SIO_MULTI_CNT->Error;
 
-    if ((recv[0] == 0xFEFE) && (gUnk_03004DF0.unk_18 > 0xD))
+    if ((recv[0] == 0xFEFE) && (gSioCommState.unk_18 > 0xD))
     {
-        gUnk_03004DF0.unk_18 = -1;
-        temp_r1 = gUnk_03004DF0.unk_28;
-        gUnk_03004DF0.unk_28 = gUnk_03004DF0.unk_24;
-        gUnk_03004DF0.unk_24 = temp_r1;
+        gSioCommState.unk_18 = -1;
+        temp_r1 = gSioCommState.unk_28;
+        gSioCommState.unk_28 = gSioCommState.unk_24;
+        gSioCommState.unk_24 = temp_r1;
 
-        if (gUnk_03004DF0.unk_4 != 0)
+        if (gSioCommState.swapPending != 0)
         {
-            temp_r1_2 = gUnk_03004DF0.unk_20;
-            gUnk_03004DF0.unk_20 = gUnk_03004DF0.unk_1C;
-            gUnk_03004DF0.unk_1C = temp_r1_2;
-            gUnk_03004DF0.unk_4 = 0;
-            gUnk_03004DF0.unk_14 = 0;
+            temp_r1_2 = gSioCommState.unk_20;
+            gSioCommState.unk_20 = gSioCommState.unk_1C;
+            gSioCommState.unk_1C = temp_r1_2;
+            gSioCommState.swapPending = 0;
+            gSioCommState.unk_14 = 0;
         }
         REG_IME = 0;
         gUnk_03007FF8 |= 0x80;
         REG_IME = 1;
     }
 
-    if (gUnk_03004DF0.unk_14 < 0xE)
+    if (gSioCommState.unk_14 < 0xE)
     {
-        SIO_MULTI_CNT->Data = ((u16 *)gUnk_03004DF0.unk_20)[gUnk_03004DF0.unk_14];
+        SIO_MULTI_CNT->Data = ((u16 *)gSioCommState.unk_20)[gSioCommState.unk_14];
     }
 
-    if (gUnk_03004DF0.unk_14 < 0xF)
+    if (gSioCommState.unk_14 < 0xF)
     {
-        gUnk_03004DF0.unk_14 += 1;
+        gSioCommState.unk_14 += 1;
     }
 
-    if (gUnk_03004DF0.unk_18 >= 0)
+    if (gSioCommState.unk_18 >= 0)
     {
         s32 var_r3;
 
         for (var_r3 = 0; var_r3 < 2; var_r3++)
         {
-            ((u16(*)[16])gUnk_03004DF0.unk_24)[var_r3][gUnk_03004DF0.unk_18] = recv[var_r3];
+            ((u16(*)[16])gSioCommState.unk_24)[var_r3][gSioCommState.unk_18] = recv[var_r3];
         }
 
-        if (gUnk_03004DF0.unk_18 == 0xD)
+        if (gSioCommState.unk_18 == 0xD)
         {
-            gUnk_03004DF0.unk_5 = 1;
+            gSioCommState.frameHasPacket = 1;
         }
     }
 
-    if (gUnk_03004DF0.unk_18 < 0xF)
+    if (gSioCommState.unk_18 < 0xF)
     {
-        gUnk_03004DF0.unk_18 += 1;
+        gSioCommState.unk_18 += 1;
     }
 
-    if (gUnk_03004DF0.isParent)
+    if (gSioCommState.isParent)
     {
         REG_TM3CNT_H = 0;
     }
 
-    if ((gUnk_03004DF0.unk_14 < 0xF) && gUnk_03004DF0.isParent)
+    if ((gSioCommState.unk_14 < 0xF) && gSioCommState.isParent)
     {
         REG_SIOCNT = REG_SIOCNT | 0x80;
         REG_TM3CNT_H = 0xC0;
     }
 
-    gUnk_03004DF0.sioInterrupted = 1;
+    gSioCommState.sioInterrupted = 1;
 }
 #undef SIO_MULTI_CNT
 

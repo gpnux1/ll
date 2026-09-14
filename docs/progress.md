@@ -66,7 +66,7 @@
 | sub_8020FB8 | 0x08020FB8 | 0x8020簇 | code_1b.c | RMW 拆两条赋值(permuter 找到); void* 形参+内部 cast 解决头文件类型冲突; struct 补 field_37/38 |
 | sub_802103C | 0x0802103C | 0x8020簇 | code_1b.c | (前人已写好真C, 仅同步 yaml [0]→[1]) |
 | sub_8021064 | 0x08021064 | 0x8020簇 | code_1b.c | 7 项结构体数组清零(0x670, 步长4); 表符号 gUnk_0861C664 步长 0x20; 开局 score=0 |
-| sub_8021700 | 0x08021700 | 0x8020簇 | code_1b.c | **if/else-if 要写成 switch**(GCC2 对 switch 用"链条+体外放置"布局, 与 if/else-if 内联布局不同); 不要缓存全局到局部(目标每次重读 gUnk_03000812); Unk_8020F4C 扩展为完整 0xC8 对象结构 |
+| sub_8021700 | 0x08021700 | 0x8020簇 | code_1b.c | **if/else-if 要写成 switch**(GCC2 对 switch 用"链条+体外放置"布局, 与 if/else-if 内联布局不同); 不要缓存全局到局部(目标每次重读 gMenuObjLoadIdx); Unk_8020F4C 扩展为完整 0xC8 对象结构 |
 | sub_804DD70 | 0x0804DD70 | 0x804D区 | code_1b.c | 开局 score=0; 与 sub_8020C2C 同款(0x71 索引表 0x0839CE38, fnptr 落 r2 因 r0/r1 被实参占用); 表类型 void(*)(u8*, u32); **合入触发第二次泄漏 → 拆分 code_1c.c** |
 | sub_8019148 | 0x08019148 | 0x8019区 | code_1.c | 4 参只用 r3; 清屏循环(EWRAM/VRAM 指针局部); **mask 链必须逐条语句**(单表达式会被 GCC2 折叠); **`do{}while(0)` 屏障**阻止末位 mask 合并(permuter 发现); **i=0 必须在指针赋值之后**(否则 movs 提前); 语义=清调色板/OAM缓冲+开BG0显示+配置REG_BG0CNT; 已改用 REG_DISPCNT/REG_BG0CNT 宏(volatile 不影响代码生成, 已验证 0 字节差) |
 | sub_8021184 | 挂起 | 0x8020簇 | - | 见"待研究" |
@@ -267,7 +267,7 @@
 | gUnk_03000E6C | 0x03000E6C | u32 | iwram.h + linker.ld (本轮新增, 脚本指针; sub_8052580 写入 / sub_8050014 读取) |
 | gUnk_03000E72 | 0x03000E72 | u8 | iwram.h + linker.ld (本轮新增) |
 | gUnk_03000E74 | 0x03000E74 | u8 | iwram.h + linker.ld (本轮新增) |
-| gUnk_03000ECA/ECB/ECC | 0x03000ECA-0x03000ECC | u8 ×3 | iwram.h + linker.ld (本轮新增, sub_8052580) |
+| gScriptStreamDepth/ECB/ECC | 0x03000ECA-0x03000ECC | u8 ×3 | iwram.h + linker.ld (本轮新增, sub_8052580) |
 
 ## 头文件原型修正记录
 
@@ -744,10 +744,10 @@ void sub_804BE90(u8 arg0, u8 arg1)
 - 若破解: 参考 GCC2 local_alloc 的 QTY_CMP_PRI = floor_log2(n_refs)*n_refs*size/life
 
 ### sub_8021788 (0x08021788) — 已匹配 ✅ (2026-09-04 opencode)
-- 语义: `switch(gUnk_03000816)` case 0/1/2。case 0: `gUnk_03000818 & 0x1000` 为真 →
+- 语义: `switch(gMenuWindowPhase)` case 0/1/2。case 0: `gMenuWindowFlags & 0x1000` 为真 →
   `DialogCtx_GetField_C(0)==0` 则清 018 位, 否则 `v=DialogCtx_GetField_C(0); if (v==4 &&
   (v & gUnk_0300076C)==0)` 调 `sub_802181C(0x02035AC0, 0x18, 2, arg0)`; case 1: 置 018 位
-  + 016=0 (fallthrough 到 case 2 的 `gUnk_03000816 = 0`); case 2: 016=0。
+  + 016=0 (fallthrough 到 case 2 的 `gMenuWindowPhase = 0`); case 2: 016=0。
 - **卡点破解 (`ands r1, r0` 结果落 res 寄存器)**: 把 res 声明成 **u32** (宽返回) 后, 再给 AND
   的左操作数加 **`(unsigned short)` 强转**: `if (((unsigned short)v & gUnk_0300076C) == 0)`。
   GCC2 就会让 AND 结果落回 res 的寄存器 (r1, `ands r1, r0`) 而非 gUnk 装载的寄存器 (r0,
@@ -3164,15 +3164,15 @@ g2 再拆 `new_var = a6+0xd; u.s.g2 = new_var;` 让 a6 保持 <<24 延迟归一 
 **状态**: permuter 最优 score=60，不可达 0；语义完全正确，但 GCC2 指令选择差异不可控。
 
 **函数逻辑** (LZ 解压上下文初始化):
-1. `gUnk_03000ECA--` 递减索引
-2. `gUnk_03000F30 = gUnk_03000EC0[idx]` 缓存
-3. `gUnk_03000E68 = gUnk_03000EC0[idx]` 再次读取(不优化冗余)
+1. `gScriptStreamDepth--` 递减索引
+2. `gUnk_03000F30 = gScriptStreamSetIdStack[idx]` 缓存
+3. `gUnk_03000E68 = gScriptStreamSetIdStack[idx]` 再次读取(不优化冗余)
 4. `lzData = gUnk_087ED6D4[idx]` 获取 LZ 数据指针
 5. 读 `REG_DISPCNT` (0x04000000) 检查 FORCED_BLANK (bit7):
    - 若置位: `LZ_InitContext(dest, lzData, uncompSize)` + `LZ_UncompressChunk()`
    - 否则: `LZ_InitContext(dest, lzData, 0x400)` + `gUnk_03000E70 |= 0x200`
 6. `gUnk_03000E6C = 0x02016200` (立即覆写)
-7. `gUnk_03000E6C = gUnk_03000EA0[idx]`
+7. `gUnk_03000E6C = gScriptStreamCursorStack[idx]`
 8. 返回 0 (void 函数但 GCC2 生成 `movs r0, #0`)
 
 **最佳 C 实现** (permuter output-60-1):
@@ -3439,10 +3439,10 @@ sub_80532DC(0x080532DC,清位)的姊妹函数(0x08053270,置位)。二者同族�
    → 保留 999 语义 + 保留 home 翻转。bytecmp 只差 4 个 bl 槽 (16B, 重定位假差), fncheck OK 264B。
 
 **原型修正**: code_0.h `void sub_800FA24()` → `u8` (返回 0x23/0x24/0x27, 调用点
-sub_800C2F8 里 `strh r0,[gUnk_030001C8]` 消费返回值)。定义处 K&R 兼容。
+sub_800C2F8 里 `strh r0,[gMenuResultCode]` 消费返回值)。定义处 K&R 兼容。
 
 **新符号登记** (iwram.h + linker.ld 按地址序): gUnk_030001AE (HP/MP 分支选择),
-gUnk_030001AF (治愈量), gUnk_030001B0 (=0x10 置位), gUnk_030001C8 (u16 清零/返回值)。
+gUnk_030001AF (治愈量), gUnk_030001B0 (=0x10 置位), gMenuResultCode (u16 清零/返回值)。
 
 **教训**: permuter 的"多余赋值"是 home 互换类卡点的有效杠杆 (经验 87 兼职法的变体),
 但产物必须逐条核对数据流 (经验 18); 类型 (u8/u16) 不同直接决定字面量是否被截断,
@@ -3470,7 +3470,7 @@ const_int vs symbol_ref) 全部停在 114 —— 属于 global-alloc home 互换
 **新经验**: EXPERIENCE 143 (permuter "多余赋值" home 杠杆, 但产物须人工去类型截断作弊)。
 
 **符号登记**: gUnk_030001AE (HP/MP 分支选择), gUnk_030001AF (恢复量), gUnk_030001B0 (=0x10),
-gUnk_030001C8 (u16 清零 + 返回值消费处)。全部新登记 iwram.h + linker.ld (地址序插入)。
+gMenuResultCode (u16 清零 + 返回值消费处)。全部新登记 iwram.h + linker.ld (地址序插入)。
 
 ## 2026-09-04 sub_804E6DC 匹配 (agent1, 144B exact) — 经验 108变体 + *12表步长
 
@@ -3836,7 +3836,7 @@ sp、x0→r8/x1→sb/y1→sl、5 个图块值占 sp[8..0x18] (槽序=声明序 c
 **共同背景**: 三函数均在 code_8005020 (菜单/道具 TU), 有用户草稿或语义注释; 全部符号已存在语义名
 (gPartyStats/gPartyMemberIDs/gMenuCursorGrp/Sel/Stack/gScreenIdleIconIds/Cursor/gSpawnTileX/Y/
 gSpawnFacingDir/gMapNpcSetId/gMoveCmdSetId/gWarpAnimState), 新登记 linker.ld 4 符号:
-gUnk_030001C4/C5/C6 (0x1C4-6, u8)、gUnk_03002C44 (0x2C44, u8)、gUnk_080981EE (ROM 6B/项出生参数表)。
+gItemUseMpCost/C5/C6 (0x1C4-6, u8)、gUnk_03002C44 (0x2C44, u8)、gUnk_080981EE (ROM 6B/项出生参数表)。
 
 ### sub_8010170 (装备更换) — 差 6 字节
 - **permuter 发现关键技巧**: 在 `if (item != 0)` 前插入死赋值 `oldEquip = 0;` 并写成
@@ -3851,7 +3851,7 @@ gUnk_030001C4/C5/C6 (0x1C4-6, u8)、gUnk_03002C44 (0x2C44, u8)、gUnk_080981EE (
 ### sub_8010300 (道具使用入口) — 80 字节
 - 语义: 0→msg27; 0x3E→旗帜 0x03002C44&0x80 判定 (else 结构: 非 0x3E 才走 MP 消耗段, 0x3E+旗帜直跳
   itemTable); charaId/memberId 双变量 (memberId 喂 ItemGetUsePower, 调整后 charaId 查 gPartyStats);
-  power>mp→0 写 gUnk_030001C4; 0→msg1d; 表 gUnk_08093418[(itemId-1)*5] 取 [1]&0xf/[3]; 0x26→
+  power>mp→0 写 gItemUseMpCost; 0→msg1d; 表 gUnk_08093418[(itemId-1)*5] 取 [1]&0xf/[3]; 0x26→
   WarpTable_Check; 末尾统计 hp<max_hp 人数 (i:u16, count:u8)。
 - 已修: 0x3E 的 else 结构、memberId/charaId 拆分 (memberId != 0 判定+双写)。
 - 剩余: MP 检查的 `movs r1,#0` 被 GCC2 提前到 ldrh 之前 (mine) vs 目标在 cmp/bls 之后; 三元/if-else/
@@ -5530,8 +5530,67 @@ web 拆分时刻与 allocno PRI 排布, C 源码级不可达 (同 Op_AddPartyMem
   3. 结构修正与定论：
      - 声明局部指针 `vu16 *ioReg;`，在 `if` 分支前执行 `ioReg = (vu16 *)0x04000000;`，并在 `else` 块执行 `ioReg = (vu16 *)0x02016000; LZ_InitContext((u8 *)ioReg, lzData, chunkSize);`。
      - 该局部指针精准重塑了 basic block 2 的 pseudo-register 生命周期与优先权，引导 GCC 将 `&gScriptVmFlags` (0x03000E70) 分配入 `r0`，旧值载入 `r1`，mask 载入 `r2`，达成 100% 逐指令完全对齐！
-     - 登记符号：在 `include/iwram.h` 声明 `gUnk_03000EC8` / `gUnk_03000EC9`，在 `linker.ld` 按地址序补齐相应 section 条目。
+     - 登记符号：在 `include/iwram.h` 声明 `gScriptStreamEntry` / `gScriptStreamSetId`，在 `linker.ld` 按地址序补齐相应 section 条目。
      - `fncheck.py sub_80512C4`: 220 bytes OK, 全量 `make` 与 `sha1sum -c ll.sha1` 终验完全通过！
+
+## 2026-09-14 道具翻页/使用参数/菜单结果码命名 (0x030001B9-0x030001C8, claude804AF60)
+
+引用核查: 7 个符号全部有直接代码引用 (读+写), 无一可删。
+- gItemPagePrevId(0x1B9)/gItemPageNextId(0x1BA): sub_800FDEC(✅) 从 gItemUseCtx[0]/[4]
+  锚点向後/向前扫"当前成员可用道具"(resistFlags&成员位 && formRace 类型 && 库存>0) 首个命中;
+  0xFF=无/0=无命中; sub_800C2F8 翻页导航消费 (非 0xFF 才响应+播音)。
+- gItemUseId(0x1C3): sub_800F128 写入选中道具; sub_8010300(可用性检查)/sub_8010770(✅ 使用)
+  读取; 0x26=传送道具(WarpTable_Check), 0x3E=无角色道具(清 gPartyFollowFlags bit7)。
+- gItemUseMpCost(0x1C4)/EffectType(0x1C5)/HealHp(0x1C6): sub_8010300 由 ROM 效果表
+  0x08093418[id*5] 计算 ([1]&0xF=类型, [3]=HP量); EffectType==5 → 全队恢复;
+  MpCost 由 sub_8010770 从使用者扣减。
+- gMenuResultCode(0x1C8, u16): 菜单挂起结果码槽 —— 8 个 handler 写入
+  (0x14/15/16=画面切换, 0x1A/0x1D/0x23/0x24/0x27=动作结果, 0x24=无效果), 主状态机
+  sub_800B374 轮询非 0 分发。
+已改: linker.ld / iwram.h / src/menu_ui.c / docs; make+SHA1 全绿, sub_800FA24/800FDEC/
+8010770 fncheck OK。
+
+## 2026-09-14 菜单列表/装载队列/演出计数符号命名 (0x03000808-0x03000888, claude804AF60)
+
+依据 (消费函数均 fncheck-OK 或 asm 逐条核对, E2 级):
+- **第二菜单列表窗口** 0x0808/0809/080A → gMenuList2Count/2Top/2Cursor: 渲染 sub_802576C
+  (3 行窗口, 样式=(i==Cursor)?2:0), 同步 sub_8021184 case7 (gMenuSlotStates[idx][3]/[4],
+  与 case6 的 gMenuList* 完全同构), 逐项绘制 sub_8024940 (行数据 0x030007C8[4B 步长])。
+- **菜单成员精灵装载队列** 0x080C[5]/0811/0812/0813 → gMenuObjLoadSlots/Count/Idx/Phase:
+  sub_802151C 开菜单时把候选槽中 BattleObj.fxKind(+0xBC)==3 者入队并清其 fxKind;
+  sub_8021700 逐帧 Phase0=sub_80207DC 出精灵 → Phase1=等 headA.kindFlags bit11 清 → 下一槽。
+- **菜单窗口状态** 0x0816/0818 → gMenuWindowPhase/Flags: sub_802151C 开菜单 (Flags=0, Phase=1);
+  sub_8021788 Phase1→Flags|=0x1000→Phase0, Phase0→DialogCtx 条件满足清 0x1000; Phase2→0。
+  仅用 bit0x1000。0x0814/0815 → gMenuSelSlot0/1 (s8): 全 ROM 仅写 -1, 唯一读者 sub_8022710
+  有符号读判 >=0 —— 恒无选择, 疑废弃槽。
+- **演出完成计数** 0x0865 → gObjActDoneCount: sub_803FF54 (slot≤10 对象演出步执行器) 的
+  隐藏步 case (obj->slot=0xFF + variantClass=7 + gObjActStep=0x38) 每 ++; BattleTask_Run
+  开场 sub_804448C 清 0; ObjGroup_AnyEvent(sub_8020AB0) 经 sub_8044498 等待 !=0。
+- **伤害快照** 0x0882 → gActHitDmgAmount (u16): 战斗脚本族 (sub_8040690/8042E70 等 14 函数)
+  从 BattleObj.dmgAmount(+0xB2) 快照/清 0; sub_801BE34/801C484 (合击链) 累加进未登记的 0x03000742。
+- **等待结束音效** 0x0886/0888 → gActWaitSfxId (u16, 默认 0x37)/gActWaitSfxParam (u8):
+  sub_8044514/8044574 与 gActWait* 同批置参; 等待结束时 Sfx_Play(Id, 0, Param)
+  (sub_803F658 合击状态机及 80419E0/8043554/8043B5C/8043F90/8042B90 等消费)。
+已改: linker.ld / iwram.h / src/scene_obj_fx.c / src/obj_state.c / docs; make+SHA1 全绿,
+12 个匹配消费函数 fncheck OK。附带发现: 0x03000742 (合击伤害累加) 与 0x030007C8 (第二列表
+行数据表) 值得后续登记; 0x080B/0x0817 为零访问填充。
+
+## 2026-09-14 脚本 VM 流式子脚本栈符号命名 (0x03000EA0-0x03000ECA, claude804AF60)
+
+依据 (全部来自 fncheck-OK 的已匹配消费函数, E2 级):
+- `OP_SCRIPT_STREAM_LZ`(0x15, sub_80512C4): 压栈方 —— `EA0[depth]=调用方字节码指针(+3)`,
+  `EC0[depth]=gScriptReturnSetId`, `EC8/EC9=entry/songId 槽`, `ECA++`; 随后 LZ 解压子脚本集到 0x02016000。
+- `OP_SCRIPT_RETURN_CHUNK`(0x16, sub_80513A0): 弹栈方 —— `ECA--` 后 `EC0[idx]` 还原
+  gScriptReturnSetId (镜像 gUnk_03000F30), `EA0[idx]` 恢复 gScriptCursor。
+- `Op_ScriptReturn`/`Op_ScriptStop`/`Script_ResetVM`: 退出/停止/复位时按深度清零 EA0/EC0 并 ECA=0。
+
+命名: gScriptStreamCursorStack(EA0,u32[8]) / gScriptStreamSetIdStack(EC0,u8[8]) /
+gScriptStreamEntry(EC8) / gScriptStreamSetId(EC9) / gScriptStreamDepth(ECA)。
+注意: ① EC8/EC9 仅此一写点且全工程无读者; 匹配 asm 中存储先于新操作数读取
+(存的是分发器 r5/r6 遗留值), 命名反映源码意图 (entry/songId)。
+② 深度无边界检查, 区域容量 8 (EA0→EC0 0x20B = 8×u32, EC0→EC8 = 8×u8)。
+③ 与同集 gosub 栈 (gScriptCallStackDepth 0x03000E78 / gScriptCallStack[8] 0x03000E80) 平行。
+已改: linker.ld / iwram.h / src/script_vm.c / docs; make + sha1 全绿, 5 个消费函数 fncheck OK。
 
 ## 2026-09-09 `sub_80513A0` (Op_ScriptReturnChunk, 172B, 脚本VM恢复LZ块并弹栈操作码, ✅匹配)
 
@@ -6113,7 +6172,7 @@ arg0=memberId(gPartyMemberIds 值), arg1=cursorPos。
    dest=0x02005800+((skillRow&0xFE)+0xA)*0x40+(0xD*(skillRow&1)+3)*2; 画 8 字名;
    sub_800EAE4(0x02005A80+(skillRow&0xFE)*0x40+(0xD*(skillRow&1)+0xD)*2,
    ItemGetUsePower(memberId,id), 0xE) — MP 消耗数字; skillRow++。
-4. 尾: gUnk_030001C8 = selVal+0x128 (u16); *(u8*)0x030001C3 = selVal;
+4. 尾: gMenuResultCode = selVal+0x128 (u16); *(u8*)0x030001C3 = selVal;
    gMenuCursorSel<=3 → 从 0x08098611 画描述文本 (页头 x,y,palette; 文本 0xFF 分隔, 0xFE 转义:
    Text_PutGlyph(dest, 0xFE00|next, palette); dest 逐项 +2)。
 
@@ -7323,24 +7382,24 @@ count 轮 6 字节条目按 kindFlags&0xF 分 5 类 DMA 装载), slot = 0x030035
 ## sub_8010770 (0x08010770, menu_ui, 道具/技能菜单"确认使用") — ✅ 2026-09-12 gpnux-10770 (520B 字节全等)
 ### 语义
 `void sub_8010770(u8 arg0)`; 调用点: code.s 0x0800D47E 附近菜单确认逻辑 (传 1)。
-1. `n = 0`; `sub_8010300(gUnk_030001C3)` 返回 0 → `Sfx_Play(3,0,0)` 收尾(冷块)。
-2. `gUnk_030001C3 == 0x26`(传送) → 只置 `n = 1` 直接进尾部。
+1. `n = 0`; `sub_8010300(gItemUseId)` 返回 0 → `Sfx_Play(3,0,0)` 收尾(冷块)。
+2. `gItemUseId == 0x26`(传送) → 只置 `n = 1` 直接进尾部。
 3. 否则 `gUnk_030001B0 = 0x10`;
-   - `arg0 == 0`: `gUnk_030001C5 == 5`(全队回复类) → `i=0..4` 遍历 `gPartyMemberIds[i]`
-     (0xFF 终止; id>0 则 id--), `gPartyStats[id].hp += gUnk_030001C6` 并以 `max_hp` 截顶,
+   - `arg0 == 0`: `gItemUseEffectType == 5`(全队回复类) → `i=0..4` 遍历 `gPartyMemberIds[i]`
+     (0xFF 终止; id>0 则 id--), `gPartyStats[id].hp += gItemUseHealHp` 并以 `max_hp` 截顶,
      计数为 0 时直接 `hp = max_hp`; 逐项 `sub_8010624((u8)i, 2)`; `i>4` break; 之后 `Sfx_Play(0x17,1,0); n++`。
      非 5 → `gMenuCursorStack[gMenuCursorGrp] = gMenuCursorSel; gMenuCursorSel = gMenuCursorStack[15];
      if (gMenuCursorSel <= 3) gMenuCursorSel = 4;` + `sub_800E668(0xFF); Sfx_Play(1,0,0); return;`
    - `arg0 != 0`: `id = gPartyMemberIds[gMenuCursorSel - 4]`(无 u8 强转! 加了会多 lsls/lsrs),
      `hp < max_hp` 时同上加血 + `sub_8010624((u8)(gMenuCursorSel-4), 1)` + `Sfx_Play(0x17,1,0); n++`;
-     否则 `gUnk_030001C8 = 0x24; Sfx_Play(3,0,0)`。
-4. `if (n == 0) return;` → `gUnk_030001C3 == 0x3E` 清 `gPartyFollowFlags` bit7 并 `sub_800F128(0, gMenuCursorStack[gMenuCursorGrp])`;
-   否则 `id = gPartyMemberIds[(u8)(gMenuCursorStack[0]-1)]`, `id>0 → id--`, `gPartyStats[id].mp -= gUnk_030001C4`。
+     否则 `gMenuResultCode = 0x24; Sfx_Play(3,0,0)`。
+4. `if (n == 0) return;` → `gItemUseId == 0x3E` 清 `gPartyFollowFlags` bit7 并 `sub_800F128(0, gMenuCursorStack[gMenuCursorGrp])`;
+   否则 `id = gPartyMemberIds[(u8)(gMenuCursorStack[0]-1)]`, `id>0 → id--`, `gPartyStats[id].mp -= gItemUseMpCost`。
 
 ### 命中路径 (结构 4 个硬杠杆, 少一个就差 2~10 字节)
 1. **外层冷块**: 必须写 `if (sub_8010300(...) != 0) { 主体 } else { Sfx_Play(3,0,0); }`。
    写成 `if (... == 0) { Sfx_Play(3,0,0); return; }` 早退 → 冷块落函数头(0x16), ROM 是 `b 0x1f8` 落尾。
-2. **0x26 判定取反**: `if (gUnk_030001C3 != 0x26) { 大段 } else { n = 1; }`。
+2. **0x26 判定取反**: `if (gItemUseId != 0x26) { 大段 } else { n = 1; }`。
    写 `== 0x26` 时 `n=1` 块被排到分支之前, 与 ROM 的 `_080108F0`(在 arg0 全部分支之后) 差 8 字节。
 3. **全队循环用 `while` + `break`**, 不要 `if (id != 0xFF) { do {...} while (id != 0xFF); }`:
    后者 GCC2 生成"入口 b 到循环尾测试"的旋转形态(多 1 条 b + 测试块位置差), `while` 版逐字节一致。
@@ -7356,7 +7415,7 @@ asm-differ 与早期 fncheck diff 都会被这些假行淹没; d.py 只对齐助
 `gen*.py` 是配套的变体批量生成器 (只改 base 的一个片段批量生成/编译/打分)。
 
 ### 符号
-新登记 `gUnk_030001C3`(linker.ld 0x1C3 + iwram.h); 补齐 iwram.h 里 gUnk_030001C4/C5/C6 的 extern
+新登记 `gItemUseId`(linker.ld 0x1C3 + iwram.h); 补齐 iwram.h 里 gItemUseMpCost/C5/C6 的 extern
 (linker.ld 早有、头文件漏登)。`gUnk_03002C44` 用已有别名 `gPartyFollowFlags`(同址, 语义一致: 清 bit7)。
 `code_0.h`: `sub_8010300` 原型 `void()` → `u8(u8)`(调用点 `lsls r0,r0,#0x18; cmp r0,#0` = u8 返回;
 唯一调用者就是本函数, 安全); `sub_8010770` 原型 `void()` → `void(u8)`。
@@ -7589,15 +7648,15 @@ claude-300 于 2026-09-05 认领后停在「bytecmp 剩 80 字节」。2026-09-1
 
 ### 语义 (已 100% 确定, 与前人一致)
 道具使用入口 / `VBlankIntr` 无关的普通函数, 返回 0/1/2:
-- `itemId == 0` → `gUnk_030001C8 = 0x27`, 返回 0
-- `itemId == 0x3E` → 若 `!(gUnk_03002C44 & 0x80)` 则 `gUnk_030001C8 = 0x24`, 返回 0; 否则落到公共段
+- `itemId == 0` → `gMenuResultCode = 0x27`, 返回 0
+- `itemId == 0x3E` → 若 `!(gUnk_03002C44 & 0x80)` 则 `gMenuResultCode = 0x24`, 返回 0; 否则落到公共段
 - 其它 → `memberId = gPartyMemberIds[(u8)(gMenuCursorStack[0] - 1)]`,
   `charaId = memberId ? memberId - 1 : 0`, `power = ItemGetUsePower(memberId, itemId)`,
-  MP 检查后写 `gUnk_030001C4`; 为 0 则 `gUnk_030001C8 = 0x1d`, 返回 0
-- 公共段: `entry = &gSkillLearnTable[(itemId-1)*5]`, `gUnk_030001C5 = entry[1] & 0xF`,
-  `gUnk_030001C6 = entry[3]`
-- `itemId == 0x26` → `WarpTable_Check() != 0` 返回 1, 否则 `gUnk_030001C8 = 0x27` 返回 0
-- 否则扫前 5 个队员, 统计 `hp < max_hp` 的人数; 非 0 返回 2, 否则 `gUnk_030001C8 = 0x1c` 返回 0
+  MP 检查后写 `gItemUseMpCost`; 为 0 则 `gMenuResultCode = 0x1d`, 返回 0
+- 公共段: `entry = &gSkillLearnTable[(itemId-1)*5]`, `gItemUseEffectType = entry[1] & 0xF`,
+  `gItemUseHealHp = entry[3]`
+- `itemId == 0x26` → `WarpTable_Check() != 0` 返回 1, 否则 `gMenuResultCode = 0x27` 返回 0
+- 否则扫前 5 个队员, 统计 `hp < max_hp` 的人数; 非 0 返回 2, 否则 `gMenuResultCode = 0x1c` 返回 0
 
 ### 本轮推进 (掩码 bl 槽后的字节差: 101 → 66 → 42)
 判定用 `.scratch/nova/score300b.py`(编译 + objcopy .text + 掩码 bl 槽后逐字节比, 并打印 prologue
@@ -7620,7 +7679,7 @@ extern 符号版有字面池重定位假分 (经验 29), permuter 自己的分�
    b.n 7a
    [字面池 3 words]      ; 池正好在 b 之后断开
    78: adds r1, r0, #0
-   7a: ldr r0, =gUnk_030001C4; strb r1; cmp r1, #0
+   7a: ldr r0, =gItemUseMpCost; strb r1; cmp r1, #0
    ```
    agbcc 对 `if (power > mp) result = 0; else result = power;` **一律**做 value-replacement,
    把复制提到比较前并改用 result 比较:
@@ -7628,7 +7687,7 @@ extern 符号版有字面池重定位假分 (经验 29), permuter 自己的分�
    已排除的写法 (全部 66~193, 无一命中): if/else、三元、先 `result = power` 再清零、
    先 `result = 0` 再条件赋、`if (mp < power)`、`!(power <= mp)`、`u16 result`、
    4 种局部变量声明顺序、`PlayerStats *st`/`PlayerStats *c` 指针、goto 形式、
-   分支内重复存储、`gUnk_030001C4 = result = (...) ? ... : ...`。
+   分支内重复存储、`gItemUseMpCost = result = (...) ? ... : ...`。
    **唯一能保住分支形状的是在 else 分支读一个尚未赋值的变量作屏障**:
    `else if (result) result = power; else result = power;` → 差 **42**, 且池在 `b` 后正确断开。
    GCC 能证明两条路径赋同一值, 生成码不依赖未初始化值 (语义安全), 但 `result` 因此

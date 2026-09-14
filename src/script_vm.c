@@ -661,9 +661,9 @@ void ScriptPump_Run(void)
     if ((gScriptVmFlags & 1) != 0 && (gScriptVmFlags & 0x200) == 0)
     {
         keys = ~REG_KEYINPUT;
-        gUnk_03000F2E = keys & ~gUnk_03000F2C;
-        gUnk_03000F2C = keys;
-        sub_80182A8(gUnk_03000F2C, &gUnk_03000ED8);
+        gScriptKeysPressed = keys & ~gScriptKeyState;
+        gScriptKeyState = keys;
+        sub_80182A8(gScriptKeyState, gScriptLocalSlots);
         while (gScriptOpcodeHandlers[*(u8 *)gScriptCursor](&gScriptCursor) == 1)
         {
         }
@@ -753,13 +753,13 @@ u8 Op_ScriptReturn(u32 *pScriptCursor)
         Script_SetEnvSet(gScriptReturnSetId);
         gScriptVmFlags &= 0xFFFE;
         i = 0;
-        while (i < gUnk_03000ECA)
+        while (i < gScriptStreamDepth)
         {
-            gUnk_03000EA0[i] = 0;
-            gUnk_03000EC0[i] = 0;
+            gScriptStreamCursorStack[i] = 0;
+            gScriptStreamSetIdStack[i] = 0;
             i++;
         }
-        gUnk_03000ECA = 0;
+        gScriptStreamDepth = 0;
         ret = 0;
     }
     return ret;
@@ -789,14 +789,14 @@ u32 Op_ScriptStop(u32 *pScriptCursor)
         }
 
         gScriptVmFlags &= ~1;
-        for (i = 0; i < gUnk_03000ECA; i++)
+        for (i = 0; i < gScriptStreamDepth; i++)
         {
-            gUnk_03000EA0[i] = 0;
-            gUnk_03000EC0[i] = 0;
+            gScriptStreamCursorStack[i] = 0;
+            gScriptStreamSetIdStack[i] = 0;
         }
 
         action = 0;
-        gUnk_03000ECA = action;
+        gScriptStreamDepth = action;
     }
     return 0;
 }
@@ -813,17 +813,17 @@ u32 sub_80512C4(u32 *ptr)
     vu16 *ioReg;
 
     data = (u8 *)(*ptr);
-    gUnk_03000EC0[gUnk_03000ECA] = gScriptReturnSetId;
-    gUnk_03000EC8 = entry;
-    gUnk_03000EC9 = songId;
+    gScriptStreamSetIdStack[gScriptStreamDepth] = gScriptReturnSetId;
+    gScriptStreamEntry = entry;
+    gScriptStreamSetId = songId;
     data++;
     songId = *data;
     data++;
     entry = *data;
     data++;
-    gUnk_03000EA0[gUnk_03000ECA] = (u32)data;
+    gScriptStreamCursorStack[gScriptStreamDepth] = (u32)data;
     chunkSize = 0x400;
-    gUnk_03000ECA++;
+    gScriptStreamDepth++;
     gScriptReturnSetId = songId;
     lzData = (struct LzHeader *)gScriptSetTable[songId];
     uncompSize = lzData->uncompressedSize;
@@ -857,10 +857,10 @@ u32 sub_80513A0(u32 *ptr)
     u8 setId;
     vu16 *ioReg;
 
-    gUnk_03000ECA--;
+    gScriptStreamDepth--;
     chunkSize = 0x400;
-    gUnk_03000F30 = gUnk_03000EC0[gUnk_03000ECA];
-    setId = gUnk_03000EC0[gUnk_03000ECA];
+    gScriptCurSetId = gScriptStreamSetIdStack[gScriptStreamDepth];
+    setId = gScriptStreamSetIdStack[gScriptStreamDepth];
     gScriptReturnSetId = setId;
     lz = (struct LzHeader *)gScriptSetTable[setId];
     size = lz->uncompressedSize;
@@ -877,7 +877,7 @@ u32 sub_80513A0(u32 *ptr)
         gScriptVmFlags |= 0x200;
     }
     gScriptCursor = 0x02016200;
-    savedCursor = gUnk_03000EA0[gUnk_03000ECA];
+    savedCursor = gScriptStreamCursorStack[gScriptStreamDepth];
     gScriptCursor = savedCursor;
     return 0;
 }
@@ -961,7 +961,7 @@ void Script_ResetVM(void)
     {
         gScriptCallStack[i] = 0;
     }
-    gUnk_03000ECA = 0;
+    gScriptStreamDepth = 0;
 }
 // @ 0x080525E8
 void ScriptSet_Load(u8 setId, u8 entry, u8 mode)
@@ -1070,20 +1070,20 @@ void TileDma_Reset(void)
 
     for (i = 0; i <= 0x1D; i++)
     {
-        gUnk_03000EE8[i] = 0;
+        gTileDmaAllocTable[i] = 0;
     }
 
-    gUnk_03000F24 = 0;
+    gTileDmaCount = 0;
 }
 // 把待传的图块数据从 EWRAM 暂存区 0x0203DE00 用 DMA3 刷到 VRAM 0x0600B800。
-// gUnk_03000F24 = 待传块数, 每块 64 字节(= 16 个 u32); 无待传项时不发 DMA。
+// gTileDmaCount = 待传块数, 每块 64 字节(= 16 个 u32); 无待传项时不发 DMA。
 // 调用方按 (s16)返回值 < 0 判定已刷新。同族写法见 DialogCtx_Flush。
 // @ 0x080527AC
 s16 sub_80527AC(void)
 {
-    if (gUnk_03000F24 != 0)
+    if (gTileDmaCount != 0)
     {
-        DmaCopy32(3, 0x0203DE00, 0x0600B800, gUnk_03000F24 * 64);
+        DmaCopy32(3, 0x0203DE00, 0x0600B800, gTileDmaCount * 64);
         DmaWait(3);
     }
     return -1;
@@ -1091,15 +1091,15 @@ s16 sub_80527AC(void)
 // @ 0x080527F4
 u32 TileDma_GetCtx(u32 *arg0)
 {
-    *arg0 = 0x03000EE8;
-    return *(u16 *)0x03000F24;
+    *arg0 = gTileDmaAllocTable;
+    return gTileDmaCount;
 }
 
 // @ 0x08052808
 u32 Op_LoadTileGfx(u8 arg0)
 {
-    sub_8050434((u32)(arg0 * 18) + (u32)gUnk_0862D574 + gUnk_03000F2A * 2, 0x6F1E);
-    if (gUnk_03000F24 != 0)
+    sub_8050434((u32)(arg0 * 18) + (u32)gUnk_0862D574 + gTileAnimFrameIdx * 2, 0x6F1E);
+    if (gTileDmaCount != 0)
     {
         gScriptVmFlags |= 0x40;
         return 1;
@@ -1545,7 +1545,7 @@ u32 Op_CameraSnap(u32 *pScriptCursor)
 {
 
     gCameraSnapFlag = 1;
-    gUnk_030047B4 = 0;
+    gCameraPanDuration = 0;
     (*pScriptCursor)++;
     return 1;
 }
@@ -1791,7 +1791,7 @@ u32 Op_GiveTakeItem(u32 *pScriptCursor)
     }
     else
     {
-        sub_800AA60(pBytecode[1], pBytecode[2]);
+        Inventory_AddItem(pBytecode[1], pBytecode[2]);
     }
 
     *pScriptCursor += 3;

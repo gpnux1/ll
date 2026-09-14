@@ -11,42 +11,42 @@
 s32 Save_Fsm(u8 arg0)
 {
 
-    switch (gUnk_03004D44)
+    switch (gSaveFsmState)
     {
 
         case 0x1:
-            ReadSram((u8 *)SRAM + (gUnk_03004DD0 << 0xB), (u8 *)0x02021000 + (gUnk_03004DD0 << 0xB), 0x800);
-            gUnk_03004D44++;
+            ReadSram((u8 *)SRAM + (gSaveSramBlock << 0xB), (u8 *)0x02021000 + (gSaveSramBlock << 0xB), 0x800);
+            gSaveFsmState++;
             return 1;
 
         case 0x2:
-            if (VerifySram((u8 *)(gUnk_03004DD0 << 0xB) + 0x02021000, (u8 *)SRAM + (gUnk_03004DD0 << 0xB), 0x800) != 0)
+            if (VerifySram((u8 *)(gSaveSramBlock << 0xB) + 0x02021000, (u8 *)SRAM + (gSaveSramBlock << 0xB), 0x800) != 0)
             {
-                gUnk_03004D44 = 0xFD;
+                gSaveFsmState = 0xFD;
             }
             else
             {
-                if (gUnk_03004DD0 <= 0xE)
+                if (gSaveSramBlock <= 0xE)
                 {
-                    gUnk_03004D44--;
+                    gSaveFsmState--;
                 }
                 else
                 {
-                    gUnk_03004D44 = 0xF9;
+                    gSaveFsmState = 0xF9;
                 }
-                gUnk_03004DD0++;
+                gSaveSramBlock++;
             }
             return 1;
 
         case 0x3:
-            WriteSram((u8 *)(gUnk_03004DD0 << 0xB) + 0x02021000, (u8 *)SRAM + (gUnk_03004DD0 << 0xB), 0x800);
-            gUnk_03004D44++;
+            WriteSram((u8 *)(gSaveSramBlock << 0xB) + 0x02021000, (u8 *)SRAM + (gSaveSramBlock << 0xB), 0x800);
+            gSaveFsmState++;
             return 1;
 
         case 0x4:
-            if (VerifySram((u8 *)(gUnk_03004DD0 << 0xB) + 0x02021000, (u8 *)SRAM + (gUnk_03004DD0 << 0xB), 0x800) != 0)
+            if (VerifySram((u8 *)(gSaveSramBlock << 0xB) + 0x02021000, (u8 *)SRAM + (gSaveSramBlock << 0xB), 0x800) != 0)
             {
-                gUnk_03004D44 = 0xFD;
+                gSaveFsmState = 0xFD;
                 Msg_ShowById(0x27, 0xB);
                 if (gMenuCursorSel > 5U)
                 {
@@ -56,13 +56,13 @@ s32 Save_Fsm(u8 arg0)
             }
             else
             {
-                if (gUnk_03004DD0 <= 0xE)
+                if (gSaveSramBlock <= 0xE)
                 {
-                    gUnk_03004D44--;
+                    gSaveFsmState--;
                 }
                 else
                 {
-                    gUnk_03004D44 = 0xFF;
+                    gSaveFsmState = 0xFF;
                     Msg_ShowById(0x19, 0xB);
                     if (gMenuCursorSel > 5)
                     {
@@ -70,28 +70,28 @@ s32 Save_Fsm(u8 arg0)
                         sub_800E668(0xFF);
                     }
                 }
-                gUnk_03004DD0++;
+                gSaveSramBlock++;
             }
             return 1;
 
         case 0xF9:
             Save_FillSlot0(0);
-            gUnk_03004D44 = 0xFA;
+            gSaveFsmState = 0xFA;
             return 1;
 
         case 0xFA:
             Save_FillSlot0(1);
-            gUnk_03004D44 = 0xFB;
+            gSaveFsmState = 0xFB;
             return 1;
 
         case 0xFB:
             Save_FillSlot0(2);
-            gUnk_03004D44 = 0xFC;
+            gSaveFsmState = 0xFC;
             return 1;
 
         case 0xFC:
             Save_FillSlot0(3);
-            gUnk_03004D44 = 0xFF;
+            gSaveFsmState = 0xFF;
             return 1;
 
         case 0xFD:
@@ -99,7 +99,7 @@ s32 Save_Fsm(u8 arg0)
             *(u8 *)0x02023000 = 0xFF;
             *(u8 *)0x02025000 = 0xFF;
             *(u8 *)0x02027000 = 0xFF;
-            gUnk_03004D44 = 0xFF;
+            gSaveFsmState = 0xFF;
             return 1;
 
         case 0xFF:
@@ -107,7 +107,7 @@ s32 Save_Fsm(u8 arg0)
             {
                 SaveUi_DrawSlots();
             }
-            gUnk_03004D44 = 0xFE;
+            gSaveFsmState = 0xFE;
             return 1;
 
         default:

@@ -154,7 +154,6 @@ extern u16 (*gScriptOpcodeHandlers[])(u32 *);
 extern u8 *gUnk_087ED904[];
 extern u8 gUnk_0862D574[];
 extern const u32 gScriptSetTable[];
-#define gUnk_087ED6D4 gScriptSetTable
 
 /* 脚本虚拟机运行与异步服务请求标志 (0x03000E70) */
 #define SCRIPT_VM_FLAG_RUNNING           0x0001 /* bit0: 脚本当前正在运行 */
@@ -165,7 +164,6 @@ extern const u32 gScriptSetTable[];
 #define SCRIPT_VM_FLAG_LZ_STREAMING      0x0200 /* bit9: 异步流式 LZ 解压进行中 (暂停脚本执行) */
 #define SCRIPT_VM_FLAG_ENTRY_JUMP_REQ    0x0400 /* bit10: 异步 LZ 解压完成后 PC 跳转入口表 */
 
-#define gScriptVmFlags gUnk_03000E70
 
 /* ========================================================================== */
 /* 脚本虚拟机执行函数与控制例程                                               */

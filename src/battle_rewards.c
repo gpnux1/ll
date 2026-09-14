@@ -10,20 +10,20 @@
 #include "save.h"
 #include "sound.h"
 
-typedef struct
-{
-    u8 pad_0[0x10];
-    u16 field_10;
-    u8 pad_12[2];
-} Unk_804D1B4_Entry;
-
+/* BattleObj.animPtr 动画索引块视图 (与 ObjAnimEntry 配对): u16 成员均为 gUnk_08393B28
+ * 索引。slot≥0x71 特殊对象的块来自 gUnk_0839ABCC[field_BE*0x40] (sub_802031C, 0x40 字节/项):
+ * +0x00/+0x02/+0x04/+0x06 为主动画索引 (sub_801CE80 kind0/1/2/6; fxKind==0 路径用 +0x02),
+ * +0x08 的 4 项为动画副索引表 —— fxKind==1 时按 obj->animSubIdx 选取 (同 sub_801CE80 kind5),
+ * 选中表项的 targetMode 决定 f_BD 赋值模式 (0=随机存活候选, 1=0)。 */
 typedef struct
 {
     u8 pad_0[8];
-    u16 field_8[4];
-} Unk_804DABC_Ptr;
+    u16 subIdx[4];
+} ObjAnimIdxBlk;
 
-extern Unk_804D1B4_Entry gUnk_08393B28_entries[];
+/* gUnk_08393B28 (ObjAnimEntry, 见 code_0.h): 本文件族 = slot≥0x71 特殊对象的目标选取
+ * handler, 经 sub_804DD70 分派表 gUnk_0839CE38[slot-0x71] 进入 (调用者 sub_801EA70/sub_8020C58)。
+ * targetMode==0 → f_BD=values[] 中随机存活候选; ==1 → f_BD=0。 */
 
 // @ 0x0804D1B4
 void sub_804D1B4(BattleObj *obj, u8 *arg1)
@@ -31,7 +31,7 @@ void sub_804D1B4(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 15)
@@ -41,14 +41,14 @@ void sub_804D1B4(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             obj->animSubIdx = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 8)];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -65,7 +65,7 @@ void sub_804D260(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
@@ -75,14 +75,14 @@ void sub_804D260(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             obj->animSubIdx = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 8)];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -100,7 +100,7 @@ void sub_804D310(BattleObj *obj, u8 *arg1)
     u8 count;
     u8 value;
     u8 zero;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
@@ -108,9 +108,9 @@ void sub_804D310(BattleObj *obj, u8 *arg1)
     else
         ((u8 *)obj)[0xBC] = 0;
     ((u8 *)obj)[0xBC] = 0;
-    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
+    entry = &gUnk_08393B28[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
     zero = 0;
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -127,7 +127,7 @@ void sub_804D3A0(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 13)
@@ -137,14 +137,14 @@ void sub_804D3A0(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             obj->animSubIdx = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 8)];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -161,7 +161,7 @@ void sub_804D44C(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
@@ -171,14 +171,14 @@ void sub_804D44C(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             obj->animSubIdx = 0;
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 8)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 8)];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -195,7 +195,7 @@ void sub_804D4FC(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -214,15 +214,15 @@ void sub_804D4FC(BattleObj *obj, u8 *arg1)
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
             obj->animSubIdx = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -239,7 +239,7 @@ void sub_804D5B4(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 value;
     u8 count;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     u8 i;
     unsigned int victory;
 
@@ -268,17 +268,17 @@ void sub_804D5B4(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             if (victory == 1 && ((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x31)
                 obj->animSubIdx = victory;
             else
                 obj->animSubIdx = 0;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -299,7 +299,7 @@ void sub_804D708(BattleObj *obj, u8 *arg1)
     u8 count;
     u8 value;
     u8 zero;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 < count * 10)
@@ -307,9 +307,9 @@ void sub_804D708(BattleObj *obj, u8 *arg1)
     else
         ((u8 *)obj)[0xBC] = 0;
     ((u8 *)obj)[0xBC] = 0;
-    entry = &gUnk_08393B28_entries[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
+    entry = &gUnk_08393B28[*(u16 *)(*(u32 *)((u8 *)obj + 0x88) + 2)];
     zero = 0;
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -328,7 +328,7 @@ void sub_804D840(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -347,15 +347,15 @@ void sub_804D840(BattleObj *obj, u8 *arg1)
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
             obj->animSubIdx = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -372,7 +372,7 @@ void sub_804D8F4(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     u16 gold;
     u8 lucky;
     unsigned int v;
@@ -396,17 +396,17 @@ void sub_804D8F4(BattleObj *obj, u8 *arg1)
     switch (v = (s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             if (lucky == 0)
                 obj->animSubIdx = lucky;
             else
                 obj->animSubIdx = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -423,7 +423,7 @@ void sub_804DA04(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     unsigned int kind;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
@@ -434,15 +434,15 @@ void sub_804DA04(BattleObj *obj, u8 *arg1)
     switch ((s8)obj->fxKind)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             kind = ((u32 (*)(void))Rng_LcgNext)() % 3;
             obj->animSubIdx = kind;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -460,7 +460,7 @@ void sub_804DABC(BattleObj *obj, u8 *arg1)
     u8 count;
     u8 value;
     u8 v;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
     if (((u32 (*)(void))Rng_LcgNext)() % 0x65 <= 0x45)
@@ -472,8 +472,8 @@ void sub_804DABC(BattleObj *obj, u8 *arg1)
     ((u8 *)obj)[0xC2] = v;
     if (v == 1)
         ((u8 *)obj)[0xC2] = 0;
-    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(*(u32 *)((u8 *)obj + 0x88)))->field_8[((u8 *)obj)[0xC2]]];
-    switch (entry->field_10)
+    entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(*(u32 *)((u8 *)obj + 0x88)))->subIdx[((u8 *)obj)[0xC2]]];
+    switch (entry->targetMode)
     {
     case 0:
         value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -492,7 +492,7 @@ void sub_804DB64(BattleObj *obj, u8 *arg1)
     u8 value;
     s8 *flag;
     unsigned int v;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     unsigned int kind;
 
     count = sub_80489E8(arg1, values, 0, 0x6F);
@@ -510,17 +510,17 @@ void sub_804DB64(BattleObj *obj, u8 *arg1)
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             kind = ((u32 (*)(void))Rng_LcgNext)() % 5;
             obj->animSubIdx = kind;
             if ((u32)obj->animSubIdx == 2)
                 obj->animSubIdx = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -537,7 +537,7 @@ void sub_804DC24(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -556,15 +556,15 @@ void sub_804DC24(BattleObj *obj, u8 *arg1)
     switch (v)
     {
         case 0:
-            entry = &gUnk_08393B28_entries[*(u16 *)(obj->animPtr + 2)];
+            entry = &gUnk_08393B28[*(u16 *)(obj->animPtr + 2)];
             break;
         case 1:
             v &= ((u32 (*)(void))Rng_LcgNext)();
             obj->animSubIdx = v;
-            entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
+            entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
             break;
     }
-    switch (entry->field_10)
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];
@@ -581,7 +581,7 @@ void sub_804DCD8(BattleObj *obj, u8 *arg1)
     u8 values[8];
     u8 count;
     u8 value;
-    Unk_804D1B4_Entry *entry;
+    ObjAnimEntry *entry;
     s8 *flag;
     u8 zero;
 
@@ -599,8 +599,8 @@ void sub_804DCD8(BattleObj *obj, u8 *arg1)
     zero = 0;
     obj->fxKind = 1;
     obj->animSubIdx = zero;
-    entry = &gUnk_08393B28_entries[((Unk_804DABC_Ptr *)(obj->animPtr))->field_8[obj->animSubIdx]];
-    switch (entry->field_10)
+    entry = &gUnk_08393B28[((ObjAnimIdxBlk *)(obj->animPtr))->subIdx[obj->animSubIdx]];
+    switch (entry->targetMode)
     {
         case 0:
             value = values[(u32)(u8)Rng_LcgNext() % count];

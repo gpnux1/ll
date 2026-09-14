@@ -911,7 +911,7 @@ void LogoBlendEffect_Update(void)
             REG_DISPCNT &= 0xFEFF;
             gBlendControl = 0x1E41;
             gBlendCoefficients = 0xF00;
-            gUnk_03000004 = 0;
+            gBlendFadeStep = 0;
             return;
 
         case 2:
@@ -927,44 +927,44 @@ void LogoBlendEffect_Update(void)
             break;
 
         case 6:
-            gUnk_03000004++;
+            gBlendFadeStep++;
             gBlendCoefficients &= 0xF00;
-            gBlendCoefficients |= (gUnk_03000004 >> 2) & 0x1F;
-            if ((gUnk_03000004 >> 2) == 0x1F)
+            gBlendCoefficients |= (gBlendFadeStep >> 2) & 0x1F;
+            if ((gBlendFadeStep >> 2) == 0x1F)
             {
                 gLogoEffectState++;
-                gUnk_03000004 = 0;
+                gBlendFadeStep = 0;
             }
             break;
 
         case 7:
-            gUnk_03000004++;
-            if (!(gUnk_03000004 & 3))
+            gBlendFadeStep++;
+            if (!(gBlendFadeStep & 3))
             {
                 gBlendCoefficients -= 0x100;
                 if (!(gBlendCoefficients & 0xFF00))
                 {
                     gLogoEffectState++;
-                    gUnk_03000004 = gBlendCoefficients & 0xFF00;
+                    gBlendFadeStep = gBlendCoefficients & 0xFF00;
                 }
             }
             break;
 
         case 8:
-            gUnk_03000004++;
-            if (gUnk_03000004 > 0x1B3)
+            gBlendFadeStep++;
+            if (gBlendFadeStep > 0x1B3)
             {
                 gLogoEffectState++;
-                gUnk_03000004 = 0;
+                gBlendFadeStep = 0;
             }
             break;
         case 9:
-            gUnk_03000004++;
-            gBlendCoefficients = (((gUnk_03000004 >> 2) & 0x1F) << 8) | ((0x1F - (gUnk_03000004 >> 2)) & 0x1F);
+            gBlendFadeStep++;
+            gBlendCoefficients = (((gBlendFadeStep >> 2) & 0x1F) << 8) | ((0x1F - (gBlendFadeStep >> 2)) & 0x1F);
             if (gBlendCoefficients == 0x1F00)
             {
                 gLogoEffectState++;
-                gUnk_03000004 = 0;
+                gBlendFadeStep = 0;
             }
             break;
     }
@@ -1250,7 +1250,7 @@ void Sprites_LoadMapNPCs(u8 arg0)
         return;
 
     temp_r0 = (i - 1) * 18;
-    arg0 = gUnk_08091948[temp_r0];
+    arg0 = gMapNpcSlotGroups[temp_r0];
 
     ptr2 = gUnk_087EA394[temp_r3 - 1];
 

@@ -2680,7 +2680,7 @@ grep '^Register ' gccdump.lreg; grep '^;; Register .* in' gccdump.lreg; rm -f gc
     - 同函数另外两个同源杠杆 (都不是 goto, 全按经验 100 的分支归约思路解决):
       (a) 外层 `if (sub_8010300(...) != 0) { 主体 } else { Sfx_Play(3,0,0); }` —— else 冷块落到函数尾;
       写成 `if (... == 0) { Sfx_Play(3,0,0); return; }` 早退, 冷块落函数头, 差一整个池。
-      (b) 冷分支判定取反 `if (gUnk_030001C3 != 0x26) { 大段 } else { n = 1; }` —— 让 `n = 1` 冷块
+      (b) 冷分支判定取反 `if (gItemUseId != 0x26) { 大段 } else { n = 1; }` —— 让 `n = 1` 冷块
       排到全部分支之后 (ROM 的 _080108F0), 写 `== 0x26` 时冷块排到前面, 差 8 字节。
     - 关联: 经验 100 (flag 归约代替 goto)、经验 29 (字面池重定位假差)、经验 103 (调度槽位)。
 

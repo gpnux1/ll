@@ -139,13 +139,13 @@ void sub_804B224(u16 *flags)
     }
 }
 // @ 0x0804B288
-// 战斗动画子系统复位: 清 0x03000AE0/03000AE2/03000CE8 (u16) 与 03000AE4/03000AE5 (u8) 状态字,
+// 战斗动画子系统复位: 清 gObjPalSlotUsed(0x03000AE0)/gBgPalSlotUsed(0x03000AE2)/03000CE8 (u16) 与 03000AE4/03000AE5 (u8) 状态字,
 // 随后用共享的 vu16 fill=0 做 4 次 DMA fill (控制字 0x81000100 = 使能+源固定+256 半字),
 // 依次清 OBJ 调色板 (0x05000200)、BG 调色板 (0x05000000) 及两份镜像 0x02036AC0/0x02036CC0,
-// 每次 fill 后 DmaWait。最后把两张 16 项调色板动画表 (gBgPalAnim/gObjPalAnim) 的每一项
+// 每次 fill 后 DmaWait。最后把两张 16 项调色板动画表 (gObjPalAnim/gBgPalAnim) 的每一项
 // ctrl/palSlot |= 0xFF、period/counter/span/dir 清零、frameIdx (u16) 清零。
 // 形状要点 (GCC2.9): ①fill 必须是 vu16 且复用同一栈槽; ②DmaSet 用宏展开 (局部 dmaRegs)
-// 才能每个 fill 重新装载 0x040000D4; ③循环内先用 u8* 中间量 pA 锚定 gBgPalAnim 的池装载
+// 才能每个 fill 重新装载 0x040000D4; ③循环内先用 u8* 中间量 pA 锚定 gObjPalAnim 的池装载
 // 位置, 再转 entry 指针, 否则该 ldr 会被提升到首个 DmaWait 之前。
 INCLUDE_ASM("asm/nonmatchings", sub_804B288);
 // @ 0x0804B3C0
@@ -266,7 +266,7 @@ INCLUDE_ASM("asm/nonmatchings", sub_804B56C);
 // @ 0x0804B654
 INCLUDE_ASM("asm/nonmatchings", sub_804B654);
 // @ 0x0804B7B0
-/* 停止 BG 调色板动画槽 [arg0, arg0+arg1): 与 sub_804B8E8 同表 (gBgPalAnim 0x03000AE8)
+/* 停止 OBJ 调色板动画槽 [arg0, arg0+arg1): 与 sub_804B8E8 同表 (gObjPalAnim 0x03000AE8)
  * 同逻辑, 但表项访问为原始字节指针 (entry[0..3])。对每个非空 (ctrl != -1) 条目, 若未禁止
  * 颜色重置 (ctrl bit5=0x20) 则注销调色板槽 (sub_804C3A4), 调 sub_804C420 刷新该槽, 然后把
  * ctrl/palSlot 置 0xFF、period/counter 清 0。
@@ -282,7 +282,7 @@ void sub_804B7B0(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        u8 *base = (u8 *)gBgPalAnim;
+        u8 *base = (u8 *)gObjPalAnim;
         u8 mask = 0xFF;
         entry = base + (arg0 + i) * 16;
         {
@@ -309,8 +309,8 @@ void sub_804B7B0(u8 arg0, u8 arg1)
 }
 // @ 0x0804B834
 INCLUDE_ASM("asm/matchings", sub_804B834);
-/* 建立 BG 调色板淡变槽 [arg0, arg0+arg1): 对每个未在淡变中的槽 (ctrl&0xF != 2) 调用
- * sub_804C3E4 备份当前 BG 调色板, 然后装配一个"淡变"条目 ——
+/* 建立 OBJ 调色板淡变槽 [arg0, arg0+arg1): 对每个未在淡变中的槽 (ctrl&0xF != 2) 调用
+ * sub_804C3E4 备份当前 OBJ 调色板, 然后装配一个"淡变"条目 ——
  *   ctrl=0x22 (opcode=2 淡变 + bit5 禁止颜色重置), palSlot=槽号, period=arg2, counter=0,
  *   span=(arg4<<4)|(|arg3|&0xF), frameIdx=0, dir=arg3>>7 (arg3 为带符号方向, 负数取绝对值
  *   放低 4 位)。返回表中 arg0 槽的 palSlot, 供调用者作为"目标槽"使用。
@@ -345,7 +345,7 @@ s8 sub_804B834(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
     if (i < arg1)
     {
         zero = 0;
-        base = (u32)gBgPalAnim;
+        base = (u32)gObjPalAnim;
         do
         {
             idx = arg0 + i;
@@ -365,18 +365,18 @@ s8 sub_804B834(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
             i++;
         } while (i < arg1);
     }
-    slot = (u8 *)gBgPalAnim + off;
+    slot = (u8 *)gObjPalAnim + off;
     return (s8)slot[1];
 }
 #endif
 // @ 0x0804B8E8
-/* 停止 BG 调色板动画槽 [arg0, arg0+arg1): 对每个非空 (ctrl != 0xFF) 且 opcode==3 (淡变)
+/* 停止 OBJ 调色板动画槽 [arg0, arg0+arg1): 对每个非空 (ctrl != 0xFF) 且 opcode==3 (淡变)
  * 的条目, 若未禁止颜色重置 (ctrl bit5=0x20) 则注销其占用的调色板槽 (sub_804C3A4), 调
  * sub_804C420 刷新该槽的调色板, 然后把 ctrl/palSlot 置 0xFF (标记为空), period/counter 清 0。
  * 由 sub_80285A0 等状态机在演出收尾时调用 (释放 sub_804B834 建立的槽)。
  * 形状要点: 用 PaletteAnimEntry 成员访问; "空" 判断写成 `*(s8 *)&entry->ctrl == -1`
  * (而非先取 flags/v 临时再比), 否则 GCC2.9 会把 flags/v 分到 r1/r2 从而顶掉 arg0 临时寄存器,
- * 与目标差 ~12 字节 (已穷举)。同型: sub_804BD54/sub_804BE90 (OBJ 表)。 */
+ * 与目标差 ~12 字节 (已穷举)。同型: sub_804BD54/sub_804BE90 (BG 表)。 */
 void sub_804B8E8(u8 arg0, u8 arg1)
 {
     u8 i;
@@ -384,7 +384,7 @@ void sub_804B8E8(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        PaletteAnimEntry *base = gBgPalAnim;
+        PaletteAnimEntry *base = gObjPalAnim;
         entry = &base[arg0 + i];
         {
             if (*(s8 *)&entry->ctrl == -1)
@@ -402,7 +402,7 @@ void sub_804B8E8(u8 arg0, u8 arg1)
 // @ 0x0804B96C
 INCLUDE_ASM("asm/nonmatchings", sub_804B96C);
 // @ 0x0804BB64
-/* 停止 BG 调色板动画槽 [start, start+count): 与 sub_804B8E8 逻辑相同但用 do-while 展开,
+/* 停止 OBJ 调色板动画槽 [start, start+count): 与 sub_804B8E8 逻辑相同但用 do-while 展开,
  * 且 index 为 u32。对每个 opcode==3 的条目注销调色板槽 (sub_804C3A4/sub_804C420) 并标记为空。 */
 void sub_804BB64(u8 start, u8 count)
 {
@@ -416,7 +416,7 @@ void sub_804BB64(u8 start, u8 count)
     {
         do
         {
-            base = gBgPalAnim;
+            base = gObjPalAnim;
             index = start + i;
             entry = base + index;
             if ((entry->ctrl & 0xF) == 3)
@@ -443,7 +443,7 @@ void sub_804BD54(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        PaletteAnimEntry *base = gObjPalAnim;
+        PaletteAnimEntry *base = gBgPalAnim;
         entry = &base[arg0 + i];
         {
             if (*(s8 *)&entry->ctrl == -1)
@@ -460,8 +460,8 @@ void sub_804BD54(u8 arg0, u8 arg1)
 }
 // @ 0x0804BDD8
 INCLUDE_ASM("asm/matchings", sub_804BDD8);
-/* 建立 OBJ 调色板淡变槽 [arg0, arg0+arg1): 对每个非空槽 (ctrl&0xF != 2, 即非进行中)
- * 调用 sub_804C638 备份当前 OBJ 调色板, 然后装配一个"淡变"条目 ——
+/* 建立 BG 调色板淡变槽 [arg0, arg0+arg1): 对每个非空槽 (ctrl&0xF != 2, 即非进行中)
+ * 调用 sub_804C638 备份当前 BG 调色板, 然后装配一个"淡变"条目 ——
  *   ctrl=0x22 (opcode=2 淡变 + 0x20 禁止颜色重置), palSlot=槽号,
  *   period=arg2, counter=0, span=(arg4<<4)|(|arg3|&0xF), frameIdx=0,
  *   dir=arg3>>7 (arg3 为带符号方向, 负数取绝对值放低4位)。
@@ -489,7 +489,7 @@ s8 sub_804BDD8(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
     if (i < arg1)
     {
         zero = 0;
-        base = (u32)gObjPalAnim;
+        base = (u32)gBgPalAnim;
         do
         {
             idx = arg0 + i;
@@ -509,7 +509,7 @@ s8 sub_804BDD8(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
             i++;
         } while (i < arg1);
     }
-    return gBgPalAnim[arg0].palSlot;
+    return gObjPalAnim[arg0].palSlot;
 }
 #endif
 // @ 0x0804BE90
@@ -520,7 +520,7 @@ void sub_804BE90(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        PaletteAnimEntry *base = gObjPalAnim;
+        PaletteAnimEntry *base = gBgPalAnim;
         entry = &base[arg0 + i];
         {
             if (*(s8 *)&entry->ctrl == -1)
@@ -550,7 +550,7 @@ void sub_804C10C(u8 start, u8 count)
     {
         do
         {
-            base = gObjPalAnim;
+            base = gBgPalAnim;
             index = start + i;
             entry = base + index;
             if ((entry->ctrl & 0xF) == 3)
@@ -624,13 +624,13 @@ u8 sub_804C214(u8 arg0, u8 arg1)
     switch (arg0)
     {
         case 0:
-            if ((gUnk_03000AE0 >> arg1) & 1)
+            if ((gObjPalSlotUsed >> arg1) & 1)
             {
                 ret = 1;
             }
             break;
         case 1:
-            if ((gUnk_03000AE2 >> arg1) & 1)
+            if ((gBgPalSlotUsed >> arg1) & 1)
             {
                 ret = 1;
             }
@@ -681,7 +681,7 @@ void sub_804C2A0(u16 *arg0, u16 *arg1, u8 arg2, u8 arg3, u8 arg4)
 // @ 0x0804C2F0
 u16 sub_804C2F0(void)
 {
-    return gUnk_03000AE0;
+    return gObjPalSlotUsed;
 }
 // @ 0x0804C2FC
 void sub_804C2FC(u32 arg0, u8 arg1, u8 arg2)
@@ -693,9 +693,9 @@ void sub_804C2FC(u32 arg0, u8 arg1, u8 arg2)
 
     for (i = 0; i < arg2; i++)
     {
-        if (!((gUnk_03000AE0 >> (arg1 + i)) & 1))
+        if (!((gObjPalSlotUsed >> (arg1 + i)) & 1))
         {
-            gUnk_03000AE0 |= (1 << (arg1 + i));
+            gObjPalSlotUsed |= (1 << (arg1 + i));
         }
     }
 }
@@ -706,9 +706,9 @@ void sub_804C364(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        if (!((gUnk_03000AE0 >> (arg0 + i)) & 1))
+        if (!((gObjPalSlotUsed >> (arg0 + i)) & 1))
         {
-            gUnk_03000AE0 |= (1 << (arg0 + i));
+            gObjPalSlotUsed |= (1 << (arg0 + i));
         }
     }
 }
@@ -718,9 +718,9 @@ void sub_804C3A4(u8 arg0, u8 arg1)
     u8 i;
     for (i = 0; i < arg1; i++)
     {
-        if (((gUnk_03000AE0 >> (arg0 + i)) & 1))
+        if (((gObjPalSlotUsed >> (arg0 + i)) & 1))
         {
-            gUnk_03000AE0 &= ~(1 << (arg0 + i));
+            gObjPalSlotUsed &= ~(1 << (arg0 + i));
         }
     }
 }
@@ -747,7 +747,7 @@ void sub_804C45C(void)
 
     for (i = 0; i <= 15; i++)
     {
-        entry = &gBgPalAnim[i];
+        entry = &gObjPalAnim[i];
         switch (entry->ctrl & 0xF)
         {
             case 1:
@@ -775,7 +775,7 @@ void sub_804C4D8(u8 arg0, u8 arg1, u8 arg2)
 
     for (i = 0; i < arg1; i++)
     {
-        entry = &gBgPalAnim[arg0 + i];
+        entry = &gObjPalAnim[arg0 + i];
         if ((entry->ctrl & 0xF) == 3)
         {
             entry->ctrl |= 0x40;
@@ -788,7 +788,7 @@ void sub_804C4D8(u8 arg0, u8 arg1, u8 arg2)
 // @ 0x0804C53C
 u16 sub_804C53C(void)
 {
-    return gUnk_03000AE2;
+    return gBgPalSlotUsed;
 }
 // @ 0x0804C548
 void sub_804C548(u32 src, u8 slot, u8 count)
@@ -799,8 +799,8 @@ void sub_804C548(u32 src, u8 slot, u8 count)
     DmaWait(3);
     for (i = 0; i < count; i++)
     {
-        if (((gUnk_03000AE2 >> (slot + i)) & 1) == 0)
-            gUnk_03000AE2 |= 1 << (slot + i);
+        if (((gBgPalSlotUsed >> (slot + i)) & 1) == 0)
+            gBgPalSlotUsed |= 1 << (slot + i);
     }
 }
 // @ 0x0804C5B8
@@ -810,9 +810,9 @@ void sub_804C5B8(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        if (!((gUnk_03000AE2 >> (arg0 + i)) & 1))
+        if (!((gBgPalSlotUsed >> (arg0 + i)) & 1))
         {
-            gUnk_03000AE2 |= (1 << (arg0 + i));
+            gBgPalSlotUsed |= (1 << (arg0 + i));
         }
     }
 }
@@ -824,9 +824,9 @@ void sub_804C5F8(u8 arg0, u8 arg1)
 
     for (i = 0; i < arg1; i++)
     {
-        if (((gUnk_03000AE2 >> (arg0 + i)) & 1))
+        if (((gBgPalSlotUsed >> (arg0 + i)) & 1))
         {
-            gUnk_03000AE2 &= ~(1 << (arg0 + i));
+            gBgPalSlotUsed &= ~(1 << (arg0 + i));
         }
     }
 }
@@ -850,7 +850,7 @@ void sub_804C6B0(void)
 
     for (i = 0; i <= 15; i++)
     {
-        entry = &gObjPalAnim[i];
+        entry = &gBgPalAnim[i];
         switch (entry->ctrl & 0xF)
         {
             case 1:
@@ -873,7 +873,7 @@ void sub_804C728(u8 arg0, u8 arg1, u8 arg2)
 
     for (i = 0; i < arg1; i++)
     {
-        entry = &gObjPalAnim[arg0 + i];
+        entry = &gBgPalAnim[arg0 + i];
         if ((entry->ctrl & 0xF) == 3)
         {
             entry->ctrl |= 0x40;
