@@ -29,6 +29,8 @@ gMapSceneDescriptors = 0x08088D80;
 gMapViewportBoundsTable = 0x08089BC4;
 gUnk_0808EA0C = 0x0808EA0C;
 gUnk_080BABA0 = 0x080BABA0;
+gBgLoadTable = 0x0839D8EC;      /* BgLoadEntry[17]: 战斗背景组表 {pal,map,chunkBase,chunkCount} (sub_8019B98) */
+gBgLoadChunks = 0x087ED544;     /* LZ77 图块指针表, 由 BgLoadEntry.chunkBase 索引 (sub_8019B98) */
 gUnk_082893EC = 0x082893EC;
 gUnk_087E94F8 = 0x087E94F8;    /* = &gUnk_087E94FC[-1]: 特殊事件表基址 (CheckFacingEvent) */
 gUnk_087E96B4 = 0x087E96B4;
@@ -58,6 +60,7 @@ gUnk_0839B2D4 = 0x0839B2D4;
 gUnk_0839B2E0 = 0x0839B2E0;
 gUnk_0839B462 = 0x0839B462;
 gUnk_0839BB4C = 0x0839BB4C;    /* tile 动画帧表 (sub_804EFDC 用) */
+gUnk_0839CFBA = 0x0839CFBA;
 gUnk_0839D348 = 0x0839D348;
 gUnk_0839CC4C = 0x0839CC4C;
 gUnk_0839CC4C_entries = 0x0839CC4C;
@@ -67,6 +70,8 @@ gUnk_083987EC = 0x083987EC;
 gUnk_083989B0 = 0x083989B0;    /* 菜单/对话图标表 A (sub_8018E34 用) */
 gUnk_083989CB = 0x083989CB;    /* 菜单/对话图标表 B (sub_8018E34 用) */
 gUnk_083989DC = 0x083989DC;    /* 菜单/对话图标表 C (sub_8018E34 用) */
+gUnk_083989FC = 0x083989FC;
+gUnk_0839C80C = 0x0839C80C;
 gUnk_08393A3C = 0x08393A3C;
 gUnk_08393A40 = 0x08393A40;
 gUnk_08393A48 = 0x08393A48;    /* u8 成员数×? 坐标表 X (sub_8032948 case25 用) */
@@ -290,6 +295,7 @@ SECTIONS {
         . = 0x00000500; gBgScrollBackup = .;
         . = 0x00000510; gBattleUiFlags = .;
         . = 0x00000512; gUnk_03000512 = .;
+        . = 0x00000513; gBgLoadChunkIdx = .;
         . = 0x00000514; gUnk_03000514 = .;
         . = 0x00000518; gObjFlagsA = .;
         . = 0x00000598; gObjFlagsB = .;
@@ -470,7 +476,9 @@ SECTIONS {
         . = 0x00000E6C; gScriptCursor = .;
         . = 0x000E70; gScriptVmFlags = .;
         . = 0x000E72; gScriptDialogPhase = .;
+        . = 0x000E73; gDialogTimer = .;
         . = 0x00000E74; gUnk_03000E74 = .;
+        . = 0x000E76; gDialogTextCursor = .;
         . = 0x000E78; gScriptCallStackDepth = .;
         . = 0x000E80; gScriptCallStack = .;
         . = 0x00000EA0; gScriptStreamCursorStack = .;
@@ -480,6 +488,8 @@ SECTIONS {
         . = 0x00000ECA; gScriptStreamDepth = .;
         . = 0x000ECB; gDialogWindowTileX = .;
         . = 0x000ECC; gDialogWindowTileY = .;
+        . = 0x000ECD; gDialogTextX = .;
+        . = 0x000ECE; gDialogTextY = .;
         . = 0x00000ED8; gScriptLocalSlots = .; /* 脚本 VM 8 个 u16 局部槽 (原 gUnk_03000ED8 视图废弃) */
         . = 0x00000EE8; gTileDmaAllocTable = .;
         . = 0x00000F24; gTileDmaCount = .;

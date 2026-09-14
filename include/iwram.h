@@ -38,23 +38,16 @@ typedef struct LzHeader LzHeader;
 extern u16 gUnk_03000000;
 extern u16 gUnk_03000002;
 extern u16 gBlendFadeStep;
-#define gUnk_03000004 gBlendFadeStep
 extern u8 gLogoAnimDirection;
 extern u8 gLogoSpriteNodes[2];
 extern u16 gLogoAnimTimer;
 /* ---- 菜单实体调色板动画 (MenuEnt_ParseDesc 写入, PaletteTransfer_Update 消费) */
 extern u8 gMenuEntAnimFlags[4];
-#define gUnk_03000010 gMenuEntAnimFlags
 extern u8 gMenuEntAnimThreshold[4];
-#define gUnk_03000014 gMenuEntAnimThreshold
 extern u8 gMenuEntAnimShift[4];
-#define gUnk_03000018 gMenuEntAnimShift
 extern u16 gMenuEntAnimCounter[4];
-#define gUnk_03000020 gMenuEntAnimCounter
 extern u32 gMenuEntPalDest[4];
-#define gUnk_03000028 gMenuEntPalDest
 extern u8 *gMenuEntAnimFrameTbl[4];
-#define gUnk_03000038 gMenuEntAnimFrameTbl
 
 typedef struct
 {
@@ -163,6 +156,59 @@ extern u32 gUnk_03000248;
 extern u16 gKeysHeld;
 #define gUnk_03000310 gKeysHeld
 extern u16 gGstate312;
+
+/* gGstate314 = 按键连发状态字 (sub_80182A8 维护, sub_80187E8 返回):
+ * 位 0-7  = 本帧按住键, 位 8-15 = 本帧新按/连发标志 (按下瞬间或 D-pad 连发阈值命中时置位,
+ *           下一帧被 sub_80182A8 开头的字节回写清空)。
+ * 位序同 REG_KEYINPUT 按键位: bit0=Up(0x40), bit1=Down(0x80), bit2=Left(0x20),
+ * bit3=Right(0x10), bit4=A(0x01), bit5=B(0x02), bit6=L(0x200), bit7=R(0x100),
+ * 高 8 位按同序对应"按下/连发"。
+ * KeyRepeatState 与 GameOamData 同型 (打包 u16 + 命名位域), 供按名访问; 常量位名用
+ * 下面的 KEYREPEAT_* 宏 (sub_80182A8 函数体已用它们命名掩码, 字节等价)。
+ * 注意: 函数体必须经独立全局 gGstate314 访问 —— 原 ROM 对 0x03000314/316/317 是三条独立
+ * 绝对地址常量, 用结构体成员访问 (基址+偏移) 会改变 GCC2.9 寻址/寄存器分配, 破坏字节匹配。 */
+typedef union
+{
+    struct
+    {
+        u16 upHeld : 1;
+        u16 downHeld : 1;
+        u16 leftHeld : 1;
+        u16 rightHeld : 1;
+        u16 aHeld : 1;
+        u16 bHeld : 1;
+        u16 lHeld : 1;
+        u16 rHeld : 1;
+        u16 upPressed : 1;
+        u16 downPressed : 1;
+        u16 leftPressed : 1;
+        u16 rightPressed : 1;
+        u16 aPressed : 1;
+        u16 bPressed : 1;
+        u16 lPressed : 1;
+        u16 rPressed : 1;
+    } keys;
+    u16 heldPress;
+} KeyRepeatState;
+
+#define KEYREPEAT_UP_HELD      0x0001
+#define KEYREPEAT_DOWN_HELD    0x0002
+#define KEYREPEAT_LEFT_HELD    0x0004
+#define KEYREPEAT_RIGHT_HELD   0x0008
+#define KEYREPEAT_A_HELD       0x0010
+#define KEYREPEAT_B_HELD       0x0020
+#define KEYREPEAT_L_HELD       0x0040
+#define KEYREPEAT_R_HELD       0x0080
+#define KEYREPEAT_UP_PRESSED   0x0100
+#define KEYREPEAT_DOWN_PRESSED 0x0200
+#define KEYREPEAT_LEFT_PRESSED 0x0400
+#define KEYREPEAT_RIGHT_PRESSED 0x0800
+#define KEYREPEAT_A_PRESSED    0x1000
+#define KEYREPEAT_B_PRESSED    0x2000
+#define KEYREPEAT_L_PRESSED    0x4000
+#define KEYREPEAT_R_PRESSED    0x8000
+#define KEYREPEAT_PRESSED_MASK 0xFF00
+
 extern u16 gGstate314;
 extern u8 gKeyIgnoreTimer;
 #define gUnk_03000316 gKeyIgnoreTimer
@@ -232,8 +278,9 @@ typedef struct
 extern BgScrollBackup gBgScrollBackup;
 #define gUnk_03000500 gBgScrollBackup
 extern u16 gBattleUiFlags;
-extern u8 gUnk_03000512;
-extern u8 gUnk_03000514;
+extern u8 gUnk_03000512;   /* 0x03000512: BgLoad 状态 (0..5), 见 sub_8019B98 */
+extern u8 gBgLoadChunkIdx; /* 0x03000513: 已 DMA 进 VRAM 的图块块数 (sub_8019B98 case5) */
+extern u8 gUnk_03000514;   /* 0x03000514: BgLoadEntry 组内已解压的图块索引 */
 
 extern u8 gObjFlagsA[0x80];
 extern u8 gObjFlagsB[0x80];
@@ -646,8 +693,10 @@ extern u8 gScriptReturnSetId; /* 0x03000E68 ScriptSet_Load 记挂的脚本集号
 extern u8 gScriptPendingEntry; /* 0x03000E69 mode==2 记挂的入口号, 解压完成后跳 entryTbl[本值] */
 extern u32 gScriptCursor; /* 0x03000E6C: 脚本 VM PC 槽, 存当前 opcode 字节地址 (EWRAM 脚本区) */
 extern u16 gScriptVmFlags;
-extern u8 gScriptDialogPhase;
-extern u8 gUnk_03000E74;
+extern u8 gScriptDialogPhase;        /* 0x03000E72: Op_DialogText 13 态状态机的当前态 (0..12) */
+extern u8 gDialogTimer;              /* 0x03000E73: Op_DialogText 复用字节 —— 态6 光标闪烁相位 (0..0xF 自增回绕), 态11 等待帧数目标 */
+extern u8 gUnk_03000E74;             /* 0x03000E74: 脚本等待帧计数 (Op_WaitFrames 与 Op_DialogText 态11 共用) */
+extern u16 gDialogTextCursor;        /* 0x03000E76: Op_DialogText 文本 token 流字节游标 (每 token 前进 2) */
 extern u8 gScriptCallStackDepth;
 extern u32 gScriptCallStack[];
 /* 脚本 VM 流式子脚本 (OP_SCRIPT_STREAM_LZ=0x15 / OP_SCRIPT_RETURN_CHUNK=0x16) 调用栈,
@@ -660,6 +709,8 @@ extern u8 gScriptStreamSetId;          /* 0x03000EC9: STREAM_LZ 记录的子脚�
 extern u8 gScriptStreamDepth;          /* 0x03000ECA: 流式子脚本嵌套深度 (=EA0/EC0 栈顶计数, 进 ++/出 --/复位清 0) */
 extern u8 gDialogWindowTileX;
 extern u8 gDialogWindowTileY;
+extern u8 gDialogTextX;              /* 0x03000ECD: Op_DialogText 文本绘制列 (token 0x0900 复位为 data[2], 每字 +1) */
+extern u8 gDialogTextY;              /* 0x03000ECE: Op_DialogText 文本绘制行 (token 0x0900 换行 +2, 每字占 2 行) */
 /* 脚本 VM 局部槽 + 对话 tile DMA/绘制状态簇 (0x03000ED8..0x03000F30, 2026-09-14 zcode-tile-edx 定名):
  * - gScriptLocalSlots: 脚本 VM 8 个 u16 局部槽 (ScriptPump_JumpToEntry 全置 0xFFFF;
  *   ScriptPump_Run 每帧经 sub_80182A8(按键, 本表) 刷新按键等待槽)。

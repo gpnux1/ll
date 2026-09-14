@@ -511,41 +511,114 @@ s8 sub_8045860(u8 objectIndex, u8 *buf)
     return c;
 }
 // @ 0x08045940
-INCLUDE_ASM("asm/nonmatchings", sub_8045940);
+u8 sub_8045940(BattleObj *obj, u8 *buf)
+{
+    u8 i;
+    u8 count;
+
+    for (i = 0; i <= 7; i++)
+        buf[i] = 0;
+
+    count = 0;
+    for (i = 0; i <= 7; i++)
+    {
+        if (sub_80488CC((u8 *)obj, obj->skills[i]) == 0xFF)
+            continue;
+
+        switch (obj->slot)
+        {
+        case 0:
+            buf[count] = i;
+            count++;
+            break;
+        case 1:
+            buf[count] = i;
+            count++;
+            break;
+        case 6:
+            buf[count] = i;
+            count++;
+            break;
+        case 7:
+            buf[count] = i;
+            count++;
+            break;
+        case 2:
+            switch (obj->skills[i])
+            {
+            case 8:
+            case 0xD:
+                buf[count] = i;
+                count++;
+                break;
+            }
+            break;
+        case 3:
+            switch (obj->skills[i])
+            {
+            case 0xE:
+            case 0xF:
+            case 0x10:
+                buf[count] = i;
+                count++;
+                break;
+            }
+            break;
+        case 4:
+            switch (obj->skills[i])
+            {
+            case 0x16:
+            case 0x17:
+            case 0x18:
+            case 0x1A:
+            case 0x1B:
+            case 0x1C:
+                buf[count] = i;
+                count++;
+                break;
+            }
+            break;
+        case 5:
+            switch (obj->skills[i])
+            {
+            case 0x1E:
+            case 0x1F:
+            case 0x21:
+                buf[count] = i;
+                count++;
+                break;
+            }
+            break;
+        }
+    }
+    return count;
+}
 // @ 0x08045A10
-INCLUDE_ASM("asm/nonmatchings", sub_8045A10);
+// 技能 MP 充足性校验: 判断角色当前 MP 是否足够释放该技能
+// 消耗量计算与姊妹函数 sub_8048934 / sub_8045B90 同构: 查技能表后经两次 sub_804E76C 状态检查 (-2 或折半)
+u8 sub_8045A10(BattleObj *obj, u8 index)
+{
+    u16 currentMp;
+    u8 skillId;
+    u8 mpCost;
+    struct { u64 w; } s;
+    s32 diff;
 
-// u8 sub_8045A10(u8 *obj, u8 arg1)
-// {
-//     u8 *slot;
-//     u8 *bptr;
-//     u8 b;
-//     u8 val;
-//     u8 *tbl;
-//     int off;
-//     s16 t;
-//     u8 v;
-//     s16 diff;
+    currentMp = obj->mp;
+    s.w = 1;
+    skillId = obj->skills[index];
+    mpCost = gSkillItemTable[skillId * 5 + 4]; /* 对应 SkillItemEntry.mpCost */
+    if (sub_804E76C(obj, 3, s.w) >= 0)
+        mpCost = mpCost - 2;
+    if (sub_804E76C(obj, 3, 2) >= 0)
+        mpCost >>= 1;
 
-//     slot = obj + 0x70;
-//     t = *(u16 *)slot;
-//     bptr = slot + 0x29;
-//     b = bptr[arg1];
-//     tbl = gSkillLearnTable;
-//     off = b * 5 + 4;
-//     val = *(u8 *)(off + tbl);
-//     v = b;
-
-//     if (sub_804E76C(obj, 3, 1) >= 0)
-//         val = val - 2;
-//     if (sub_804E76C(obj, 3, 2) >= 0)
-//         val = val / 2;
-
-//     diff = t - val;
-//     if (diff < 0)
-//         return 0;
-//     return 1;
-// }
+    s.w = mpCost;
+    diff = (s16)currentMp - s.w;
+    if ((s16)diff < 0)
+        return 0;
+    return 1;
+}
 // @ 0x08045A74
 // 从 list[0..count-1] 中按 obj 槽(0xC8)的字段阈值筛选:
 // t1=(u16)(field_6e/10 * arg3), t2=(u16)(field_72/10 * arg3);
@@ -622,7 +695,7 @@ void sub_8045B90(BattleObj *obj, u8 index)
     data += 0x29;
     data += index;
     id = *data;
-    amount = gSkillLearnTable[id * 5 + 4];
+    amount = gSkillItemTable[id * 5 + 4];
     if (sub_804E76C((BattleObj *)(obj), 3, 1) >= 0)
         amount = amount - 2;
     if (sub_804E76C(obj, 3, 2) >= 0)
@@ -634,17 +707,23 @@ void sub_8045B90(BattleObj *obj, u8 index)
     *current = original;
 }
 // @ 0x08045BF4
-// 按 obj[0xBE] (形态/类别 0-10) 分派写 obj[0x8A] 字段; 各分支直写该字段, GCC2 尾合并成末尾一次 strb;
-// 0x91/0x92==0xCB/0xBF 判定 + 0x8D==0x15/0x3B/0x3C 细分; >10 落 default (无 default 分支直落函数尾)。
+// 按 obj->slot (0-10) 分派写 +0x8A 字段; 各分支直写该字段, GCC2 尾合并成末尾一次 strb;
+// equipSlots[4]/[5] ==0xCB/0xBF 判定 + equipSlots[0]==0x15/0x3B/0x3C 细分; >10 落 default
+// (无 default 分支直落函数尾)。
+// 调用者 = 玩家侧装载器 sub_80200E8 (装完 equipSlots/skills 后立即调用) 与
+// battle_obj_core.c:2274; 写值 0x30..0x35 / 0x37..0x3B (每槽基值+换装变体) / 0xFF。
+// 注: +0x8A 落在 animPtr(+0x88..0x8B) 内部, 且 +0x8A..0x8B 又被 battle_obj_core.c:633
+// (`*(u16*)&obj->animPtr + 1`) 与 sub_80488CC:1518 按 u16 阈值读取, 布局未定,
+// 故按本文件 240 行的既定做法保留裸偏移; +0x8D/0x91/0x92 已改用 obj->equipSlots。
 void sub_8045BF4(BattleObj *obj)
 {
     switch (obj->slot)
     {
     case 0:
     case 1:
-        if (*((u8 *)obj + 0x8D) == 0x15)
+        if (obj->equipSlots[0] == 0x15)
         {
-            if (*((u8 *)obj + 0x91) == 0xCB || *((u8 *)obj + 0x92) == 0xCB)
+            if (obj->equipSlots[4] == 0xCB || obj->equipSlots[5] == 0xCB)
                 *((u8 *)obj + 0x8A) = 0x37;
             else
                 *((u8 *)obj + 0x8A) = 0x30;
@@ -656,25 +735,25 @@ void sub_8045BF4(BattleObj *obj)
         *((u8 *)obj + 0x8A) = 0x31;
         break;
     case 3:
-        if (*((u8 *)obj + 0x91) == 0xBF || *((u8 *)obj + 0x92) == 0xBF)
+        if (obj->equipSlots[4] == 0xBF || obj->equipSlots[5] == 0xBF)
             *((u8 *)obj + 0x8A) = 0x38;
         else
             *((u8 *)obj + 0x8A) = 0x32;
         break;
     case 4:
-        if (*((u8 *)obj + 0x91) == 0xBF || *((u8 *)obj + 0x92) == 0xBF)
+        if (obj->equipSlots[4] == 0xBF || obj->equipSlots[5] == 0xBF)
             *((u8 *)obj + 0x8A) = 0x39;
         else
             *((u8 *)obj + 0x8A) = 0x33;
         break;
     case 5:
-        if (*((u8 *)obj + 0x8D) == 0x3B)
+        if (obj->equipSlots[0] == 0x3B)
             *((u8 *)obj + 0x8A) = 0x3A;
         else
             *((u8 *)obj + 0x8A) = 0x34;
         break;
     case 6:
-        if (*((u8 *)obj + 0x8D) == 0x3C)
+        if (obj->equipSlots[0] == 0x3C)
             *((u8 *)obj + 0x8A) = 0x3B;
         else
             *((u8 *)obj + 0x8A) = 0x35;
@@ -1540,7 +1619,7 @@ u8 sub_8048934(BattleObj *arg0, u8 arg1)
 
     ptr = (u8 *)arg0 + 0x99;
     b = ptr[arg1];
-    tbl = gSkillLearnTable;
+    tbl = gSkillItemTable;
     off = b * 5 + 4;
     val = *(u8 *)(off + tbl);
     if (sub_804E76C((BattleObj *)(arg0), 3, 1) >= 0)
@@ -1561,7 +1640,7 @@ u8 sub_8048984(u8 *arg0, u8 arg1)
 
     ptr = arg0 + 0x99;
     index = ptr[arg1];
-    return gSkillLearnTable[index * 5 + 2] & 0xF;
+    return gSkillItemTable[index * 5 + 2] & 0xF;
 }
 // @ 0x080489A4
 u8 sub_80489A4(u8 *arg0, u8 arg1)
@@ -1572,7 +1651,7 @@ u8 sub_80489A4(u8 *arg0, u8 arg1)
 
         arg1 = ptr[arg1];
     }
-    return gSkillLearnTable[arg1 * 5 + 1] & 0xF;
+    return gSkillItemTable[arg1 * 5 + 1] & 0xF;
 }
 // @ 0x080489C8
 u16 sub_80489C8(u8 *arg0, u16 arg1)
@@ -2080,9 +2159,103 @@ INCLUDE_ASM("asm/matchings", sub_80498E0);
 //     return 0;
 // }
 // @ 0x08049958
-INCLUDE_ASM("asm/nonmatchings", sub_8049958);
+extern const u8 gUnk_0839CFBA[];
+extern u8 gUnk_0839D348[];
+
+u32 sub_8049958(u16 *dest)
+{
+    u8 b;
+    u16 tile;
+    u16 *ctx;
+    u16 count;
+    u16 i;
+
+    if (sub_80187B4() & 0x20)
+    {
+        const u16 *tbl = (const u16 *)gUnk_0839D348;
+        u8 frame = gBattleDlgAnimFrame;
+        b = ((u8 *)gResultsStatePtr)[gResultsViewKind * 4];
+        tile = tbl[b * 9 + frame];
+    }
+    else
+    {
+        const u8 *tbl = gUnk_0839CFBA;
+        u8 frame = gBattleDlgAnimFrame;
+        b = ((u8 *)gResultsStatePtr)[gResultsViewKind * 4];
+        tile = tbl[b * 9 + frame];
+    }
+
+    if ((sub_80187B4() & 0x20) && tile > 0xDF)
+    {
+        count = TileDma_GetCtx((u32 *)&ctx);
+        for (i = 0; i < count; i++)
+        {
+            if (tile == ctx[i])
+                break;
+        }
+        tile = i + 0xE0;
+    }
+
+    if (tile != 0)
+    {
+        dest[0] = tile * 2 - 0x5000;
+        dest[0x20] = tile * 2 - 0x4FFF;
+    }
+    else
+    {
+        dest[0] = 0xB001;
+        dest[0x20] = 0xB001;
+    }
+
+    gBattleDlgAnimFrame++;
+
+    if (sub_80187B4() & 0x20)
+    {
+        const u16 *tbl = (const u16 *)gUnk_0839D348;
+        b = ((u8 *)gResultsStatePtr)[gResultsViewKind * 4];
+        if (tbl[b * 9 + gBattleDlgAnimFrame] <= 0xEFF)
+            return 0;
+        return 1;
+    }
+    else
+    {
+        const u8 *tbl = gUnk_0839CFBA;
+        b = ((u8 *)gResultsStatePtr)[gResultsViewKind * 4];
+        if (tbl[b * 9 + gBattleDlgAnimFrame] <= 0xFE)
+            return 0;
+        return 1;
+    }
+}
 // @ 0x08049AD8
-INCLUDE_ASM("asm/nonmatchings", sub_8049AD8);
+u8 sub_8049AD8(u8 arg0)
+{
+    u8 s;
+    u16 n;
+    u8 i;
+    u8 idx;
+    u16 a;
+    u16 b;
+    u8 obj;
+    int t;
+
+    s = arg0 + 1;
+    n = 13 - s;
+    for (i = 0; i < n; i++)
+    {
+        obj = gBattleDlgObjSlot;
+        t = i + 251;
+        idx = t + s;
+        a = sub_80455A0(obj, idx);
+        b = sub_8048818(gBattleDlgObjSlot, idx);
+        gBattleDlgShowTarget = b - a;
+        if ((s16)gBattleDlgShowTarget > 0)
+        {
+            sub_8045688(gBattleDlgObjSlot, idx, gBattleDlgShowTarget);
+            break;
+        }
+    }
+    return s + i;
+}
 // @ 0x08049B70
 INCLUDE_ASM("asm/nonmatchings", sub_8049B70);
 // @ 0x08049C1C

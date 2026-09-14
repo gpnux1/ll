@@ -777,7 +777,7 @@ u8 statIdx;
  *   写入的是 **表下标+1** (所以 skills[] 存的是行号, 0xFF = 空)
  * → 等 `ItemFindSlot` / `ItemGetValue` 的调用方语义查清后再统一改名。*/
 
-/* 从 gSkillLearnTable 筛出满足条件的行, 把 **行号+1** 填进 PlayerStats.skills[8],
+/* 从 gSkillItemTable 筛出满足条件的行, 把 **行号+1** 填进 PlayerStats.skills[8],
  * 不足 8 个用 0xFF 补齐。
  *
  * 入选条件: [1] 高 nibble == groupId (groupId<=1 归为 0), 并且
@@ -807,15 +807,15 @@ void Stats_BuildSkillList(u8 *skills, u8 lv, u8 groupId)
     count = 0;
     for (i = 0; i <= 0x2F; i++)
     {
-        if (groupId != (gSkillLearnTable[i * 5 + 1] >> 4))
+        if (groupId != (gSkillItemTable[i * 5 + 1] >> 4))
             continue;
         flag = 0;
-        if (gSkillLearnTable[i * 5] == 0xFF)
+        if (gSkillItemTable[i * 5] == 0xFF)
         {
             if (gPartyMemberIds[0] == 1)
                 flag = 1;
         }
-        else if (gSkillLearnTable[i * 5] <= lvLimit)
+        else if (gSkillItemTable[i * 5] <= lvLimit)
             flag = 1;
         if (flag == 0)
             continue;
@@ -1261,8 +1261,8 @@ u8 ItemFindSlot(u8 arg0, u8 arg1)
 
     for (i = 0; i <= 0x2F; i++)
     {
-        if (arg1 == (gSkillLearnTable[i * 5 + 1] >> 4))
-            if ((gSkillLearnTable[i * 5]) == adjusted)
+        if (arg1 == (gSkillItemTable[i * 5 + 1] >> 4))
+            if ((gSkillItemTable[i * 5]) == adjusted)
                 return i + 1;
     }
 
@@ -1287,7 +1287,7 @@ void Party_InitStats(void)
 // @ 0x0800A958
 u8 ItemGetValue(u8 arg0)
 {
-    return gSkillLearnTable[(arg0 - 1) * 5 + 4];
+    return gSkillItemTable[(arg0 - 1) * 5 + 4];
 }
 // @ 0x0800A970
 void sub_800A970(void *arg0)

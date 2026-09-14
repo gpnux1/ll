@@ -2004,8 +2004,98 @@ void CutsceneAnim_Load(u16 arg0, u8 arg1, u8 arg2) {
 
 */
 
+typedef struct CutsceneAnimEnemyEntry
+{
+    u8 pad_0[0x1A];
+    u16 animIdx;
+    u8 pad_1C[4];
+    u16 yOffsetMode;
+    u8 pad_22[0xA];
+} CutsceneAnimEnemyEntry;
+
+typedef struct CutsceneAnimSpecialEntry
+{
+    u16 animIdx;
+    u8 pad_2[0x3E];
+} CutsceneAnimSpecialEntry;
+
+extern CutsceneAnimEnemyEntry gUnk_083989FC[];
+extern CutsceneAnimSpecialEntry gUnk_0839C80C[];
+extern u8 *gUnk_087EBE00[];
+
 // @ 0x0800478C
-INCLUDE_ASM("asm/nonmatchings", CutsceneAnim_PlayFrame);
+void CutsceneAnim_PlayFrame(u16 animEntityId)
+{
+    u32 slot = 0;
+    u16 animIdx;
+
+    if (animEntityId > 0x7F)
+    {
+        animIdx = gUnk_0839C80C[animEntityId - 0x80].animIdx;
+    }
+    else
+    {
+        animIdx = gUnk_083989FC[animEntityId].animIdx;
+    }
+
+    gCutsceneAnimScripts[slot] = gUnk_08393B28[animIdx].field_0;
+    gVramBufferPointers[slot] = (u32)CUTSCENE_ANIM_BASE;
+    gCutsceneAnimFlags[slot] = 0x80;
+    gCutsceneAnimSlots[slot] = 5;
+    gCutsceneAnimPals[slot] = (u8 *)gUnk_08393B28[animIdx].field_4;
+    LZ77UnCompWram(gUnk_087EBE00[gUnk_08393B28[animIdx].field_8], CUTSCENE_ANIM_BASE);
+
+    if (animEntityId > 0x7F)
+    {
+        switch (animEntityId)
+        {
+        case 0x81:
+            gActors[0].x = gCameraPosX + 0xA0;
+            gActors[0].y = gCameraPosY + 0x68;
+            break;
+        case 0x82:
+            gActors[0].x = gCameraPosX + 0x90;
+            gActors[0].y = gCameraPosY + 0x68;
+            break;
+        case 0x84:
+            gActors[0].x = gCameraPosX + 0xA0;
+            gActors[0].y = gCameraPosY + 0x78;
+            break;
+        case 0x85:
+            gActors[0].x = gCameraPosX + 0xA0;
+            gActors[0].y = gCameraPosY + 0x70;
+            break;
+        case 0x88:
+            gActors[0].x = gCameraPosX + 0x85;
+            gActors[0].y = gCameraPosY + 0x7C;
+            break;
+        case 0x89:
+            gActors[0].x = gCameraPosX + 0x90;
+            gActors[0].y = gCameraPosY + 0x6C;
+            break;
+        default:
+            gActors[0].x = gCameraPosX + 0x88;
+            gActors[0].y = gCameraPosY + 0x68;
+            break;
+        }
+    }
+    else
+    {
+        gActors[0].x = gCameraPosX + 0x88;
+        switch (gUnk_083989FC[animEntityId].yOffsetMode)
+        {
+        case 2:
+            gActors[0].y = gCameraPosY + 0x68;
+            break;
+        case 1:
+            gActors[0].y = gCameraPosY + 0x60;
+            break;
+        default:
+            gActors[0].y = gCameraPosY + 0x58;
+            break;
+        }
+    }
+}
 
 // @ 0x08004980
 void MapGroup_Lookup(void)
@@ -2042,29 +2132,31 @@ void Chara_SetTilePos(u8 arg0, u8 arg1, u8 arg2, u8 arg3)
 }
 
 // @ 0x08004A00
-INCLUDE_ASM("asm/matchings", Chara_MoveBy);
-// void Chara_MoveBy(u8 arg0, u8 arg1, u8 arg2, u8 arg3)
-// {
-//     s16 val;
-//     Actor *ptr2E80;
+void Chara_MoveBy(u8 actorIdx, u8 isY, u8 positive, u8 delta)
+{
+    u16 val;
+    Actor *ptr;
+    u16 temp;
 
-//     if (arg2 != 0)
-//     {
-//         val = arg3;
-//     }
-//     else
-//     {
-//         val = -arg3;
-//     }
+    if (positive)
+    {
+        val = delta;
+    }
+    else
+    {
+        val = -delta;
+    }
 
-//     ptr2E80 = &gActors[arg0];
+    ptr = &gActors[actorIdx];
 
-//     if (arg1 != 0)
-//     {
-//         ptr2E80->y += val;
-//     }
-//     else
-//     {
-//         ptr2E80->x += val;
-//     }
-// }
+    if (isY)
+    {
+        temp = ptr->y;
+        ptr->y = temp + val;
+    }
+    else
+    {
+        temp = ptr->x;
+        ptr->x = temp + val;
+    }
+}

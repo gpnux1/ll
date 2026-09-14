@@ -1487,10 +1487,20 @@
  {
   "name": "gSkillLearnTable",
   "address": "0x08093418",
-  "size": 648
+  "size": 312
+ },
+ {
+  "name": "byte_8093550",
+  "address": "0x08093550",
+  "size": 336
  },
  {
   "name": "gMsgPoolMain",
+  "address": "0x080936A0",
+  "size": 6536
+ },
+ {
+  "name": "byte_80936A0",
   "address": "0x080936A0",
   "size": 6536
  },
@@ -1500,7 +1510,17 @@
   "size": 2048
  },
  {
+  "name": "stru_8095028",
+  "address": "0x08095028",
+  "size": 2048
+ },
+ {
   "name": "gCharacterNames",
+  "address": "0x08095828",
+  "size": 500
+ },
+ {
+  "name": "stru_8095828",
   "address": "0x08095828",
   "size": 500
  },
@@ -1510,9 +1530,109 @@
   "size": 10068
  },
  {
+  "name": "unk_8095A1C",
+  "address": "0x08095A1C",
+  "size": 632
+ },
+ {
+  "name": "unk_8095C94",
+  "address": "0x08095C94",
+  "size": 640
+ },
+ {
+  "name": "unk_8095F14",
+  "address": "0x08095F14",
+  "size": 648
+ },
+ {
+  "name": "unk_809619C",
+  "address": "0x0809619C",
+  "size": 548
+ },
+ {
+  "name": "unk_80963C0",
+  "address": "0x080963C0",
+  "size": 1900
+ },
+ {
+  "name": "unk_8096B2C",
+  "address": "0x08096B2C",
+  "size": 3000
+ },
+ {
+  "name": "unk_80976E4",
+  "address": "0x080976E4",
+  "size": 1148
+ },
+ {
+  "name": "unk_8097B60",
+  "address": "0x08097B60",
+  "size": 496
+ },
+ {
+  "name": "gUnk_08097D50",
+  "address": "0x08097D50",
+  "size": 96
+ },
+ {
+  "name": "unk_8097DB0",
+  "address": "0x08097DB0",
+  "size": 320
+ },
+ {
+  "name": "unk_8097EF0",
+  "address": "0x08097EF0",
+  "size": 320
+ },
+ {
+  "name": "unk_8098030",
+  "address": "0x08098030",
+  "size": 320
+ },
+ {
   "name": "gSaveMetaArea",
   "address": "0x08098170",
   "size": 408
+ },
+ {
+  "name": "unk_8098170",
+  "address": "0x08098170",
+  "size": 16
+ },
+ {
+  "name": "unk_8098180",
+  "address": "0x08098180",
+  "size": 25
+ },
+ {
+  "name": "aLunar11209",
+  "address": "0x08098199",
+  "size": 12
+ },
+ {
+  "name": "unk_80981A5",
+  "address": "0x080981A5",
+  "size": 11
+ },
+ {
+  "name": "word_80981B0",
+  "address": "0x080981B0",
+  "size": 54
+ },
+ {
+  "name": "word_80981E6",
+  "address": "0x080981E6",
+  "size": 8
+ },
+ {
+  "name": "byte_80981EE",
+  "address": "0x080981EE",
+  "size": 92
+ },
+ {
+  "name": "unk_809824A",
+  "address": "0x0809824A",
+  "size": 190
  },
  {
   "name": "gSaveMiscTables",
@@ -1525,9 +1645,64 @@
   "size": 17188
  },
  {
+  "name": "unk_809C834",
+  "address": "0x0809C834",
+  "size": 128
+ },
+ {
+  "name": "unk_809C8B4",
+  "address": "0x0809C8B4",
+  "size": 732
+ },
+ {
+  "name": "unk_809CB90",
+  "address": "0x0809CB90",
+  "size": 1544
+ },
+ {
+  "name": "unk_809D198",
+  "address": "0x0809D198",
+  "size": 1408
+ },
+ {
+  "name": "unk_809D718",
+  "address": "0x0809D718",
+  "size": 1488
+ },
+ {
+  "name": "unk_809DCE8",
+  "address": "0x0809DCE8",
+  "size": 2044
+ },
+ {
+  "name": "gUnk_0809E4E4",
+  "address": "0x0809E4E4",
+  "size": 352
+ },
+ {
+  "name": "unk_809E644",
+  "address": "0x0809E644",
+  "size": 32
+ },
+ {
+  "name": "gUnk_0809E664",
+  "address": "0x0809E664",
+  "size": 9460
+ },
+ {
   "name": "gSaveMenuGfxLz77",
   "address": "0x080A0B58",
   "size": 1980
+ },
+ {
+  "name": "unk_80A0B58",
+  "address": "0x080A0B58",
+  "size": 1912
+ },
+ {
+  "name": "unk_80A12D0",
+  "address": "0x080A12D0",
+  "size": 68
  },
  {
   "name": "gDialogDataBlocks",
@@ -1536,6 +1711,11 @@
  },
  {
   "name": "gSpriteObjPalettes",
+  "address": "0x080B9DFC",
+  "size": 3296
+ },
+ {
+  "name": "gUnk_080B9DFC",
   "address": "0x080B9DFC",
   "size": 3296
  },

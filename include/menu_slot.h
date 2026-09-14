@@ -25,6 +25,6 @@ typedef struct MenuSlotState {
 void MenuSlot_ResetAll(void);
 
 // Sync menu slot state (case 0: restore master, case 3: cursor, case 6: win1, case 7: win2)
-void sub_8021184(u8 mode, u8 *obj);
+void sub_8021184(s8 mode, u8 *obj);
 
 #endif // GUARD_MENU_SLOT_H

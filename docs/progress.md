@@ -2883,22 +2883,21 @@ fndiff 指令域全等 (跳转表数据/`@=rN` 注释为伪差); bytecmp 4B 差 
 **符号坑**: 0x03004AA0 的符号是 `gPartyMemberIds` (小写 s, iwram.h:803), 非 code_8005020.c 注释里的 `gPartyMemberIDs` (大写, 未登记→未解析)。
 fncheck 180B OK, make+sha1 绿。新经验 134。
 
-## 2026-09-04 `sub_8045940` 挂起 (code_8044394, 战斗技能按类别过滤收集)
-`u8 sub_8045940(Obj*obj,u8*buf)`: 清零 buf[0..7]; 遍历 8 槽 i, `sub_80488CC(obj,obj->skills[i])==0xff` 则跳过;
-`switch(obj->cat 0..7)` 按类别对 skill 值做范围判定, 通过则 `buf[count++]=i`; 返回 count。
-skills 在 obj+0x99, cat 在 obj+0xBE。跳转表 cases 0,1,6,7→accept, 2→{8,0xd}, 3→[0xe,0x10], 4→[0x16,0x18]∪[0x1a,0x1c], 5→[0x1e,0x1f]∪{0x21}。
+## sub_8045940 (0x08045940, battle_engine, 战斗技能按类别过滤收集) — ✅ 2026-09-14 zcode (fncheck OK 208B, 全量 SHA1 绿)
+### 语义 (已完整还原)
+`u8 sub_8045940(BattleObj *obj, u8 *buf)`: 清零 `buf[0..7]`; 遍历 8 槽技能 `i = 0..7`，`sub_80488CC((u8*)obj, obj->skills[i]) == 0xFF` 则跳过；
+按角色类别 `switch (obj->slot)` 分派技能过滤:
+- `case 0, 1, 6, 7`: 直接接收全部技能；
+- `case 2`: 内层 `switch (obj->skills[i])` 接收 `{8, 0xD}`;
+- `case 3`: 内层 `switch (obj->skills[i])` 接收 `[0x0E..0x10]`;
+- `case 4`: 内层 `switch (obj->skills[i])` 接收 `[0x16..0x18] ∪ [0x1A..0x1C]`;
+- `case 5`: 内层 `switch (obj->skills[i])` 接收 `[0x1E..0x1F] ∪ {0x21}`;
+通过则 `buf[count] = i; count++;`；返回 `count`。
 
-**已突破** (候选存 permuter/sub_8045940/base.c, LCS 57/83):
-1. **结构体视图** `typedef struct{u8 pad0[0x99];u8 skills[8];u8 pad2[0x1D];u8 cat;}Obj;` + `obj->skills[i]` → GCC2 把 `obj+0x99` 当成员地址 hoist 进 **r7** (目标正是 r7), buf→r6 ✓。裸 `obj[0x99+i]`/`*(obj+0x99+i)` 都不 hoist (GCC2 重结合成 (obj+i)+0x99)。
-2. **count 设 int** → 优先级 size×4 压过 i, count 拿到 r4、i 拿 r5 (修好 i/count 互换)。
-3. case 内比较写成目标顺序 `if(v>hi)break; if(v<lo)break; accept;` (非 `>=&&<=`) → 避免 combine 的 `(v-lo)<=(hi-lo)` 减法技巧, 得两条独立 cmp。
-
-**剩余两难 (卡点)**:
-- **signed vs unsigned cmp**: 目标 ldrb(u8 载入) 后用 `bgt/blt/ble`(有符号, 常量 14/22/26/30); 我方 u8 值被 GCC2 转 `bhi/bls`(无符号, 常量 13/21/25/29)。s8 字段可转有符号但多出 `lsl/asr` 符号扩展 (目标无)。未找到 ldrb+有符号+无扩展 的写法。
-- **count 类型两难**: count 设 int 修好互换但 `count++` 无 u8 截断 (目标 `add r0,r4,#1;lsl;lsr r4` 是 u8 截断 → count 实为 u8); count 设 u8 有截断但 i 抢走 r4 (互换复现)。需 count=u8 且优先级>i 的写法。
-- permuter 卡 ~3995 (结构分配问题它不解决)。
-
-**下一步**: ① 试 obj->skills 经 `int` 中间量但保持 per-case 重载 (目标每 case ldrb 重读, 因 call clobber); ② 查 count=u8 时如何降 i 优先级 (loop1 用独立 j 会破坏 obj→r2, 需另法); ③ 对照 sub_80488CC 的 skill 类型。基线红为并发 (见 INCIDENTS), 本函数以 fncheck 自证。
+### 历史卡点终结方案 (经验 260)
+1. **有符号决策树来源于内层 switch**: 范围判定在原作者笔下并非 `if`，而是内层嵌套的 `switch (obj->skills[i])`，GCC2.9 自动生成二叉决策树 `bgt 0x10 / blt 0x0E` 等，完全吻合。
+2. **r4 ↔ r5 互换突破**: case 0, 1, 6, 7 分立书写 `buf[count] = i; count++; break;`，使 `count` 引用数增加以提升优先级，成功压过 `i`，使 `count` 归位 `r4`、`i` 归位 `r5`；`jump.c` 交叉跳转合并自动合并为单一 `_080459F2`。
+- `fncheck OK 208B`, 全量 `make` 与 `sha1sum -c ll.sha1` 绿。详见 `docs/handoffs/MATCH-8045940-20260914.md`。
 
 ## sub_804DE8C (2026-09-04, gpnux)
 
@@ -3130,34 +3129,18 @@ arg0/cnt home 一并归位 (r7/r6)。三处 10 字节一次全消, bytecmp OK 14
 合入时 u8 形参 + 头文件空原型 `()` 触发 "default promotion can't match" 编译错误
 → 按经验 114 改 K&R 旧式定义, 字节不变, fncheck OK, SHA1 绿。
 
-## sub_8025518 (0x08025518, code_8020D50) — ⏸ 2026-09-04 opencode (挂起)
+## sub_8025518 (0x08025518, scene_obj_fx) — ✅ 2026-09-14 antigravity (已匹配)
 
-### 语义 (已全解)
-`u16 sub_8025518(u32 *out, u8 a1, u8 a2, u16 a3, u8 a4, u8 a5, u8 a6)`：
-把 7 个入参按位域打包进 2 个 u32 写到 out[0]/out[1]，返回 `(u16)(a3 + gUnk_08393A30[a4*4 + a5])`。
-word0 位域: [0-7]=a2, [8-9]=0, [10-11]=0, [12]=0, [13]=0, [14-15]=a4&3, [16-24]=a1, [25-27]=0, [28]=0, [29]=0, [30-31]=a5&3。
-word1 位域: [0-9]=a3&0x3FF, [10-11]=0, [12-15]=(a6+0xd)&0xf, [16-31] 不写(保留未初始化栈值)。
-表 gUnk_08393A30 = 6行×4列 u8 (ROM 0x08393A30, 待登记 linker.ld)。
+### 语义与业务功能
+`u16 sub_8025518(OamData *out, u8 x, u8 y, u16 tileNum, u8 shape, u8 size, u8 pal)`:
+GBA 精灵 OAM 属性构建与图块槽推进函数。
+把精灵坐标 `(x, y)`、图块编号 `tileNum`、形状 `shape`、尺寸 `size`、调色板 `pal+13` 填入栈上 `OamData oam`，并拷贝至 `*out`；
+查表 `gUnk_08393A30[size + shape * 4]` 获取该形状/尺寸占用的图块数，返回 `(u16)(tileNum + tileCount)` 即下一个可用图块编号。
 
-### 结构突破 (经验 118)
-朴素 struct 局部会被 GCC2 寄存器提升 (整值留 r4, 末尾一次 str)。
-目标每写一个字段就 `str [sp]` 且**不重载**(CSE 把上一步寄存器转发给下一步) = 内存驻留位域结构体。
-**正解 = union 包裹**: `union { struct S s; u32 w[2]; } u;` 字段用 `u.s.fX=` 写、末尾用 `u.w[0]/u.w[1]` 读回。
-union 的 u32 数组视图让 GCC2 放弃提升、对 word0 逐字段写回 [sp]，与目标一致。
-g2 再拆 `new_var = a6+0xd; u.s.g2 = new_var;` 让 a6 保持 <<24 延迟归一 (匹配目标的 `+0xd0000; >>16` 移位算术)。
-→ permuter 分从 4510 降到 945 (干净候选 cand945.c)。
-
-### 卡点 (global-alloc, 纯 C 未破)
-1. **arg4/mask home 互换**: 目标 arg4→sl(r10)、共享掩码 0xFFFFF3FF→r8；候选 arg4→r8、掩码→sl。
-   arg5→sb 两边一致。两者各 2 次引用、arg4 活更长，却拿到"较差"硬寄存器 —— 跨块 global-alloc tiebreak (经验 88/117)。
-2. **word1 未逐字段写回**: 候选把 word1 累积在寄存器只 str 一次，目标 g0/g1/g2 各 str [sp+4] 一次。
-   多出的 temp 可能正是翻转 #1 的关键，但无法用纯 C 强制 word1 也逐字段落内存 (word0 能、word1 不能, GCC2 不对称)。
-3. permuter 压到 <945 的输出**全部**靠 `new_var = u.w[0]; out[0] = new_var;` (new_var 是 u16) 截断 word0 高位来省指令 —— 违反经验 18/113 (偷改数据流), 非法, 已弃。
-
-### 下一步候选路径
-- 用 `-da` 的 gccdump.greg 比对 arg4 与掩码 allocno 的 pri (经验 117), 找能让 arg4 反超掩码拿到 sl 的生死边界改动;
-- 或试 word1 字段间插入对 u.w[1] 的"短命读"逼出逐字段 str (需不增净指令);
-- 接手先 `scripts/fndiff.sh sub_8025518 permuter/sub_8025518/cand945.c` 复现 1755 基线。
+### 突破与消除误区
+- **推翻历史 union 假说**: 之前认为位域结构体会寄存器提升而试图用 union{struct S, u32 w[2]} 强迫写回，反倒导致 word1 无法逐字段写回与全局寄存器互换死锁。
+- **正解**: 原生使用官方 SDK `OamData oam;` 逐字段位域赋值，并在末尾结构体拷贝 `*out = oam;`。GCC 2.9 在处理未初始化位域结构体赋值与结构拷贝时，天然生成逐字段写回栈指令以及双 `ldr/str` 结构拷贝。
+- **寄存器与表索引对齐**: 原汇编中的 `add sb, sl` 是由 `[size + shape * 4]` 生成，自然使 `shape` 分配到 `sl`，`size` 分配到 `sb`，掩码分配到 `r8`，288B 完美匹配，fncheck OK，全量 SHA1 绿。
 
 ## sub_80513A0 (0x080513A0) — ⏸ 挂起
 
@@ -6426,6 +6409,21 @@ target: 8: movs r3,#0 (ret→r3)   10: adds r4,r0,#0 (be→r4)   70: cmp r4,#0x7
 - `functions.tsv` (status 0→1 + note); 经验归档 **226/227**。
 - 认领已释放, `permuter/sub_8044F4C/base.c` 保留 score=0 种子。
 
+## sub_8045098 (0x08045098, battle_engine, 战斗伤害浮动计算) — ⏸ 2026-09-14 zcode (深度定性, 差 5 字节 / 260)
+### 语义 (已完整还原)
+`fxKind == 2` 时由 `sub_804473C` 调用，根据技能 ID (`obj0->pad_A4[0]`) 计算伤害浮动值。
+1. `switch (obj0->pad_A4[0])`: 0x19..0x2F (普通技能 23 种) → `base = 40, var = 15`; 0x30/0x31 (强力技能 2 种) → `base = 70, var = 10`; 默认 → `base = 40, var = 15`。
+2. 随机抖动: `delta = -(((u32 (*)(void))Rng_LcgNext)() % var); if (delta) base += delta;`
+3. 属性克制: `switch (sub_8047D28(arg1, sub_8047DC8(obj0)))`: 1→×2, 2→÷2 (有符号), 0→noop。
+4. 范围钳位: `if ((s16)base < 0) base = 0; if ((s16)base > 999) base = 999; return base;`
+
+### RTL 级卡点定性 (经验 259)
+- 仅差 5 字节: 目标为 `arg1→r6 / var→r5`，候选为 `arg1→r5 / var→r6`。
+- 根因: 25 个独立 case 分支中前 23 个 case 连续对 `var` 赋常量 15，触发 GCC2.9 `local-alloc.c:852` 连续 23 次翻倍 `REG_LIVE_LENGTH (regno) *= 2`，导致 `live_length` 暴增为 $56 \times 2^{23} = 469,762,048$。这使得 `global.c` 排序中 $\text{pri}(var)$ 被打至 0，从而被形参 `arg1` (pri=170) 挤到后一位寄存器 `r6`。
+- 语法铁律: 25 个独立 case 赋值是 GCC2.9 生成 25 项跳转表（0x080450B8）的充分必要条件（若合并会因 `count < 5` 退化为 if/else 比较树）。
+- 详见 `docs/handoffs/BLOCKED-8045098-20260914.md`。候选保留于 `permuter/sub_8045098/base.c`。
+
+
 ## sub_804AF60 (0x0804AF60, battle_anim, OAM 扫描线精灵显隐) — ⏸ 2026-09-11 claude_1 挂起 (best 940 忠实 / 800 带块嵌套技巧)
 ### 语义 (已完整还原)
 按 VCOUNT 把一批精灵的 X 坐标在"表值"与"移出屏幕"之间切换 (HBlank 光栅效果), 由 `sub_801887C` 每帧调用。
@@ -6526,41 +6524,64 @@ target: 8: movs r3,#0 (ret→r3)   10: adds r4,r0,#0 (be→r4)   70: cmp r4,#0x7
 
 ---
 
-## sub_804B080 (0x0804b080, battle_anim, 186行) — ⏸ 挂起 2026-09-11 (opencode)
+## sub_804B654 (0x0804b654, battle_anim, 180行 / 348字节) — ✅ 匹配 2026-09-14 (agent_sub_804B654)
 
-**语义已全解, 卡点 = 纯寄存器分配 (permuter 到不了 0)**。候选 `permuter/sub_804B080/human_candidate.c`
-(人类可读, 归一化指令 diff 169 行全是 callee-saved 寄存器换号, 语义/跳转表/访存形态全对)。
+**状态**: 100% 字节完全匹配，status=1，全量 make + SHA1 绿（进度 883/1059）。
 
-**函数原型**: `s32 sub_804B080(u8 *obj, u8 index, u16 flags)`。r2(flags) 入口 `lsls#0x10;lsrs#0x10`
-→ u16; r1(index) 入口 `lsls#0x18;lsrs#0x18` → u8 (存进 sb/r9)。返回 `(index-1)&0xff`
-(所有早退都 `return index`, 末尾 `index=index-1` 后统一尾返回, 供调用方 sub_8018500 递减循环)。
+**业务语义**:
+启动/分配 OBJ 调色板动画槽 (`BattleObj_StartWhiteTint` 核心调用)，与 `sub_804B7B0` 配对。
+- 先将 RGB 增量 `arg2[0..2]` 截断至 `0x1F`；
+- 遍历指定范围槽位（若当前槽在运行 opcode 1 流式动画则跳过）：
+  - mode 2（直接指定）：调 `sub_804C3E4` 刷新槽位，写入 `ctrl=0x31`, `palSlot=idx`, `period=arg3`, `dR/dG/dB=arg2[0..2]`；
+  - mode 3（动态搜空槽）：从 `arg4` 位扫描 `gObjPalSlotUsed`（`b = arg4..15`），找到则调 `sub_804C364` 标记占用 + `sub_804C3E4` 刷新槽位，写入 `ctrl=0x11`, `palSlot=b`；未找到则置 `ctrl=0xFF`, `palSlot=-1`。
+- 末尾返回 `(s8)gObjPalAnim[arg0].palSlot`。
 
-**逻辑**: 若 `(flags&0x100)==0` 或 `*(u16*)(obj+0xB0)&4` 或 `sub_8045F10(obj,0x6E)!=2` → return index。
-否则 `cnt=obj+0xA8`: 若 `flagword&0x200` 则 `cnt++`, 进位过 0xF 清 0x200; 否则 `cnt--`, 归 0 置 0x200。
-`sh = *cnt>>2`; `switch(obj[0xAB])` 选 tile (见下); 写 OAM 表项 `OAM_BUF[index]`:
-`VPos = obj[0xC0]-(sh+0x22)`, byte1(AffineMode/ObjMode/Mosaic/ColorMode/Shape)=0,
-`HPos = obj[0xBF]+4`, HFlip=VFlip=0, Size=1, `CharNo=tile`, Priority=1, Pltt=0xF。
+**匹配关键**:
+- 消除局部变量指针 `idx` 与 `entry`，直接使用数组形式 `gObjPalAnim[arg0 + i].field` 访问，阻止 GCC 扩大栈帧至 `#0x14`，保住 `sub sp, #0x10` 以及 `sl` (arg3) / `sb` (arg5) 的全局寄存器分配；
+- `switch (arg5)` 替代 `if / else if` 匹配双分支跳转决策树；
+- 分支极性对齐：写成 `if (b <= 0xF) { 成功分支 } else { 失败分支 }` 使得成功直落、失败跳转；
+- 确认此前 permuter 1600 分为 4 个字面池符号（`gObjPalAnim`, `gObjPalSlotUsed`）的纯 relocation 伪差，指令级 0 差异。
+- **产物**: `src/battle_anim.c` 真实 C 合入；`include/code_0.h` 升级全原型声明；`functions.tsv` status 0->1；`docs/handoffs/MATCH-804B654-20260914.md`。
 
-**两个关键发现**:
-1. **sub_8045F10 返回在此函数不截断**: 全 ROM 31 处 `bl sub_8045F10` 里, 唯此处在 `cmp r0,#2` 前
-   **没有** `lsls#0x18;lsrs#0x18` (其余 30 处都有, 含同 battle_anim.c 的 0x0801C... 两处)。
-   → 原 TU 在此调用点看到的是 **非 u8 返回原型**。合入时必须用
-   `((s32 (*)(u8*,u16))sub_8045F10)(obj,0x6e)` 函数指针强转抑制零扩展, 否则多 4 字节 (待验证)。
-2. **switch(obj[0xAB]) 是 6-case 跳转表, 不是 obj[0xAB]-1**: 直接 `switch(obj[0xAB])` 且必须
-   **写出 case 2、case 4 到 default 同值 0x174** (6 个 case 标签才触发 agbcc 跳转表; 只写
-   {1,3,5,6}+default = 4 标签 → agbcc 出决策树 bgt/cmp, 与目标 `subs#1;cmp#5;bhi;mov pc` 全不符)。
-   映射: 1→0x180, 2→0x174, 3→0x184, 4→0x174, 5→0x178, 6→0x17c, default→0x174
-   (0x180=0xC0<<1 等, agbcc 自动 movs+ lsl#1)。min-case=1 → `subs#1` 偏移, 表 6 槽, 索引=value-1。
+---
 
-**卡点 (为什么 permuter 到不了 0)**: best score 2350 (跑 ~15k 迭代, 稳定平台)。残差 100% 是
-callee-saved 寄存器着色互换: 目标 `obj→r7 / index→sb(r9) / tile→r6`, 我这版 `obj→sb / index→r7 / tile→r7`;
-且目标把 4 个位段掩码常量 (`-13=~0x0C`→r4, `-17=~0x10`→ip, `-33=~0x20`→r5, `0x3F`→r8) 提前物化进
-callee-saved 复用, 我这版就地重算。语句重排 (permuter 唯一能力) 不改 liveness, 翻不动着色 →
-经验 87 类"调度槽位"可解, 此属"结构/着色"permuter 救不了 (AGENTS §2b)。试过的翻车变体: index/obj
-声明序互换、u8/u32 index、`fl` 提前物化、`&buf[i]` 取址写法 —— normalized diff 均 169~171 无改善。
+## sub_804B288 (0x0804b288, battle_anim, 153行 / 312字节) — ✅ 匹配 2026-09-14 (agent_sub_804B288)
 
-**下一步候选路**: (a) 手改 `sub_8045F10` 强转后重新 fncheck 看池布局是否带动着色 (合入前禁改 src,
-先在 permuter 内验证强转的字节); (b) 找同结构已匹配 OAM 写函数抄寄存器序; (c) 换目标。
+**状态**: 100% 字节完全匹配，status=1，全量 make + SHA1 绿（进度 881/1059）。
+
+**业务语义**:
+战斗调色板动画系统全面复位 (`BattlePaletteAnim_Reset`)，由 `sub_8017FA4` 在战斗初始化与入场准备时调用。
+1. 清零 5 个状态标志字：`gObjPalSlotUsed` (0x03000AE0, u16)、`gBgPalSlotUsed` (0x03000AE2, u16)、`gUnk_03000CE8` (u16)、`gUnk_03000AE4` (u8)、`gUnk_03000AE5` (u8)。
+2. 复用栈上 `vu16 fill = 0;` 依次执行 4 次 DMA3 填充（控制字 `0x81000100`，256 半字 = 512 字节），清空 OBJ 调色板硬件 RAM (`0x05000200`)、BG 调色板硬件 RAM (`0x05000000`) 及其在 EWRAM 的两份阴影镜像 (`0x02036AC0`/`0x02036CC0`)，并在每次 DMA 后轮询等待完成。
+3. 循环 16 次，将 `gObjPalAnim` (0x03000AE8) 与 `gBgPalAnim` (0x03000BE8) 共 32 个 `PaletteAnimEntry` 条目初始化：`ctrl` 与 `palSlot` 按位或 `0xFF`，`period/counter/span/dir` 清零，`frameIdx` (u16) 清零。
+
+**匹配关键**:
+- `fill` 必须为 `vu16`，保证 4 次 DMA 共享同一 4 字节栈槽；
+- DMA 块采用局部 `vu32 *dmaRegs = (vu32 *)0x040000D4;`，保证每次 DMA 重新加载基址到 `r1`；
+- 循环内部使用 `u8 *pA = (u8 *)gObjPalAnim; entry = (PaletteAnimEntry *)(pA + (i << 4));` 访问，锚定 `gObjPalAnim` 的池装载时机，防止循环优化器错误提升；同时 `gBgPalAnim` 被提升到 `r7` 并在首个 DMA 时预装载。
+- 确认此前 permuter 35 分为未重定位池字伪差，经 `bytecmp.sh` 施加重定位后 312 字节 0 差异。
+- **产物**: `src/battle_anim.c` 真实 C 合入；`functions.tsv` status 0->1；`docs/handoffs/MATCH-804B288-20260914.md`。
+
+---
+
+## sub_804B080 (0x0804b080, battle_anim, 186行 / 364字节) — ✅ 匹配 2026-09-14 (agent_sub_804B080)
+
+**状态**: 100% 字节完全匹配，status=1，全量 make + SHA1 绿（进度 879/1059）。
+
+**业务语义**:
+战斗对象浮动精灵/呼吸动画 OAM 装配（由 `sub_80184A8` 任务队列扫描流水线调用）。
+当 `flags & 0x100` 置位、`!(obj->state & 4)` 且 `sub_8045F10(obj, 0x6E) == 2` 时触发：
+往返更新 `obj->pad_A4[4]` 计数器（0~0xF 三角波，溢出翻转 state bit9 0x200），
+位移 `sh = obj->pad_A4[4] >> 2`，查 `obj->variantClass` 选 16×16 图块（1->0x180, 3->0x184, 5->0x178, 6->0x17C, 其余->0x174），
+向 `gOamBuffer[index]` 写入一条 OAM 条目（VPos = posY - (sh + 0x22), HPos = posX + 4, Priority = 1, Pltt = 0xF），
+并递减返回 `index - 1`；条件不满足时直接返回原 `index`。
+
+**破局突破 (前任 2350 分挂起 -> 0 差异匹配)**:
+1. **单大 `if` 结构统一汇聚点**: 所有早退通过同一条件块自然跳过并流入末尾唯一的 `return index;`，生成前导三处 `b _0804B1D0`，完美消除前任多 return 带来的拷贝指令与寄存器污染。
+2. **结构体字段自增自减**: 直接写 `obj->pad_A4[4]++` / `obj->pad_A4[4]--`，消除前任手写指针 `cnt = obj + 0xa8; v = ...;` 引入的多余局部变量与寄存器挤占。
+3. **补全位域 `AffineParamNo_L = 0`**: 前任漏写该位域清零，导致编译器少提取一组位掩码 `~0x0E` (-15)，进而扰乱了后续 `r4, ip, r5, r8` 的掩码常量提取。
+4. **`&gOamBuffer[index]` 符号引用**: 消除纯字面量强转导致的 `last_spill_reg` round-robin 偏斜，使得 `r0/r1` 在 OAM 基址加载与常量物化时的着色完全契合目标。
+5. **产物**: `src/battle_anim.c` 真 C 函数合入；`functions.tsv` status 0->1；`docs/handoffs/MATCH-804B080-20260914.md`。
 
 ## 2026-09-11 sub_803272C 匹配 (战斗型 NPC 对话状态机, event_hub, 540B)
 
@@ -8162,3 +8183,20 @@ bytecmp 240B 全等 + fncheck OK 176B + 全量 make/sha1 通过 (812/1059, 76.7%
 - 共享改动: `include/code_0.h` 修正 `sub_804BDD8` 原型 + 顺带修正 `sub_804B458` 旧声明
   (`Unk_804B458 *` → `PaletteAnimEntry *`, 阻塞编译的在制函数遗留)。
 - 详见 `docs/handoffs/MATCH-804BDD8-20260913.md`。
+
+## sub_8017FA4 (0x08017FA4, sio_link, 战斗场景进入/重置) — ✅ 2026-09-14 zcode
+
+- 接管自 `sensenova68` (原锁 2026-09-11 挂起 3 天)。原 best 停在 0x261 块两条 load 的
+  寄存器 home 互换 (fndiff 35, permuter ~39000 iter 未突破)。
+- **破解关键**: 0x261 块用"独立临时收载入值, 再与常量变量相与, 结果回写常量变量":
+  `x = gGstate324; v2 = 0x261; v2 = x & v2; gGstate324 = v2 | 8;`
+  → 值入 r0、**常量入 r1**, `ands r1,r0` 结果留 r1; 只改这一处即 DIFF=2 → **0**。
+  之前所有写法都把值载入 v2 的 home (r1), 常量入 r0, 于是 `ldrh r1`/`ldr r0` 镜像互换。
+  (对照经验 235/§sub_804BDD8: AND 的落点寄存器由"结果回写到哪个变量"决定。)
+- 附带结论: **gGstate324 是打包 u16 标志字, 不是位域**。全部访问点整字 ldrh/strh + 立即数掩码,
+  另有运行期掩码 API `sub_80187C0(u16)` OR 置位 / `sub_80187D4(u16)` BICS 清位 (位域无法表达)。
+  实测同编译链: 平铺 u16 + 掩码 = 2 条差异; union{位域;raw} = 18 条; 纯位域成员 = 81 条。
+  位语义: bit0=重入请求, bit3=对象冻结, bit4=暂停图块 DMA, bit5/bit9=战斗分级, bit6=脚本,
+  bit10=等 DMA 完成, bit11=BG 图块待装载, bit12=跳过段0, bit14=放宽形态限制。
+- 验证: fncheck OK 204B (5 池重定位+7 bl 槽忽略); 23 条已排除实验见 handoff; SHA1 绿(全量 878/1059)。
+- 详见 `docs/handoffs/MATCH-8017FA4-20260914.md`。

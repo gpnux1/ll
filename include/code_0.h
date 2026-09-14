@@ -76,7 +76,7 @@ void Followers_ResetHistory();
 void Followers_SyncToTail();
 void Party_FollowStep();
 void CutsceneAnim_Load(u16 animId, u8 slot, u8 slotSel); /* slotSel≥100 → 额外置 flags bit6 */
-void CutsceneAnim_PlayFrame();
+void CutsceneAnim_PlayFrame(u16 animEntityId);
 void MapGroup_Lookup();
 void Chara_SetTilePos(u8, u8, u8, u8);
 void Chara_MoveBy(u8, u8, u8, u8);
@@ -382,8 +382,8 @@ s16 sub_801768C(s16, s16, s16, s16, u8);  /** 前4参必须 s16 (定义侧用有
 void BattleTask_Run();
 void sub_8017FA4(s8);
 void sub_8018070();
-void sub_80182A8();
-void sub_80184A8();
+void sub_80182A8(u16 , u16 *);
+u8 sub_80184A8(UnkNode *, u8 );
 void sub_801869C();
 void sub_8018744();
 void sub_8018750();
@@ -590,8 +590,8 @@ u8 sub_801B8AC(ObjHead *, u8);
 u16 *sub_801B8E8(u16 *, u16);
 u16 *sub_801B8FC(ObjHead *, u8, u16);
 void sub_801B920();
-u8 sub_801B954(ObjHead *head);
-u16 sub_801B95C(ObjHead *head);
+u8 sub_801B954(ObjHead *);
+u16 sub_801B95C(ObjHead *);
 void sub_801B964();
 u8 sub_801BE34(void *);
 u8 sub_801C484(void *);
@@ -602,7 +602,7 @@ void sub_801CF90(BattleObj *, u8);
 void sub_801D12C(BattleObj *, u8);
 u16 sub_801D19C(BattleObj *, u8);
 u8 sub_801D214(BattleObj *, u8); // 唯一调用点 sub_8018070: (gObjPoolPtr, 本帧结果) -> u8; 5 槽 tile 属性装载 + DMA 上传
-u8 sub_801D378(u8 *, u8);
+u8 sub_801D378(BattleObj *, u8 );
 void sub_801D468();
 void sub_801D568(BattleObj *);
 void sub_801D710(BattleObj *, u8); // 弹出重绘/重登记: kind==0 重画 f_B2 数字(0x158+4*count tile区), kind!=0 画固定图形; 尾部重记 gUnk_03000670[count] 并 count++
@@ -681,9 +681,9 @@ void sub_802103C(BattleObj *, u8, u16);
 void sub_8021064(u8);
 void sub_80210C0(BattleObj *, u8);
 void MenuSlot_ResetAll();
-void sub_8021184(u8, u8 *); // 战斗对象槽号/状态同步: arg1+0xBE 槽号→idx, switch((s8)arg0) case 0/3/6/7 更新 gUnk_030007xx 系列
+void sub_8021184(s8, u8 *); // 战斗对象槽号/状态同步: arg1+0xBE 槽号→idx, switch((s8)arg0) case 0/3/6/7 更新 gUnk_030007xx 系列
 void sub_80212B4();
-u8 sub_802151C(void *, void *);
+u8 sub_802151C(u8, BattleObj *);
 u8 sub_8021700(void);
 void sub_8021788(u8 arg0);
 void sub_802181C();
@@ -893,8 +893,8 @@ u16 sub_80455A0(u8, u8);
 void sub_8045688(u8, u8, u8);
 void sub_80457AC();
 s8 sub_8045860(u8, u8 *);
-void sub_8045940();
-u8 sub_8045A10(u8 *, u8);
+u8 sub_8045940(BattleObj *obj, u8 *buf);
+u8 sub_8045A10(BattleObj *, u8);
 u8 sub_8045A74(u8 *, u8 *, u8, u8, u8);
 void sub_8045B90(BattleObj *obj, u8 index);
 void sub_8045BF4(BattleObj *obj);
@@ -962,8 +962,8 @@ void sub_80492C0();
 void sub_80494F0();
 u32 sub_80497B0(u16 *arg0, u16 arg1);
 u32 sub_80498E0();
-void sub_8049958();
-void sub_8049AD8();
+u32 sub_8049958(u16 *dest);
+u8 sub_8049AD8(u8 arg0);
 void sub_8049B70();
 u8 sub_8049C1C(u8 *); // 2026-09-11 zcode-engine: void*→u8* (定义侧 arg0[0] 字节读写), 无已匹配调用者
 u8 sub_8049D58(u8); // 唯一调用点 sub_8018070: 入参/返回均 u8
@@ -984,7 +984,7 @@ void sub_804ADE0();
 void sub_804ADF8();
 void sub_804AE2C();
 void sub_804AF60();
-void sub_804B080();
+u8 sub_804B080(BattleObj *obj, u8 index, u16 flags);
 void sub_804B1EC();
 void sub_804B1F8(WipeDesc *);
 void sub_804B224(u16 *);
@@ -993,7 +993,7 @@ void sub_804B3C0(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode1 流式调色�
 void sub_804B458(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode2 帧步进调色板动画一帧
 void sub_804B4D0(PaletteAnimEntry *, u8, u16 *, u16 *); // opcode3 淡变调色板动画一帧
 void sub_804B56C(u16 *, u16 *, u8, s8 *); // 16 色插值: src + delta*weight>>shift, clamp 0..31 (delta+3=shift)
-s32 sub_804B654();
+s32 sub_804B654(u8 arg0, u8 arg1, s8 *arg2, u8 arg3, u8 arg4, u8 arg5);
 void sub_804B7B0(u8, u8);
 s8 sub_804B834(u8, u8, u8, s8, u8);
 void sub_804B8E8(u8, u8);

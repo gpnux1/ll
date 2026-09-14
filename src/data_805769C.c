@@ -1715,29 +1715,39 @@ const u8 gAnimModelGroups[] = INCBIN_U8("data/raw_data/gAnimModelGroups.bin");
 
 /* gMapNpcSlotGroups (0x08091948, 2216 B): NPC 槽组表 (MapScene_LoadNpcSlotIds/Sprites_LoadMapNPCs) */
 // 0x08091948
-const u8 gMapNpcSlotGroups[] = INCBIN_U8("data/raw_data/byte_8091948.bin");
+const u8 gMapNpcSlotGroups[] = INCBIN_U8("data/raw_data/gMapNpcSlotGroups.bin");
 
 /* gClassStatCurveTable (0x080921F0, 88 B): 职业x八维属性 成长曲线号表 9x8 (sub_8009F70) */
 // 0x080921F0
-const u8 gClassStatCurveTable[] = INCBIN_U8("data/raw_data/unk_80921F0.bin");
+const u8 gClassStatCurveTable[] = INCBIN_U8("data/raw_data/gClassStatCurveTable.bin");
 
 /* gLevelUpExpTable (0x08092248, 400 B): 经验表 */
 // 0x08092248
-const u32 gLevelUpExpTable[] = INCBIN_U32("data/raw_data/unk_8092248.bin");
+const u32 gLevelUpExpTable[] = INCBIN_U32("data/raw_data/gLevelUpExpTable.bin");
 
 /* gStatGrowthCurveTables (0x080923D8, 4100 B): 成长分段表 (每段[0]=段长, 100B x41) */
 // 0x080923D8
-const u8 gStatGrowthCurveTables[] = INCBIN_U8("data/raw_data/unk_80923D8.bin");
+const u8 gStatGrowthCurveTables[] = INCBIN_U8("data/raw_data/gStatGrowthCurveTables.bin");
 
 /* gStatGrowthTail (0x080933DC, 60 B): 成长表尾 */
 // 0x080933DC
-const u8 gStatGrowthTail[] = INCBIN_U8("data/raw_data/unk_80933DC.bin");
+const u8 gStatGrowthTail[] = INCBIN_U8("data/raw_data/gStatGrowthTail.bin");
 
-/* 技能/道具表 (0x08093418, 312 B): 62 项 × 5B = {lvLimit|id, groupId(sub<<4), f2, f3, value}。
+/* 技能/道具共通定义表 (0x08093418, 62 项 × 5B + 2 尾字节; id = 行号+1, 技能与道具共用 id 空间;
+ * 结构体 SkillItemEntry 见 data_805769C.h)。字段语义 (E2, 消费函数均 ✅/逐条核对):
+ *   [0] learnLevel: 习得等级 (1-based; ItemFindSlot 搜 [0]==lv+1, sub_8045860 随对象升级逐行学;
+ *       0xFF=主角剧情专属, 仅 gPartyMemberIds[0]==1 可习得 — Stats_BuildSkillList)
+ *   [1] 高 4 位 charId (0/2-7=可操作角色, 0xB/0xF=特殊); 低 4 位 type=属性/效果类型
+ *       (0-6 → sub_80466F0 7 类跳转表, 0xF=特殊; 道具 5=全队恢复 — sub_8010300)
+ *   [2] bit7=道具列表隐藏 (sub_800F128), bit0-3=第二属性 (sub_8048984), bit4-6 未定
+ *   [3] effectAmount: 道具=HP 回复量 (sub_8010300 → gItemUseHealHp); 技能路径未见读者
+ *   [4] mpCost: 使用 MP 消耗 (battle_engine 扣减 obj->mp; ItemGetUsePower 与成员 MP 比较;
+ *       sub_8048934/sub_8045B90 装备减耗 -2/÷2; sub_8023820 MP>=cost 判可用)
  * 消费端: ItemFindSlot / ItemGetValue / Stats_BuildSkillList / sub_800F128 / sub_8010300 /
  * sub_8045A10 / sub_8045B90 / sub_80466F0 / sub_8048934 / sub_8048984 / sub_80489A4。 */
 // 0x08093418
-const u8 gSkillLearnTable[] = INCBIN_U8("data/raw_data/byte_8093418.bin");
+const u8 gSkillItemTable[] = INCBIN_U8("data/raw_data/gSkillLearnTable.bin");
+// const u8 gSkillLearnTable[] = INCBIN_U8("data/raw_data/gSkillLearnTable.bin");
 
 /* 技能/道具表续 (0x08093550, 336 B): sub_8014A68 / sub_8015658 / sub_8015AF0。 */
 // 0x08093550

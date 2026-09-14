@@ -83,8 +83,23 @@ extern const u8 gStatGrowthTail[];
 #define unk_80933DC gStatGrowthTail
 
 /* 0x08093418, 648 B: 技能/道具表 (byte_8093418 312B + byte_8093550 336B) */
-extern const u8 gSkillLearnTable[];
-#define byte_8093418 gSkillLearnTable
+/* 0x08093418 技能/道具共通定义表 (62 项 × 5B, id = 行号+1; 技能与道具共用 id 空间)。
+ * 字段证据与消费端清单见 data_805769C.c 定义处注释。位域按小端分配:
+ * type=byte1 低 4 位, charId=byte1 高 4 位; attr2=byte2 低 4 位, bit6/bit7 见下。 */
+typedef struct SkillItemEntry
+{
+    u8 learnLevel;   /* +0 习得等级 (1-based; 0xFF=主角剧情专属) */
+    u8 type : 4;     /* +1 低 4 位: 属性/效果类型 (0-6, 0xF) */
+    u8 charId : 4;   /* +1 高 4 位: 习得角色组 (0/2-7/0xB/0xF) */
+    u8 attr2 : 4;    /* +2 低 4 位: 第二属性 (sub_8048984) */
+    u8 mid : 3;      /* +2 bit4-6: 未定 (bit6 见 0xC0 系行) */
+    u8 listHidden : 1; /* +2 bit7: 道具列表不显示 (sub_800F128) */
+    u8 effectAmount; /* +3 效果量: 道具=HP 回复量; 技能=效果量 (推断) */
+    u8 mpCost;       /* +4 使用 MP 消耗 (装备可减耗) */
+} SkillItemEntry;
+extern const u8 gSkillItemTable[]; /* INCBIN 定义 (data_805769C.c); 类型化视图见下 */
+#define gSkillItemEntries ((const SkillItemEntry *)gSkillItemTable)
+#define byte_8093418 gSkillItemTable
 extern const u8 byte_8093550[];
 
 /* 0x080936A0, 6536 B: 消息文本 (0xFF 分隔主消息池) */

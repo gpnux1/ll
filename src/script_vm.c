@@ -884,9 +884,19 @@ u32 sub_80513A0(u32 *ptr)
 // @ 0x0805144C
 INCLUDE_ASM("asm/nonmatchings", sub_805144C);
 // @ 0x08051A1C
+typedef union {
+    BgCnt bg;
+    u32 word;
+} BgUnion;
+
+/* 打开脚本窗口: 用 0xB000 填充窗口背景缓冲并清 VRAM 0x0600F800, 等第二次 DMA,
+ * 开 BG0, 把 BG0CNT 配成 CharBase 2 / ScreenBase 31 (终值 0x1F08), 置 gScriptVmFlags bit4,
+ * 游标前进 1。
+ * 末尾掩码链 = BgCnt 逐字段赋值; ScBasep=31 填满掩码, 故 GCC2 把 `(x & ~0x1F00) | 0x1F00`
+ * 简化成 `| 0x1F00` (无前导 AND)。 */
 u32 Op_OpenWindow(u32 *pScriptCursor)
 {
-    u32 bgcnt;
+    BgUnion bg0cnt;
 
     DmaFill16(3, 0xB000, gWindowBgBuf, 0x800);
     DmaWait(3);
@@ -905,16 +915,15 @@ u32 Op_OpenWindow(u32 *pScriptCursor)
             } while (status & mask);
         }
         REG_DISPCNT |= DISPCNT_BG0_ON;
-        bgcnt &= ~3;
-        bgcnt &= ~0xC;
-        bgcnt |= BGCNT_CHARBASE(2);
-        bgcnt &= ~0x30;
-        bgcnt &= ~BGCNT_MOSAIC;
-        bgcnt &= ~BGCNT_256COLOR;
-        bgcnt |= BGCNT_SCREENBASE(31);
-        bgcnt &= ~BGCNT_WRAP;
-        bgcnt &= ~BGCNT_TXT512x512;
-        REG_BG0CNT = bgcnt;
+        bg0cnt.bg.Priority = 0;
+        bg0cnt.bg.CharBasep = 2;
+        bg0cnt.bg.Dummy_5_4 = 0;
+        bg0cnt.bg.Mosaic = 0;
+        bg0cnt.bg.ColorMode = 0;
+        bg0cnt.bg.ScBasep = 31;
+        bg0cnt.bg.Loop = 0;
+        bg0cnt.bg.Size = 0;
+        REG_BG0CNT = bg0cnt.word;
         gScriptVmFlags |= 0x10;
         *pScriptCursor = value + 1;
     }

@@ -153,8 +153,54 @@ void sub_801A684(ObjHead *head)
         sub_804C2FC(palBits, pal, sub_801B954(head));
     }
 }
+typedef union {
+    BgCnt bg;
+    u32 word;
+} BgUnion;
+
 // @ 0x0801A6F4
-INCLUDE_ASM("asm/nonmatchings", sub_801A6F4);
+void sub_801A6F4(ObjHead *head)
+{
+    BgUnion bgcnt;
+
+    switch ((s16)(head->kindFlags & 0xF))
+    {
+    case 6:
+    case 7:
+        {
+            u8 val = head->f_2A;
+            bgcnt.bg.Priority = head->f_2A & 3;
+        }
+        bgcnt.bg.CharBasep = 3;
+        bgcnt.bg.Dummy_5_4 = 0;
+        bgcnt.bg.Mosaic = 0;
+        bgcnt.bg.ColorMode = 0;
+        bgcnt.bg.ScBasep = 15;
+        bgcnt.bg.Loop = 1;
+        bgcnt.bg.Size = 0;
+        REG_BG1CNT = bgcnt.word;
+        DmaFill16(3, 0, (void *)0x06007800, 0x800);
+        DmaWait(3);
+        REG_DISPCNT |= 0x200;
+        break;
+    case 8:
+        ((BgCnt *)&bgcnt)->Priority = head->f_2A;
+        ((BgCnt *)&bgcnt)->CharBasep = 2;
+        ((BgCnt *)&bgcnt)->Dummy_5_4 = 0;
+        ((BgCnt *)&bgcnt)->Mosaic = 0;
+        ((BgCnt *)&bgcnt)->ColorMode = 0;
+        ((BgCnt *)&bgcnt)->ScBasep = 13;
+        ((BgCnt *)&bgcnt)->Loop = 1;
+        ((BgCnt *)&bgcnt)->Size = 0;
+        REG_BG3CNT = *(u16 *)&bgcnt;
+        DmaFill16(3, 0, (void *)0x06006800, 0x800);
+        DmaWait(3);
+
+        break;
+    }
+
+    sub_804C548((u32)head->palBitsPtr, head->palSlot, (u8)sub_801B954(head));
+}
 
 // @ 0x0801A884
 INCLUDE_ASM("asm/nonmatchings", sub_801A884);
@@ -711,10 +757,92 @@ u16 sub_801D19C(BattleObj *obj, u8 kind)
         return v;
     }
 }
-// @ 0x0801D214
+#if 0
 INCLUDE_ASM("asm/nonmatchings", sub_801D214);
+#else
+// @ 0x0801D214
+extern u8 gUnk_0861C744[];
+u8 sub_801D214(BattleObj *arg0, u8 count)
+{
+    u8 i;
+    OamData oam;
+    OamData *buf;
+    u16 palette[16];
+
+    for (i = 0; i <= 4; i++)
+    {
+        if (arg0[i].slot == 0xFF)
+            continue;
+        if (arg0[i].state & 0x20)
+            continue;
+
+        buf = (OamData *)&gOamBuffer[count];
+
+        oam.VPos = 0x90;
+        oam.AffineMode = 0;
+        oam.ObjMode = 0;
+        oam.Mosaic = 0;
+        oam.ColorMode = 0;
+        oam.Shape = 1;
+        oam.HPos = i * 40 + 0x20;
+        oam.AffineParamNo_L = 0;
+        oam.HFlip = 0;
+        oam.VFlip = 0;
+        oam.Size = 1;
+        oam.CharNo = i * 4 + 0x144;
+        oam.Priority = 2;
+        oam.Pltt = 6;
+
+        *buf = oam;
+        count--;
+    }
+
+    DmaCopy32(3, (void *)0x02021040, (void *)0x06012880, 0x280);
+    DmaWait(3);
+
+    sub_804C2FC((u32)gUnk_0861C744, 6, 1);
+    return count;
+}
+#endif
 // @ 0x0801D378
-INCLUDE_ASM("asm/nonmatchings", sub_801D378);
+// 单条 OAM 条目装配: 按 arg0->headA 的图形头把一条 32x8 OBJ 写入 gOamBuffer[index], 返回 index-1
+// (与 sub_801D984 同构, 差异在于数据源是 BattleObj 图形头而非 gUnk_03000670 弹出项)。
+//   - pal: kindFlags bit15 (0x8000=装载完成后清除) 置位时取 f_2F (图形装载完成回填的最终调色板槽),
+//     否则取 palSlot (装配前指定的槽号)。
+//   - VPos = posY-5, HPos = posX-0x10 (9-bit 位域由 OAM 结构体自动截断到 & 0x1FF)。
+//   - ObjMode = kindFlags bit4 (半透明/混色请求) != 0 → 1。
+//   - Shape=1/Size=1 → 32x8; CharNo = slot<=0xA ? 0x140 : 0x12E; Priority=3; Pltt=pal。
+// 注意: 位域的逐字段赋值顺序与 ObjMode 的布尔化写法 (而非 (kindFlags>>4)&1) 是字节匹配所需,
+//       改写成算术掩码链会改变常量物化形状 (movs #1 复用 vs movs #13/negs)。
+u8 sub_801D378(BattleObj *arg0, u8 index)
+{
+    u8 pal;
+    GameOamData *o;
+
+    if (arg0->headA.kindFlags & 0x8000)
+        pal = arg0->headA.f_2F;
+    else
+        pal = arg0->headA.palSlot;
+
+    o = &gOamBuffer[index];
+    o->fields.VPos = arg0->posY - 5;
+    o->fields.AffineMode = 0;
+    o->fields.ObjMode = (arg0->headA.kindFlags & 0x10) ? 1 : 0;
+    o->fields.Mosaic = 0;
+    o->fields.ColorMode = 0;
+    o->fields.Shape = 1;
+    o->fields.HPos = arg0->posX - 0x10;
+    o->fields.AffineParamNo_L = 0;
+    o->fields.HFlip = 0;
+    o->fields.VFlip = 0;
+    o->fields.Size = 1;
+    o->fields.CharNo = arg0->slot <= 0xA ? 0x140 : 0x12E;
+    o->fields.Priority = 3;
+    o->fields.Pltt = pal;
+
+    index--;
+    return index;
+}
 // @ 0x0801D468
 void sub_801D468(void)
 {
@@ -1694,6 +1822,10 @@ u32 sub_801EC3C(BattleObj *obj, u8 arg1)
     }
     return result;
 }
+
+#if 1
+INCLUDE_ASM("asm/matchings", sub_801ED40);
+#else
 // @ 0x0801ED40
 /* BattleObj 白色着色启动 (sub_801EE6C 的逆操作): 通过 sub_804B654 为对象精灵登记/施加
  * RGB(31,31,31) 白色 tint。color 低 3 字节强制为白色, 未初始化读取的 RMW 是与 ROM
@@ -1756,6 +1888,7 @@ void sub_801ED40(BattleObj *obj, u8 arg1)
         }
     }
 }
+#endif
 // @ 0x0801EE6C
 /* BattleObj 白色着色清除 (sub_801ED40 的逆操作): 撤销对象精灵的白色 tint。
  * v 槽基址与 sub_801ED40 同源 (slot>0x0B 且 variantClass==4 → gUnk_03000744, 否则 headA->palSlot);

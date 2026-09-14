@@ -26,7 +26,7 @@ void MenuSlot_ResetAll(void)
     gMenuMasterCursor = 0;
 }
 // @ 0x08021184
-void sub_8021184(u8 arg0, u8 *arg1)
+void sub_8021184(s8 arg0, u8 *arg1)
 {
     u8 b;
     u8 idx;
@@ -80,7 +80,85 @@ void sub_8021184(u8 arg0, u8 *arg1)
 // @ 0x080212B4
 INCLUDE_ASM("asm/nonmatchings", sub_80212B4);
 // @ 0x0802151C
-INCLUDE_ASM("asm/nonmatchings", sub_802151C);
+u8 sub_802151C(u8 arg0, BattleObj *arg1)
+{
+    u8 buf[8];
+    u8 count;
+    u8 matchCount;
+    u16 i;
+    u8 *pool;
+    u16 flag;
+
+    pool = (u8 *)GetObjPool();
+    count = sub_80489E8((BattleObj *)pool, buf, 0, 0x7F);
+
+    matchCount = 0;
+    for (i = 0; i < count; i++)
+    {
+        BattleObj *obj = (BattleObj *)(buf[i] * 0xC8 + (u32)pool);
+        if (obj->slot != 9)
+        {
+            if (sub_8045F10(obj, 0x3C) == 2)
+                matchCount++;
+        }
+    }
+
+    for (i = 0; i < count; i++)
+    {
+        if (((BattleObj *)(pool + buf[i] * 0xC8))->slot == 9)
+        {
+            count--;
+            break;
+        }
+    }
+
+    if (matchCount < count)
+    {
+        flag = sub_80187B4() & 0x4000;
+        if (!flag)
+        {
+            gUnk_03000768 = arg0;
+            sub_8021184((s8)gUnk_03000768, NULL);
+            gUnk_0300076B = flag;
+            gUnk_0300076C = 2;
+            gUnk_03000769 = flag;
+            gUnk_0300076E = flag;
+
+            sub_801FA10(arg1, 2);
+            Bg0_InitClear();
+            sub_80196D4(0, 0x02035AC0, 0xB, 2, 2, flag, flag, 0x1E, 5);
+            gMenuWindowFlags = flag;
+            sub_802550C(1);
+            sub_804C2FC(0x0861C624, 0xD, 2);
+            sub_8024820();
+            sub_804DE8C();
+            sub_80187C0(0x100);
+
+            gMenuObjLoadCount = gMenuObjLoadIdx = 0;
+
+            for (i = 0; i < count; i++)
+            {
+                if ((s8)((BattleObj *)(pool + buf[i] * 0xC8))->fxKind == 3)
+                {
+                    gMenuObjLoadSlots[gMenuObjLoadCount] = buf[i];
+                    ((BattleObj *)(pool + buf[i] * 0xC8))->fxKind = 0;
+                    gMenuObjLoadCount++;
+                }
+            }
+
+            return 0;
+        }
+        sub_804C78C();
+    }
+    else
+    {
+        sub_804C890((BattleObj *)pool);
+        if (sub_80187B4() & 0x4000)
+            sub_804C78C();
+    }
+
+    return 1;
+}
 // @ 0x08021700
 u8 sub_8021700(void)
 {
@@ -149,10 +227,52 @@ void sub_8021788(u8 arg0)
 INCLUDE_ASM("asm/nonmatchings", sub_802181C);
 // @ 0x0802192C
 INCLUDE_ASM("asm/nonmatchings", sub_802192C);
+
+extern const u8 gUnk_08393A74[];
+extern const u8 gUnk_08393A54[];
+
 // @ 0x08022458
-INCLUDE_ASM("asm/nonmatchings", sub_8022458);
+u8 sub_8022458(u8 arg0)
+{
+    const s8 *rec;
+    u8 off;
+    u8 i;
+
+    if ((s8)gUnk_03000768 < 0)
+        return arg0;
+
+    rec = (const s8 *)(gUnk_08393A74 + ((s8)gUnk_03000768 << 4));
+    if (rec[0] < 0)
+        rec = (const s8 *)(gUnk_08393A74 + (rec[1] << 4));
+
+    off = 0;
+    for (i = 0; i < rec[0]; i++)
+    {
+        vu32 *dmaRegs = (vu32 *)0x040000D4;
+        const s8 *p = rec + 8;
+        u8 b = p[i];
+        {
+            const u8 *t = gUnk_08393A54 + (b << 2);
+
+            dmaRegs[0] = (vu32)((const u8 *)0x08619AA4 + (t[0] << 5));
+            dmaRegs[1] = (vu32)(0x06010000 + ((0x258 + off) << 5));
+            dmaRegs[2] = 0x80000000 | (gUnk_08393A30[(t[1] << 2) + t[2]] << 4);
+            dmaRegs[2];
+            while (dmaRegs[2] & 0x80000000)
+                ;
+        }
+
+        {
+            const u8 *t = gUnk_08393A54 + (b << 2);
+            off += gUnk_08393A30[(t[1] << 2) + t[2]];
+        }
+        arg0--;
+    }
+
+    return arg0;
+}
 // @ 0x08022550
-INCLUDE_ASM("asm/nonmatchings", sub_8022550);
+INCLUDE_ASM("asm/matchings", sub_8022550);
 // @ 0x08022710
 INCLUDE_ASM("asm/nonmatchings", sub_8022710);
 // @ 0x08022F2C
@@ -232,7 +352,7 @@ void sub_802550C(u8 value)
     gMenuWindowPhase = value;
 }
 // @ 0x08025518
-INCLUDE_ASM("asm/nonmatchings", sub_8025518);
+INCLUDE_ASM("asm/matchings", sub_8025518);
 // @ 0x08025638
 void sub_8025638(void)
 {

@@ -326,6 +326,11 @@ s8 sub_804E6DC(BattleObj *obj, u8 value)
     return result;
 }
 // @ 0x0804E76C
+// 在 obj->equipSlots (6 槽, +0x8D..0x92) 里找第一个属性命中的槽下标:
+// sub_804DD90(槽值, arg1) == arg2 时返回 0-5, 否则 -1; 仅玩家侧 (slot<=0xA) 生效.
+// 基址必须写成 obj->equipSlots 整体赋给指针: 折成一次 r5 = obj+0x8D,
+// 逐字段 obj->equipSlots[i] 会被展开成 8 条独立地址计算 (差 95B).
+// 前置过滤 ROM 读 8 字节 = 6 个槽 + 0x93/0x94 两个从未被写入的 pad, 循环只扫 6 个槽.
 s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2)
 {
     s8 result;
@@ -335,7 +340,7 @@ s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2)
     result = -1;
     if (obj->slot <= 10)
     {
-        values = (u8 *)obj + 0x8D;
+        values = obj->equipSlots;
         if (values[0] != 0 || values[1] != 0 || values[2] != 0 || values[3] != 0 || values[4] != 0 || values[5] != 0 || values[6] != 0
             || values[7] != 0)
         {
@@ -351,11 +356,11 @@ s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2)
     }
     return result;
 }
-static inline u8 CheckObj(u8 *obj)
+static inline u8 CheckObj(BattleObj *obj)
 {
     u8 ret = 0;
-    u8 v91 = obj[0x91];
-    u8 v92 = obj[0x92];
+    u8 v91 = obj->equipSlots[4];
+    u8 v92 = obj->equipSlots[5];
 
     do
     {
@@ -372,13 +377,13 @@ static inline u8 CheckObj(u8 *obj)
 }
 
 // @ 0x0804E7EC
-void BattleFxObjs_Add(u8 *obj)
+void BattleFxObjs_Add(BattleObj *obj)
 {
     u8 slot = CheckObj(obj);
 
     if (slot != 0)
     {
-        (obj + slot)[0x90] = 0;
+        obj->equipSlots[slot + 3] = 0;
         gBattleFxObjs[gBattleFxObjCount] = (u32)obj;
         gBattleFxObjCount++;
     }

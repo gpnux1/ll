@@ -107,7 +107,80 @@ void sub_804AE2C(void)
 // @ 0x0804AF60
 INCLUDE_ASM("asm/nonmatchings", sub_804AF60);
 // @ 0x0804B080
-INCLUDE_ASM("asm/nonmatchings", sub_804B080);
+/* 战斗对象浮动精灵/呼吸光效装配:
+ * 当 flags&0x100 置位、!(state&4) 且 sub_8045F10(obj, 0x6E)==2 时触发:
+ * 往返更新 obj->pad_A4[4] 计数 (0~0xF 呼吸三角波, 溢出翻转 state bit9 0x200),
+ * 查 obj->variantClass 选 16x16 图块 (1->0x180, 3->0x184, 5->0x178, 6->0x17C, 其余->0x174),
+ * 写入 gOamBuffer[index] (优先度 1, 调色板 0xF, VPos 减去位移和偏置 0x22, HPos+4), 并返回 index-1;
+ * 条件不满足时直接返回原 index。 */
+u8 sub_804B080(BattleObj *obj, u8 index, u16 flags)
+{
+    GameOamData *oam;
+    u8 sh;
+    u16 tile;
+
+    if ((flags & 0x100) != 0 && !(obj->state & 4) && ((s32 (*)(BattleObj *, u16))sub_8045F10)(obj, 0x6e) == 2)
+    {
+        if (obj->state & 0x200)
+        {
+            obj->pad_A4[4]++;
+            if (obj->pad_A4[4] > 0xf)
+                obj->state &= ~0x200;
+        }
+        else
+        {
+            obj->pad_A4[4]--;
+            if (obj->pad_A4[4] == 0)
+                obj->state |= 0x200;
+        }
+
+        sh = obj->pad_A4[4] >> 2;
+        switch (obj->variantClass)
+        {
+        case 1:
+            tile = 0x180;
+            break;
+        case 2:
+            tile = 0x174;
+            break;
+        case 3:
+            tile = 0x184;
+            break;
+        case 4:
+            tile = 0x174;
+            break;
+        case 5:
+            tile = 0x178;
+            break;
+        case 6:
+            tile = 0x17c;
+            break;
+        default:
+            tile = 0x174;
+            break;
+        }
+
+        oam = &gOamBuffer[index];
+        oam->fields.VPos = obj->posY - (u8)(sh + 0x22);
+        oam->fields.AffineMode = 0;
+        oam->fields.ObjMode = 0;
+        oam->fields.Mosaic = 0;
+        oam->fields.ColorMode = 0;
+        oam->fields.Shape = 0;
+        oam->fields.HPos = obj->posX + 4;
+        oam->fields.AffineParamNo_L = 0;
+        oam->fields.HFlip = 0;
+        oam->fields.VFlip = 0;
+        oam->fields.Size = 1;
+        oam->fields.CharNo = tile;
+        oam->fields.Priority = 1;
+        oam->fields.Pltt = 0xF;
+
+        index--;
+    }
+
+    return index;
+}
 // @ 0x0804B1EC
 /* 战斗转场效果复位: 清 gWipeCtl (停止并清类型)。 */
 void sub_804B1EC(void)
@@ -147,7 +220,87 @@ void sub_804B224(u16 *flags)
 // 形状要点 (GCC2.9): ①fill 必须是 vu16 且复用同一栈槽; ②DmaSet 用宏展开 (局部 dmaRegs)
 // 才能每个 fill 重新装载 0x040000D4; ③循环内先用 u8* 中间量 pA 锚定 gObjPalAnim 的池装载
 // 位置, 再转 entry 指针, 否则该 ldr 会被提升到首个 DmaWait 之前。
-INCLUDE_ASM("asm/nonmatchings", sub_804B288);
+void sub_804B288(void)
+{
+    vu16 fill;
+    PaletteAnimEntry *entry;
+    PaletteAnimEntry *bgEntry;
+    u8 *pA;
+    u8 i;
+
+    gObjPalSlotUsed = 0;
+    gBgPalSlotUsed = 0;
+    gUnk_03000CE8 = 0;
+    gUnk_03000AE4 = 0;
+    gUnk_03000AE5 = 0;
+
+    fill = 0;
+    {
+        vu32 *dmaRegs = (vu32 *)0x040000D4;
+        dmaRegs[0] = (vu32)&fill;
+        dmaRegs[1] = (vu32)0x05000200;
+        dmaRegs[2] = 0x81000100;
+        dmaRegs[2];
+        while (dmaRegs[2] & 0x80000000)
+            ;
+    }
+
+    fill = 0;
+    {
+        vu32 *dmaRegs = (vu32 *)0x040000D4;
+        dmaRegs[0] = (vu32)&fill;
+        dmaRegs[1] = (vu32)0x05000000;
+        dmaRegs[2] = 0x81000100;
+        dmaRegs[2];
+        while (dmaRegs[2] & 0x80000000)
+            ;
+    }
+
+    fill = 0;
+    {
+        vu32 *dmaRegs = (vu32 *)0x040000D4;
+        dmaRegs[0] = (vu32)&fill;
+        dmaRegs[1] = (vu32)0x02036AC0;
+        dmaRegs[2] = 0x81000100;
+        dmaRegs[2];
+        while (dmaRegs[2] & 0x80000000)
+            ;
+    }
+
+    fill = 0;
+    {
+        vu32 *dmaRegs = (vu32 *)0x040000D4;
+        dmaRegs[0] = (vu32)&fill;
+        dmaRegs[1] = (vu32)0x02036CC0;
+        dmaRegs[2] = 0x81000100;
+        dmaRegs[2];
+        while (dmaRegs[2] & 0x80000000)
+            ;
+    }
+
+    for (i = 0; i < 16; i++)
+    {
+        pA = (u8 *)gObjPalAnim;
+        entry = (PaletteAnimEntry *)(pA + (i << 4));
+        entry->ctrl |= 0xFF;
+        entry->palSlot |= 0xFF;
+        entry->period = 0;
+        entry->counter = 0;
+        entry->span = 0;
+        entry->frameIdx = 0;
+        entry->dir = 0;
+
+        bgEntry = (PaletteAnimEntry *)((u8 *)gBgPalAnim + (i << 4));
+        entry = bgEntry;
+        entry->ctrl |= 0xFF;
+        entry->palSlot |= 0xFF;
+        entry->period = 0;
+        entry->counter = 0;
+        entry->span = 0;
+        entry->frameIdx = 0;
+        entry->dir = 0;
+    }
+}
 // @ 0x0804B3C0
 /* opcode1 流式调色板动画一帧: 由 sub_804C45C/sub_804C6B0 的逐帧调度 (ctrl&0xF==1) 调用。
  * 先按 ctrl bit4 (0x10) 决定往返方向: 置位则 counter++ 到 period-1 后清 bit4, 否则 counter--
@@ -264,7 +417,81 @@ void sub_804B4D0(PaletteAnimEntry *entry, u8 slot, u16 *src, u16 *dest)
 // @ 0x0804B56C
 INCLUDE_ASM("asm/nonmatchings", sub_804B56C);
 // @ 0x0804B654
-INCLUDE_ASM("asm/nonmatchings", sub_804B654);
+/* 启动 OBJ 调色板动画槽: 为动画槽 [arg0, arg0+arg1) 配置调色板动画 (gObjPalAnim 0x03000AE8)。
+ * - 先把 RGB 增量 arg2[0..2] 钳位至不超过 0x1F。
+ * - 对槽位范围内的每个条目 (跳过正在运行流式动画 ctrl&0xF==1 的槽):
+ *   - mode 2 (直接指定槽): 调 sub_804C3E4, 标记 ctrl=0x31, palSlot=idx, period=arg3, dR/dG/dB=arg2[0..2]。
+ *   - mode 3 (动态分配空槽): 从 arg4 位起扫描 gObjPalSlotUsed 的空位 (<=0xF); 若未找到空槽 (b > 0xF) 则
+ *     置 ctrl=0xFF, palSlot=-1; 若找到空槽则调 sub_804C364 标记占用并调 sub_804C3E4, 标记 ctrl=0x11, palSlot=b。
+ * - 返回首槽的有符号调色板槽号 (s8)gObjPalAnim[arg0].palSlot。 */
+s32 sub_804B654(u8 arg0, u8 arg1, s8 *arg2, u8 arg3, u8 arg4, u8 arg5)
+{
+    u8 i;
+    u8 b;
+    u32 slot;
+
+    if (arg2[0] > 0x1F)
+        arg2[0] = 0x1F;
+    if (arg2[1] > 0x1F)
+        arg2[1] = 0x1F;
+    if (arg2[2] > 0x1F)
+        arg2[2] = 0x1F;
+
+    slot = arg0 * 16;
+    for (i = 0; i < arg1; i++)
+    {
+        if ((gObjPalAnim[arg0 + i].ctrl & 0xF) == 1)
+            continue;
+
+        switch (arg5)
+        {
+        case 2:
+            sub_804C3E4(arg0 + i);
+            gObjPalAnim[arg0 + i].ctrl = 0x31;
+            gObjPalAnim[arg0 + i].palSlot = arg0 + i;
+            gObjPalAnim[arg0 + i].period = arg3;
+            gObjPalAnim[arg0 + i].counter = 0;
+            gObjPalAnim[arg0 + i].frameIdx = 0;
+            gObjPalAnim[arg0 + i].dR = arg2[0];
+            gObjPalAnim[arg0 + i].dG = arg2[1];
+            gObjPalAnim[arg0 + i].dB = arg2[2];
+            gObjPalAnim[arg0 + i].shift = 0;
+            break;
+
+        case 3:
+            for (b = arg4; b <= 0xF; b++)
+            {
+                if (!((gObjPalSlotUsed >> b) & 1))
+                    break;
+            }
+
+            if (b <= 0xF)
+            {
+                sub_804C364(b, 1);
+                sub_804C3E4(arg0 + i);
+                gObjPalAnim[arg0 + i].ctrl = 0x11;
+                gObjPalAnim[arg0 + i].palSlot = b;
+                gObjPalAnim[arg0 + i].period = arg3;
+                gObjPalAnim[arg0 + i].counter = 0;
+                gObjPalAnim[arg0 + i].frameIdx = 0;
+                gObjPalAnim[arg0 + i].dR = arg2[0];
+                gObjPalAnim[arg0 + i].dG = arg2[1];
+                gObjPalAnim[arg0 + i].dB = arg2[2];
+                gObjPalAnim[arg0 + i].shift = 0;
+            }
+            else
+            {
+                gObjPalAnim[arg0 + i].ctrl = 0xFF;
+                gObjPalAnim[arg0 + i].palSlot = -1;
+                gObjPalAnim[arg0 + i].period = 0;
+                gObjPalAnim[arg0 + i].counter = 0;
+            }
+            break;
+        }
+    }
+
+    return (s8)gObjPalAnim[arg0].palSlot;
+}
 // @ 0x0804B7B0
 /* 停止 OBJ 调色板动画槽 [arg0, arg0+arg1): 与 sub_804B8E8 同表 (gObjPalAnim 0x03000AE8)
  * 同逻辑, 但表项访问为原始字节指针 (entry[0..3])。对每个非空 (ctrl != -1) 条目, 若未禁止
