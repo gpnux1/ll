@@ -76,8 +76,7 @@ gUnk_08393A3C = 0x08393A3C;
 gUnk_08393A40 = 0x08393A40;
 gUnk_08393A48 = 0x08393A48;    /* u8 成员数×? 坐标表 X (sub_8032948 case25 用) */
 gUnk_08393A4D = 0x08393A4D;    /* u8 成员数×? 坐标表 Y (sub_8032948 case25 用) */
-gUnk_08393B28_entries = 0x08393B28;   /* 同址别名: u16 视图 (offset 0x10 字段, sub_804D1B4) */
-gUnk_08393B28 = 0x08393B28;    /* ObjAnimEntry[] 992×0x14B 战斗对象动画/特效资源表 (code_0.h) */
+/* gUnk_08393B28 已搬到 src/data_08393B28.c (const ObjAnimEntry gUnk_08393B28[992]) */
 gUnk_0839D5BC = 0x0839D5BC;
 gUnk_0839DBF6 = 0x0839DBF6;
 gUnk_083988A8 = 0x083988A8;    /* 24-byte 动画条目表 (sub_801CBA4 用) */
@@ -400,6 +399,7 @@ SECTIONS {
         . = 0x000008F1; gFxReqTimer = .;
         . = 0x000008F2; gFxReqKind = .;
         . = 0x000008F3; gFxReqFrames = .;
+        . = 0x00000904; gFxReqCounter = .;
         . = 0x00000906; gFxReqAnimIdx = .;
         . = 0x00000908; gSkillHealAmount = .;
         . = 0x00000910; gBattleIntroState = .;
@@ -762,18 +762,18 @@ SECTIONS {
         src/save.o(.text);
         src/menu.o(.text);
         src/text_engine.o(.text);
-        src/sio_link.o(.text);
-        src/battle_obj_core.o(.text);
-        src/scene_obj_fx.o(.text);
-        src/event_actor.o(.text);
-        src/scene_interact.o(.text);
-        src/event_hub.o(.text);
-        src/cutscene_mgr.o(.text);
-        src/obj_state.o(.text);
-        src/battle_engine.o(.text);
-        src/battle_anim.o(.text);
-        src/battle_rewards.o(.text);
-        src/obj_pool.o(.text);
+        src/battle_task_services.o(.text);
+        src/battle_object_engine.o(.text);
+        src/battle_menu_windows.o(.text);
+        src/battle_stage_actor.o(.text);
+        src/battle_stage_transition.o(.text);
+        src/battle_stage_dialogue.o(.text);
+        src/battle_stage_effects.o(.text);
+        src/battle_stage_state.o(.text);
+        src/battle_flow_rules.o(.text);
+        src/battle_palette_wipe.o(.text);
+        src/battle_special_targets.o(.text);
+        src/battle_itemuse_rewards.o(.text);
         src/battle_fx.o(.text);
         src/script_vm.o(.text);
         src/sound.o(.text);
@@ -801,6 +801,10 @@ SECTIONS {
     .rodata ALIGN(4) : SUBALIGN(4) {
         src/data_805769C.o(.rodata);
         data/data.o(.rodata);
+        . = ORIGIN(rom) + 0x393B28;
+        src/data_08393B28.o(.rodata);
+        . = ORIGIN(rom) + 0x3988A8;
+        data/data1d.o(.rodata);
         . = ORIGIN(rom) + 0x61C784;
         src/data_script.o(.rodata);
         src/m4a_tables.o(.rodata);

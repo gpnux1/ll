@@ -150,7 +150,7 @@ extern u16 gCardSendId;
 extern u8 gUnk_03000240;
 extern u8 *gObjPoolPtr;
 extern u32 gUnk_03000248;
-/* ---- 输入/波浪 (sio_link.c): gKeysHeld=本帧按键(~REG_KEYINPUT, gGstate312=新按下),
+/* ---- 输入/波浪 (battle_task_services.c): gKeysHeld=本帧按键(~REG_KEYINPUT, gGstate312=新按下),
  * gKeyIgnoreTimer=输入屏蔽倒计时(sub_8018744 装 10 帧); gWave*=BattleFx_Init 参数 */
 extern u16 gKeysHeld;
 extern u16 gGstate312;
@@ -233,7 +233,7 @@ typedef struct
 extern Unk_03000348 gDialogCtx[];
 
 extern u16 gFlashFlags;
-/* ---- 逐行 BG 波浪滚动引擎 (sio_link.c, 与 SIO 无关): WaveTablePtr=运行时生成波形表指针
+/* ---- 逐行 BG 波浪滚动引擎 (battle_task_services.c, 与 SIO 无关): WaveTablePtr=运行时生成波形表指针
  * (常指 gUnk_02036EC0), WaveAngle/AngleVel=相位/步进(%360), WaveRowOffset=逐行偏移表,
  * WaveBgHofsTbl/VofsTbl=BG HOFS/VOFS 寄存器地址表 */
 extern u16 gWaveAngle;
@@ -379,7 +379,7 @@ extern s8 gMenuSelSlot0;        ///< 0x03000814 (原 gUnk_03000814) 选择槽 0 
 extern s8 gMenuSelSlot1;        ///< 0x03000815 (原 gUnk_03000815) 选择槽 1 (恒 -1)
 extern u8 gMenuWindowPhase;     ///< 0x03000816 (原 gUnk_03000816) 菜单窗口相位 (0=活动 1=开启中 2=关闭中)
 extern u16 gMenuWindowFlags;    ///< 0x03000818 (原 gUnk_03000818) 窗口标志 (bit0x1000=窗口开启)
-/* ---- BattleTask 物件演出引擎工作区 (sub_804442C 复位; handler=event_actor/event_hub/cutscene_mgr):
+/* ---- BattleTask 物件演出引擎工作区 (sub_804442C 复位; handler=battle_stage_actor/battle_stage_dialogue/battle_stage_effects):
  * gObjActStep=步骤PC(0起手/1-2动画/5-8等待/9收尾/0x12-0x1F细分), SavedF2A/SavedPal=动画恢复参数,
  * StepTimer=步骤帧计数(插值t), Result=演出结果, SavedX/Y=原始坐标, GroupCount/GroupSlots=多对象
  * 组登记(低4位=池槽), ActWait*=等待窗互斥(全0=放行 sub_80444E8), SceneFadeOut/In=场景淡出/入量,
@@ -391,7 +391,7 @@ extern u8 gObjActStepTimer;
 extern u16 gObjActResult;
 extern u8 gObjActSavedX;
 extern u8 gObjActSavedY;
-/* 当前动作候选目标槽位表 (0xC 项: 槽号; sub_80489E8 输出 — event_hub:634 mode1 敌侧,
+/* 当前动作候选目标槽位表 (0xC 项: 槽号; sub_80489E8 输出 — battle_stage_dialogue:634 mode1 敌侧,
  * sub_8032EA0 mode0 我侧, 消费者按 [i]*0xC8 取目标) */
 extern u8 gTargetSlotList[];
 extern u8 gTargetSlotCount;   /* 候选数 (sub_80489E8 返回值) */
@@ -468,6 +468,8 @@ extern u8 gStatRecalcKind;
 extern u8 gFxReqTimer;
 extern u8 gFxReqKind;
 extern u8 gFxReqFrames;
+extern u8 gFxReqCounter;
+#define gUnk_03000904 gFxReqCounter
 extern u16 gFxReqAnimIdx;
 extern u16 gSkillHealAmount;
 extern u8 gBattleIntroState;      ///< 战斗开场 BGM/淡入演出状态机 (sub_8049C1C): 0..4
@@ -518,7 +520,7 @@ extern u8 gUnk_03000AE5; ///< 同 gUnk_03000AE4: 仅 sub_804B288 清零, 无读�
  * 0x03000BE8 = BG 调色板动画表 (目的 0x05000000 = BG 调色板 RAM / 镜像 0x02036CC0); 布局相同。
  * ⚠ 2026-09-14 纠正: 旧命名 gBgPalAnim(AE8)/gObjPalAnim(BE8) 的 BG/OBJ 标签与 GBA 硬件互换
  * (E0: BG palette=0x05000000..0x1FF, OBJ palette=0x05000200..0x3FF; E2: AE8 系槽全部经
- * headA.palSlot 作精灵调色板装载/释放 — battle_obj_core.c:153/2672, event_hub.c:92 等), 已互换。
+ * headA.palSlot 作精灵调色板装载/释放 — battle_object_engine.c:153/2672, battle_stage_dialogue.c:92 等), 已互换。
  * ctrl 低 4 位 = opcode: 0=空(0xFF), 1=流式(sub_804B3C0), 2=精灵动画(sub_804B458),
  * 3=淡变(sub_804B4D0); bit4=0x10 方向, bit5=0x20 禁止颜色重置, bit6=0x40 循环方向。
  * RGB 增量 (dR/dG/dB) 与 shift 供 sub_804B56C 做 src + delta*weight>>shift 插值。 */

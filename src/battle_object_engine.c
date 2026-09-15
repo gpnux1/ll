@@ -488,8 +488,8 @@ void sub_801CA08(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
     if (obj->variantClass == 5)
         flag |= 0x20;
     sub_801B81C(&obj->headA, obj->headA.f_2B, obj->headA.f_2C, f2a, f35,
-                gUnk_08393B28[idx].field_0, gUnk_08393B28[idx].field_4,
-                gUnk_08393B28[idx].field_8, gUnk_08393B28[idx].field_A, flag);
+                (u32)gUnk_08393B28[idx].animScriptPtr, (u32)gUnk_08393B28[idx].palettePtr,
+                gUnk_08393B28[idx].gfxBaseIdx, gUnk_08393B28[idx].gfxTotal, flag);
 }
 // @ 0x0801CBA4
 INCLUDE_ASM("asm/nonmatchings", sub_801CBA4);
@@ -502,7 +502,7 @@ void *memcpy(void *, const void *, unsigned long);
 void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
 {
     u8 *p = obj->animPtr;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     u16 flag;
     u16 idx;
     u16 v1;
@@ -528,9 +528,9 @@ void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
             idx = *(u16 *)(p + 2);
             entry = &gUnk_08393B28[idx];
             flag = 2;
-            v1 = *(u16 *)((u8 *)entry + 0xC);
+            v1 = *(u16 *)((const u8 *)entry + 0xC);
             obj->f_B4 = v1;
-            v2 = *(u16 *)((u8 *)entry + 0xE);
+            v2 = *(u16 *)((const u8 *)entry + 0xE);
             obj->f_B6 = v2;
             break;
         case 2:
@@ -545,16 +545,16 @@ void sub_801CE80(BattleObj *obj, u8 kind, u16 f2a, u8 f35, u8 arg5)
             idx = *(u16 *)(p8 + off);
             entry = &gUnk_08393B28[idx];
             flag = 2;
-            v1 = *(u16 *)((u8 *)entry + 0xC);
+            v1 = *(u16 *)((const u8 *)entry + 0xC);
             obj->f_B4 = v1;
-            v2 = *(u16 *)((u8 *)entry + 0xE);
+            v2 = *(u16 *)((const u8 *)entry + 0xE);
             obj->f_B6 = v2;
             break;
         }
     }
     if (obj->slot == 0x78)
         flag |= 0x20;
-    sub_801B81C(&obj->headA, obj->headA.f_2B, obj->headA.f_2C, f2a, f35, entry->field_0, entry->field_4, entry->field_8, entry->field_A, flag);
+    sub_801B81C(&obj->headA, obj->headA.f_2B, obj->headA.f_2C, f2a, f35, (u32)entry->animScriptPtr, (u32)entry->palettePtr, entry->gfxBaseIdx, entry->gfxTotal, flag);
 }
 // @ 0x0801CF90
 /* 战斗对象 UI 槽位更新 (BattleTask_Run 对 [0x03000244] 池 0xC8 步长逐槽调用):
@@ -1105,7 +1105,7 @@ void sub_801DB3C(BattleObj *arg0, u8 arg1, u16 arg2)
     u8 delta;
     u16 newval;
     Unk_0839B2B0 *t1;
-    ObjAnimEntry *t2;
+    const ObjAnimEntry *t2;
 
     if (arg2 <= 2)
     {
@@ -1121,7 +1121,7 @@ void sub_801DB3C(BattleObj *arg0, u8 arg1, u16 arg2)
     {
         t2 = &gUnk_08393B28[arg2];
         sub_801B81C(&arg0->headB, arg0->posX, arg0->posY, 0xC0 << 2, 0xE,
-                    t2->field_0, t2->field_4, t2->field_8, t2->field_A, 4);
+                    (u32)t2->animScriptPtr, (u32)t2->palettePtr, t2->gfxBaseIdx, t2->gfxTotal, 4);
     }
     arg0->headB.f_2A = 3;
     newval = 0x2000 | arg0->state;
@@ -1257,7 +1257,7 @@ void sub_801DE44(void)
 // @ 0x0801DEDC
 void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
 {
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     u8 *anim;
     int off;
     u16 sub;
@@ -1305,7 +1305,7 @@ void sub_801DEDC(BattleObj *arg0, BattleObj *arg1)
 // @ 0x0801DF90
 void sub_801DF90(BattleObj *arg0, BattleObj *arg1)
 {
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     int off;
     u8 *anim;
     s8 kind = arg0->fxKind;
@@ -1438,7 +1438,7 @@ static inline void Inl_QueuePushObj(BattleObj *obj)
 u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
 {
     u8 flags[7];
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     u16 idx;
     s32 t;
     u32 result;
@@ -1463,12 +1463,12 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
         break;
     }
 
-    switch (*(u16 *)((u8 *)entry + 0x10))
+    switch (*(u16 *)((const u8 *)entry + 0x10))
     {
     case 0:
         if (*(s16 *)&arg1->hp - *(s16 *)&arg1->dmgAmount <= 0)
         {
-            arg1->hp = *(u16 *)((u8 *)entry + 0x10);
+            arg1->hp = *(u16 *)((const u8 *)entry + 0x10);
             wrapped = 1;
         }
         else
@@ -1534,7 +1534,7 @@ u32 sub_801E4D4(BattleObj *arg0, BattleObj *arg1)
 u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
 {
     u8 flags[7];
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     int off;
     u8 *anim;
     u32 result;
@@ -1559,12 +1559,12 @@ u32 sub_801E690(BattleObj *arg0, BattleObj *arg1)
         break;
     }
 
-    switch (*(u16 *)((u8 *)entry + 0x10))
+    switch (*(u16 *)((const u8 *)entry + 0x10))
     {
     case 0:
         if (*(s16 *)&arg1->hp - *(s16 *)&arg1->dmgAmount <= 0)
         {
-            arg1->hp = *(u16 *)((u8 *)entry + 0x10);
+            arg1->hp = *(u16 *)((const u8 *)entry + 0x10);
             wrapped = 1;
         }
         else
@@ -2004,7 +2004,7 @@ u8 sub_801F884(BattleObj *obj)
     s32 t;
     u8 *anim;
     int off;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     if (obj->slot <= 0xA)
     {
@@ -2439,9 +2439,9 @@ void sub_802093C(BattleObj *arg0)
 // @ 0x08020974
 void sub_8020974(ObjHead *arg0, u16 arg1, u16 arg2, u8 arg3, u16 arg4)
 {
-    ObjAnimEntry *entry = &gUnk_08393B28[arg1];
+    const ObjAnimEntry *entry = &gUnk_08393B28[arg1];
 
-    sub_801B81C(arg0, arg0->f_2B, arg0->f_2C, arg2, arg3, entry->field_0, entry->field_4, entry->field_8, entry->field_A, arg4);
+    sub_801B81C(arg0, arg0->f_2B, arg0->f_2C, arg2, arg3, (u32)entry->animScriptPtr, (u32)entry->palettePtr, entry->gfxBaseIdx, entry->gfxTotal, arg4);
 }
 
 // @ 0x080209C8
@@ -2669,13 +2669,13 @@ void sub_8020C58(BattleObj *entries, u32 arg1)
 void sub_8020CC4(void *arg0, u8 arg1, u8 arg2, u16 arg3, u8 arg4, u16 arg5, u16 arg6)
 {
     u16 newval;
-    sub_801B81C((ObjHead *)((u8 *)arg0 + 0x3C), arg1, arg2, arg3, arg4, gUnk_08393B28[arg5].field_0, gUnk_08393B28[arg5].field_4,
-                gUnk_08393B28[arg5].field_8, gUnk_08393B28[arg5].field_A, arg6);
+    sub_801B81C((ObjHead *)((u8 *)arg0 + 0x3C), arg1, arg2, arg3, arg4, (u32)gUnk_08393B28[arg5].animScriptPtr, (u32)gUnk_08393B28[arg5].palettePtr,
+                gUnk_08393B28[arg5].gfxBaseIdx, gUnk_08393B28[arg5].gfxTotal, arg6);
     newval = 0x2000 | *(u16 *)((u8 *)arg0 + 0xB0);
     *(u16 *)((u8 *)arg0 + 0xB0) = newval;
 }
-/* ---- 场景对象 API (0x08020D50..0x080210C0) 自 scene_obj_fx.c 迁入 (2026-09-13 defcdgg-zcode):
- * 本段是 scene_obj_fx.c 的连续前缀, 链接序 battle_obj_core.o → scene_obj_fx.o 不变, ROM 布局不受影响。
+/* ---- 场景对象 API (0x08020D50..0x080210C0) 自 battle_menu_windows.c 迁入 (2026-09-13 defcdgg-zcode):
+ * 本段是 battle_menu_windows.c 的连续前缀, 链接序 battle_object_engine.o → battle_menu_windows.o 不变, ROM 布局不受影响。
  * 对象参数由 void 指针 / u8 指针 / Unk_8020F4C 指针统一为 BattleObj 指针; Unk_8020F4C 是 BattleObj 的冗余别名视图, 已删除
  * (field_24=headA.kindFlags, field_2A=headA.f_1E, field_35=headA.palSlot, field_36=headA.f_2A,
  * field_37/38=headA.f_2B/f_2C, field_B0=state, field_BB/BC/BD/BE=memberIdx/fxKind/f_BD/slot)。 ---- */

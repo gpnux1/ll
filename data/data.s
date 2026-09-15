@@ -24,5 +24,7 @@ rom_data:
 
 	.global gUnk_0838EEF4
 gUnk_0838EEF4:
-	/* 0x0838EEF4..0x0861C784 由 data.s 提供; 0x0861C784 起为 data/script_data.s */
-	.incbin "baserom.gba", 0x38EEF4, 0x61C784 - 0x38EEF4
+	/* 0x0838EEF4..0x08393B28 由 data.s 提供;
+	   0x08393B28 起为 src/data_08393B28.c;
+	   0x083988A8 起为 data/data1d.s */
+	.incbin "baserom.gba", 0x38EEF4, 0x393B28 - 0x38EEF4

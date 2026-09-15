@@ -1741,7 +1741,7 @@ const u8 gStatGrowthTail[] = INCBIN_U8("data/raw_data/gStatGrowthTail.bin");
  *       (0-6 → sub_80466F0 7 类跳转表, 0xF=特殊; 道具 5=全队恢复 — sub_8010300)
  *   [2] bit7=道具列表隐藏 (sub_800F128), bit0-3=第二属性 (sub_8048984), bit4-6 未定
  *   [3] effectAmount: 道具=HP 回复量 (sub_8010300 → gItemUseHealHp); 技能路径未见读者
- *   [4] mpCost: 使用 MP 消耗 (battle_engine 扣减 obj->mp; ItemGetUsePower 与成员 MP 比较;
+ *   [4] mpCost: 使用 MP 消耗 (battle_flow_rules 扣减 obj->mp; ItemGetUsePower 与成员 MP 比较;
  *       sub_8048934/sub_8045B90 装备减耗 -2/÷2; sub_8023820 MP>=cost 判可用)
  * 消费端: ItemFindSlot / ItemGetValue / Stats_BuildSkillList / sub_800F128 / sub_8010300 /
  * sub_8045A10 / sub_8045B90 / sub_80466F0 / sub_8048934 / sub_8048984 / sub_80489A4。 */

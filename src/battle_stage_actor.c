@@ -57,8 +57,8 @@ u32 sub_802698C(BattleObj *obj)
         case 2:
         {
             sub_801B81C(&obj->headB, 0x80, 0x77, 0x2EA, 0xE,
-                        gUnk_08393B28[0x2C1].field_0, gUnk_08393B28[0x2C1].field_4,
-                        gUnk_08393B28[0x2C1].field_8, gUnk_08393B28[0x2C1].field_A, 4);
+                        (u32)gUnk_08393B28[0x2C1].animScriptPtr, (u32)gUnk_08393B28[0x2C1].palettePtr,
+                        gUnk_08393B28[0x2C1].gfxBaseIdx, gUnk_08393B28[0x2C1].gfxTotal, 4);
             obj->state |= 0x2000;
             obj->headB.f_2A = 2;
             gObjActStepTimer = 0;
@@ -91,8 +91,8 @@ u32 sub_802698C(BattleObj *obj)
             {
                 obj->headB.kindFlags &= 0xEFFF;
                 sub_801B81C(&obj->headB, 0x74, 0x80, 0x2EA, 0xE,
-                            gUnk_08393B28[0x2C2].field_0, gUnk_08393B28[0x2C2].field_4,
-                            gUnk_08393B28[0x2C2].field_8, gUnk_08393B28[0x2C2].field_A, 4);
+                            (u32)gUnk_08393B28[0x2C2].animScriptPtr, (u32)gUnk_08393B28[0x2C2].palettePtr,
+                            gUnk_08393B28[0x2C2].gfxBaseIdx, gUnk_08393B28[0x2C2].gfxTotal, 4);
                 obj->headB.kindFlags |= 0x2000;
                 obj->state |= 0x2000;
                 obj->headB.f_2A = 2;
@@ -170,8 +170,8 @@ u32 sub_8026D08(BattleObj *obj)
             gObjActSavedF2A = obj->headA.f_1E;
             gObjActSavedPal = obj->headA.palSlot;
             sub_801B81C(&obj->headB, 0xA, 0x13, 0, 0xE,
-                        gUnk_08393B28[0x2C8].field_0, gUnk_08393B28[0x2C8].field_4,
-                        gUnk_08393B28[0x2C8].field_8, gUnk_08393B28[0x2C8].field_A, 6);
+                        (u32)gUnk_08393B28[0x2C8].animScriptPtr, (u32)gUnk_08393B28[0x2C8].palettePtr,
+                        gUnk_08393B28[0x2C8].gfxBaseIdx, gUnk_08393B28[0x2C8].gfxTotal, 6);
             obj->state |= 0x2000;
             obj->headB.f_2A = 0;
             gObjActStepTimer = 0;

@@ -203,7 +203,7 @@ void sub_804DFD8(u16 *arg0, u8 arg1, u8 arg2, u8 *arg3, u8 arg4, u8 arg5, u8 arg
 /* 物件使用演出状态机 (gItemUseFxState 0..13)。返回 1 = 演出结束。
  * 前段按 obj[0xA4] (0xDD..0xE4) 选出一对参数 (a, b) 供 case 4 传给 sub_801EEE4;
  * 后段是状态机: 0 起手→1 播动画→2 等 0x1000 →3 等 0x800 →4 播完→13 收尾。
- * 与 event_hub.c sub_8034440 / event_actor.c 的同族状态机同型 (zero/keys 临时同样式)。 */
+ * 与 battle_stage_dialogue.c sub_8034440 / battle_stage_actor.c 的同族状态机同型 (zero/keys 临时同样式)。 */
 u8 ItemUseFx_RunConsumable(BattleObj *arg0, u32 arg1)
 {
     u8 result;

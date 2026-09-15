@@ -27,7 +27,7 @@ void sub_804D1B4(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 15)
@@ -63,7 +63,7 @@ void sub_804D260(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 10)
@@ -100,7 +100,7 @@ void sub_804D310(BattleObj *obj, BattleObj *pool)
     u8 value;
     u8 rand;
     u8 *flag;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 10)
@@ -134,7 +134,7 @@ void sub_804D3A0(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 13)
@@ -170,7 +170,7 @@ void sub_804D44C(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 10)
@@ -206,7 +206,7 @@ void sub_804D4FC(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -252,7 +252,7 @@ void sub_804D5B4(BattleObj *obj, BattleObj *pool)
     u8 value;
     u8 count;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     u8 i;
     unsigned int victory;
 
@@ -314,7 +314,7 @@ void sub_804D708(BattleObj *obj, BattleObj *pool)
     u8 value;
     u8 rand;
     u8 *flag;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 < count * 10)
@@ -350,7 +350,7 @@ void sub_804D798(BattleObj *obj, BattleObj *pool)
     u8 value;
     u8 rand;
     u8 *flag;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     unsigned int v;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
@@ -388,7 +388,7 @@ void sub_804D840(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -434,7 +434,7 @@ void sub_804D8F4(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     u16 gold;
     u8 lucky;
     unsigned int v;
@@ -487,7 +487,7 @@ void sub_804DA04(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     unsigned int kind;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
@@ -528,7 +528,7 @@ void sub_804DABC(BattleObj *obj, BattleObj *pool)
     u8 v;
     u8 *flag;
     u8 *subIdx;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
     if (Rng_LcgNext() % 0x65 <= 0x45)
@@ -569,7 +569,7 @@ void sub_804DB64(BattleObj *obj, BattleObj *pool)
     u8 rand;
     s8 *flag;
     unsigned int v;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     unsigned int kind;
 
     count = sub_80489E8(pool, values, 0, 0x6F);
@@ -616,7 +616,7 @@ void sub_804DC24(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     s8 *flag;
     unsigned int v;
 
@@ -662,7 +662,7 @@ void sub_804DCD8(BattleObj *obj, BattleObj *pool)
     u8 count;
     u8 value;
     u8 rand;
-    ObjAnimEntry *entry;
+    const ObjAnimEntry *entry;
     s8 *flag;
     u8 zero;
 

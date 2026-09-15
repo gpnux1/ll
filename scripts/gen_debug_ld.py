@@ -15,7 +15,7 @@
   - IWRAM/EWRAM: 与正式版一致 (不依赖优化级别)。
 
 数据 blob 内指向 GAP 文件函数的指针由 scripts/fix_debug_rom.py 链接后修补。
-用法: python3 scripts/gen_debug_ld.py [--gap "event_hub event_actor ..."]
+用法: python3 scripts/gen_debug_ld.py [--gap "battle_stage_dialogue battle_stage_actor ..."]
 """
 import argparse
 import re
@@ -32,11 +32,11 @@ TEXT_ORDER = [
     "src/engine_core.o", "src/scene_mgr.o", "src/sprite_engine.o",
     "src/vram_transfer.o", "src/map_view.o", "src/anim_slot.o",
     "src/player_stats.o", "src/menu_ui.o", "src/save.o", "src/save_menu.o",
-    "src/text_engine.o", "src/sio_link.o", "src/battle_gfx_load.o",
-    "src/battle_obj_core.o", "src/scene_obj_fx.o", "src/event_actor.o",
-    "src/scene_interact.o", "src/event_hub.o", "src/cutscene_mgr.o",
-    "src/obj_state.o", "src/battle_engine.o", "src/battle_anim.o",
-    "src/battle_rewards.o", "src/obj_pool.o", "src/battle_fx.o",
+    "src/text_engine.o", "src/battle_task_services.o", "src/battle_gfx_load.o",
+    "src/battle_object_engine.o", "src/battle_menu_windows.o", "src/battle_stage_actor.o",
+    "src/battle_stage_transition.o", "src/battle_stage_dialogue.o", "src/battle_stage_effects.o",
+    "src/battle_stage_state.o", "src/battle_flow_rules.o", "src/battle_palette_wipe.o",
+    "src/battle_special_targets.o", "src/battle_itemuse_rewards.o", "src/battle_fx.o",
     "src/script_vm.o", "src/sound.o",
     "asm/m4a_asm.o", "src/m4a.o", "asm/libagbsyscall.o", "src/agb_sram.o",
     "libgcc", "libc",
@@ -81,7 +81,7 @@ def main() -> int:
             libm = re.match(r"^\*(libgcc|libc)\.a:(\S+)\(\.text\);$", s)
             drop = False
             if om:
-                # 归一成短名 (event_hub) 与 gap 名单比较
+                # 归一成短名 (battle_stage_dialogue) 与 gap 名单比较
                 short = re.sub(r"^(?:src|asm)/", "", om.group(1))
                 short = re.sub(r"\.o$", "", short)
                 drop = short in gap

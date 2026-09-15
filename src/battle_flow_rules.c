@@ -711,8 +711,8 @@ void sub_8045B90(BattleObj *obj, u8 index)
 // equipSlots[4]/[5] ==0xCB/0xBF 判定 + equipSlots[0]==0x15/0x3B/0x3C 细分; >10 落 default
 // (无 default 分支直落函数尾)。
 // 调用者 = 玩家侧装载器 sub_80200E8 (装完 equipSlots/skills 后立即调用) 与
-// battle_obj_core.c:2274; 写值 0x30..0x35 / 0x37..0x3B (每槽基值+换装变体) / 0xFF。
-// 注: +0x8A 落在 animPtr(+0x88..0x8B) 内部, 且 +0x8A..0x8B 又被 battle_obj_core.c:633
+// battle_object_engine.c:2274; 写值 0x30..0x35 / 0x37..0x3B (每槽基值+换装变体) / 0xFF。
+// 注: +0x8A 落在 animPtr(+0x88..0x8B) 内部, 且 +0x8A..0x8B 又被 battle_object_engine.c:633
 // (`*(u16*)&obj->animPtr + 1`) 与 sub_80488CC:1518 按 u16 阈值读取, 布局未定,
 // 故按本文件 240 行的既定做法保留裸偏移; +0x8D/0x91/0x92 已改用 obj->equipSlots。
 void sub_8045BF4(BattleObj *obj)
@@ -1355,7 +1355,96 @@ u16 sub_8046F0C(BattleObj *obj)
     }
 }
 // @ 0x08047024
-INCLUDE_ASM("asm/nonmatchings", sub_8047024);
+// 战斗对象属性结算器 (带装备特技被动修正):
+// 按 kind 读取基础属性 (同 sub_8046F0C 0..12: lv, hp, maxHp, mp, maxMp, atc, def, agl, men, res, noa, posX, posY),
+// 并在 5..9 攻防抗性上按 sub_804E76C 检查装备被动特技修正:
+// - atc (5): 0x1E 加成 10% (+ret/10), 0x0C 弱化 40% (-ret/10*4), 0x0D 弱化 50% (-ret/10*5);
+// - def (6): 0x1E 加成 10% (+ret/10);
+// - agl (7): 无额外修正;
+// - men (8): 0x1F 加成 10% (+ret/10);
+// - res (9): 0x1F 加成 10% (+ret/10).
+// 越界 kind (>12) 返回 0.
+u16 sub_8047024(BattleObj *obj, u8 kind)
+{
+    u16 bonus;
+    u16 ret = 0;
+
+    switch (kind)
+    {
+    case 0:
+        ret = obj->lv;
+        break;
+    case 1:
+        ret = obj->hp;
+        break;
+    case 2:
+        ret = obj->maxHp;
+        break;
+    case 3:
+        ret = obj->mp;
+        break;
+    case 4:
+        ret = obj->maxMp;
+        break;
+    case 5:
+        ret = obj->atc + obj->statMods[0];
+        if (sub_804E76C(obj, 0, 0x1E) >= 0)
+        {
+            bonus = ret / 10;
+            ret = ret + bonus;
+        }
+        if (sub_804E76C(obj, 0, 0x0C) >= 0)
+        {
+            bonus = (ret / 10) * 4;
+            ret = ret - bonus;
+        }
+        if (sub_804E76C(obj, 0, 0x0D) >= 0)
+        {
+            bonus = ret / 10;
+            bonus = bonus * 5;
+            ret = ret - bonus;
+        }
+        break;
+    case 6:
+        ret = obj->def + obj->statMods[1];
+        if (sub_804E76C(obj, 0, 0x1E) >= 0)
+        {
+            bonus = ret / 10;
+            ret = ret + bonus;
+        }
+        break;
+    case 7:
+        ret = obj->agl + obj->statMods[2];
+        break;
+    case 8:
+        ret = obj->men + obj->statMods[3];
+        if (sub_804E76C(obj, 0, 0x1F) >= 0)
+        {
+            bonus = ret / 10;
+            ret = ret + bonus;
+        }
+        break;
+    case 9:
+        ret = obj->res + obj->statMods[4];
+        if (sub_804E76C(obj, 0, 0x1F) >= 0)
+        {
+            bonus = ret / 10;
+            ret = ret + bonus;
+        }
+        break;
+    case 10:
+        ret = obj->noa;
+        break;
+    case 11:
+        ret = obj->posX;
+        break;
+    case 12:
+        ret = obj->posY;
+        break;
+    }
+
+    return ret;
+}
 // @ 0x080471AC
 INCLUDE_ASM("asm/nonmatchings", sub_80471AC);
 // @ 0x080472E8
@@ -1365,7 +1454,85 @@ INCLUDE_ASM("asm/nonmatchings", sub_804753C);
 // @ 0x080476DC
 INCLUDE_ASM("asm/nonmatchings", sub_80476DC);
 // @ 0x08047B1C
-INCLUDE_ASM("asm/nonmatchings", sub_8047B1C);
+u8 sub_8047B1C(BattleObj *obj)
+{
+    u8 ret = 0;
+
+    switch (gFxReqTimer)
+    {
+    case 0:
+        sub_8020974(&obj->headA, gFxReqAnimIdx, 0x1B4, 0xD, 2);
+        gFxReqCounter = 0;
+        gFxReqTimer = 1;
+        break;
+
+    case 1:
+        if (!(obj->headA.kindFlags & 0x800))
+        {
+            Sfx_Play(0x19, 1, 0);
+            gFxReqTimer = 2;
+        }
+        break;
+
+    case 2:
+        if (obj->headA.kindFlags & 0x1000)
+        {
+            sub_804C3A4(obj->headA.palSlot, sub_801B954(&obj->headA));
+            sub_8020974(&obj->headA, gFxReqAnimIdx + 1, 0x1B4, 0xD, 0x102);
+            gFxReqTimer = 3;
+        }
+        break;
+
+    case 3:
+        if (!(obj->headA.kindFlags & 0x800))
+        {
+            obj->headA.kindFlags &= ~0x100;
+            gFxReqTimer = 4;
+        }
+        break;
+
+    case 4:
+        if (gFxReqCounter <= 2)
+        {
+            if (obj->headA.kindFlags & 0x1000)
+            {
+                sub_804C3A4(obj->headA.palSlot, sub_801B954(&obj->headA));
+                gFxReqCounter++;
+                obj->headA.kindFlags &= ~0x1000;
+            }
+        }
+        else
+        {
+            sub_8020974(&obj->headA, gFxReqAnimIdx + 2, 0x1B4, 0xD, 0x102);
+            gFxReqTimer = 5;
+        }
+        break;
+
+    case 5:
+        if (!(obj->headA.kindFlags & 0x800))
+        {
+            obj->headA.kindFlags &= ~0x100;
+            gFxReqTimer = 6;
+        }
+        break;
+
+    case 6:
+        if (obj->headA.kindFlags & 0x1000)
+        {
+            sub_804C3A4(obj->headA.palSlot, sub_801B954(&obj->headA));
+            obj->headA.kindFlags |= 0x100;
+            gFxReqTimer = 11;
+        }
+        break;
+
+    case 11:
+        sub_804753C(obj, gFxReqKind, gFxReqFrames);
+        ret = 1;
+        break;
+    }
+
+    return ret;
+}
 // @ 0x08047D28
 u8 sub_8047D28(BattleObj *obj, u8 mask)
 {

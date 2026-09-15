@@ -2038,12 +2038,12 @@ void CutsceneAnim_PlayFrame(u16 animEntityId)
         animIdx = gUnk_083989FC[animEntityId].animIdx;
     }
 
-    gCutsceneAnimScripts[slot] = gUnk_08393B28[animIdx].field_0;
+    gCutsceneAnimScripts[slot] = (u32)gUnk_08393B28[animIdx].animScriptPtr;
     gVramBufferPointers[slot] = (u32)CUTSCENE_ANIM_BASE;
     gCutsceneAnimFlags[slot] = 0x80;
     gCutsceneAnimSlots[slot] = 5;
-    gCutsceneAnimPals[slot] = (u8 *)gUnk_08393B28[animIdx].field_4;
-    LZ77UnCompWram(gUnk_087EBE00[gUnk_08393B28[animIdx].field_8], CUTSCENE_ANIM_BASE);
+    gCutsceneAnimPals[slot] = (u8 *)gUnk_08393B28[animIdx].palettePtr;
+    LZ77UnCompWram(gUnk_087EBE00[gUnk_08393B28[animIdx].gfxBaseIdx], CUTSCENE_ANIM_BASE);
 
     if (animEntityId > 0x7F)
     {

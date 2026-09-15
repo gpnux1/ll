@@ -555,29 +555,33 @@ typedef struct BattleObj
 } BattleObj;
 
 /* 0x08393B28 战斗对象动画/特效资源表 (E0: 992 项 × 0x14B, 0x08393B28..0x083988A8 全部
- * field_0 为合法 ROM 指针; 项内两个 ROM 指针 + 图形参数)。BattleObj.animPtr 数据块中的
+ * animScriptPtr 为合法 ROM 命令流指针; 项内两个 ROM 指针 + 图形参数)。BattleObj.animPtr 数据块中的
  * u16 索引 (+0/+2/+6/+8+idx*2/+0x1A/+0x20) 均指向本表 (801CA08/801CE80/801EA70/801F884 族)。
- * field_0/field_4 = ROM 数据指针, field_8/field_A/field_C/field_E = 装配参数
+ * animScriptPtr/palettePtr = ROM 数据指针, gfxBaseIdx/gfxTotal/field_C/field_E = 装配参数
  * (sub_801B81C headA/headB; field_C/E 另复制到 obj->f_B4/f_B6, 801CA08 case3/4, 801CE80 case1)。
+ *   animScriptPtr (+0x00) -> ObjHead.scriptPtr; 指向 u16 动画/命令流头。
+ *   palettePtr    (+0x04) -> ObjHead.palBitsPtr; 指向调色板 DMA 源。
+ *   gfxBaseIdx    (+0x08) -> ObjHead.gfxBaseIdx; gUnk_087EBE00 的 LZ77 图形块索引基址。
+ *   gfxTotal      (+0x0A) -> ObjHead.gfxTotal; 分步装载图形片数。
  * targetMode (+0x10, 原 field_10) = 目标作用模式, E2 三组独立消费者:
  *   - sub_801F884 目标匹配键 (敌方 0xB..0x70): 0=取 +0xAC 原值, 1=0(调用者不过滤),
  *     2=低 nibble(==2→1), 3=高 nibble(==0x20→0x10);
  *   - sub_801DEDC/DF90/E4D4/E690 效果弹数字: 0=单体, 1=全场;
  *   - slot≥0x71 特殊对象目标选取族 (sub_804D1B4..804DCD8): 0=f_BD=随机存活候选, 1=f_BD=0。
- * 表值分布 (E0): 958×0, 24×1, 1×2, 9×3。 */
+ * 表值分布 (E0): targetMode 958×0, 24×1, 1×2, 9×3。 */
 typedef struct ObjAnimEntry
 {
-    u32 field_0;
-    u32 field_4;
-    u16 field_8;
-    u16 field_A;
+    const u16 *animScriptPtr; /* +0x00 ObjHead.scriptPtr 源 */
+    const u8 *palettePtr; /* +0x04 ObjHead.palBitsPtr 源 */
+    u16 gfxBaseIdx; /* +0x08 gUnk_087EBE00 索引基址 */
+    u16 gfxTotal; /* +0x0A 分步装载图形片数 */
     u16 field_C; /* 复制到 obj->f_B4 (语义未定) */
     u16 field_E; /* 复制到 obj->f_B6 (语义未定) */
     u16 targetMode;
-    u8 pad_12[2];
+    u16 pad_12;
 } ObjAnimEntry;
 
-extern ObjAnimEntry gUnk_08393B28[];
+extern const ObjAnimEntry gUnk_08393B28[];
 
 void ObjGfxLoad_Copy(ObjHead *, ObjHead *);
 void sub_801A684(ObjHead *);
@@ -635,7 +639,7 @@ void sub_801EE6C(BattleObj *);
 u8 sub_801EEE4();
 void sub_801F3FC();
 u8 sub_801F76C(BattleObj *); // 返回战斗对象动作类别 0-3 (唯一调用者 801EA70 按 u8 使用返回值; 体内按 r3 返回 0/1/2/3)
-u8 sub_801F884(BattleObj *); // 目标匹配键: f_BD 指向对象的 +0xAC 按槽号/fxKind/gUnk_08393B28.field_10 取原值或 nibble 映射 (0=调用者不过滤)
+u8 sub_801F884(BattleObj *); // 目标匹配键: f_BD 指向对象的 +0xAC 按槽号/fxKind/gUnk_08393B28.targetMode 取原值或 nibble 映射 (0=调用者不过滤)
 void sub_801FA10(BattleObj *, u8);
 void sub_801FAB8();
 void sub_801FEBC(BattleObj *, u16, u8);
@@ -920,12 +924,12 @@ void sub_8046C50();
 void sub_8046CD4();
 u8 sub_8046E18(u8 *, s32, s32); // 2026-09-11 zcode-engine: 宽参+窄局部 (经验71), 匹配调用方传参无截断证据
 u16 sub_8046F0C(BattleObj *obj); // 2026-09-11 zcode-engine: 调用点返回值按 u16 用 (lsls/lsrs #0x10), 无已匹配调用者
-u16 sub_8047024();
+u16 sub_8047024(BattleObj *obj, u8 kind);
 u8 sub_80471AC();
 u32 sub_80472E8();
 void sub_804753C(BattleObj *, u8, u8);
 u8 sub_80476DC();
-u8 sub_8047B1C();
+u8 sub_8047B1C(BattleObj *obj);
 u8 sub_8047D28(BattleObj *obj, u8 mask);
 u8 sub_8047DC8(BattleObj *obj);
 s32 sub_8047FCC(u16);

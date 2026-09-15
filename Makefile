@@ -130,7 +130,7 @@ rom: $(ROM)
 # ① rom region 8M->16M; ② .text 段剔除 GAP 名单文件 + 尾部补洞锚 (保数据起点
 #   0x0805769C 不漂移); ③ GAP 文件整体搬 0x08800000 空区; ④ 数据区与锚 A/B 原样保留
 # 数据区内指向 GAP 函数的指针由 fix_debug_rom.py 链接后修补 (见 DEBUG 修补规则)
-DBG_GAP ?= event_hub event_actor
+DBG_GAP ?= battle_stage_dialogue battle_stage_actor
 linker_debug.ld: linker.ld scripts/gen_debug_ld.py
 	@python3 scripts/gen_debug_ld.py --gap "$(DBG_GAP)"
 

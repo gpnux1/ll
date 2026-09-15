@@ -8200,3 +8200,21 @@ bytecmp 240B 全等 + fncheck OK 176B + 全量 make/sha1 通过 (812/1059, 76.7%
   bit10=等 DMA 完成, bit11=BG 图块待装载, bit12=跳过段0, bit14=放宽形态限制。
 - 验证: fncheck OK 204B (5 池重定位+7 bl 槽忽略); 23 条已排除实验见 handoff; SHA1 绿(全量 878/1059)。
 - 详见 `docs/handoffs/MATCH-8017FA4-20260914.md`。
+
+
+## gUnk_08393B28 数据表类型化 + C 数组化 — ✅ 2026-09-16 opencode-08393b28
+
+- 把 `0x08393B28` 战斗对象动画/特效资源表从 `data/data.s` blob 与 linker 绝对符号搬入 `src/data_08393B28.c`，定义为 `const ObjAnimEntry gUnk_08393B28[992]`，不使用 `INCBIN`。
+- `ObjAnimEntry` 应用语义类型/命名：`field_0` → `const u16 *animScriptPtr`，`field_4` → `const u8 *palettePtr`，`field_8` → `gfxBaseIdx`，`field_A` → `gfxTotal`；`field_C/field_E` 继续保留，因消费者语义未完全定型。
+- 拆分 blob：`data.s` 保留到 `0x08393B28`，新增 `data/data1d.s` 承接 `0x083988A8..0x0861C784`；`linker.ld` 用 `.rodata` 锚点固定新对象地址。
+- 更新 `battle_obj_core.c` / `battle_rewards.c` / `event_actor.c` / `sprite_engine.c` 中所有旧字段访问，指针参数传给 `sub_801B81C` 时增加 `(u32)` cast；raw 偏移读取保留原形状。
+- 验证：`make` + `sha1sum -c ll.sha1` 通过；关键函数 `sub_801CA08`、`sub_801CE80`、`sub_801DB3C`、`sub_801DEDC`、`sub_801DF90`、`sub_801E4D4`、`sub_801E690`、`sub_801F884`、`sub_8020974`、`sub_8020CC4`、`CutsceneAnim_PlayFrame` 全部 `fncheck OK`。
+- 详见 `docs/handoffs/DATA-08393B28-C-20260916.md`。
+
+
+## src 模块模型重划分 + C 文件改名 — 2026-09-16 opencode-module-rename
+
+- 依据函数体访问的池/状态/硬件/表，而非旧函数名，重新归类 `src/*.c`。本次不移动函数，只物理重命名 C 文件、linker 对象名、`functions.tsv` module 列，保持 ROM `.text` 顺序。
+- 主要改名：`sio_link.c` → `battle_task_services.c`；`battle_obj_core.c` → `battle_object_engine.c`；`scene_obj_fx.c` → `battle_menu_windows.c`；`battle_rewards.c` → `battle_special_targets.c`；`obj_pool.c` → `battle_itemuse_rewards.c`；`battle_engine.c` → `battle_flow_rules.c`；`battle_anim.c` → `battle_palette_wipe.c`；`event_actor/event_hub/cutscene_mgr/obj_state/scene_interact` → `battle_stage_actor/battle_stage_dialogue/battle_stage_effects/battle_stage_state/battle_stage_transition`。
+- 同步 `linker.ld`、`Makefile DBG_GAP`、`scripts/gen_debug_ld.py`、当前头注释和 `functions.tsv` module 列；重新生成 `linker_debug.ld`。
+- 验证：`make` + `sha1sum -c ll.sha1` 通过；纯文件名/模块名重划分未改变函数字节。详见 `docs/MODULE_MODEL_20260916.md`。
