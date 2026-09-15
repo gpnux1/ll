@@ -1147,7 +1147,51 @@ void sub_804612C(BattleObj *obj, u16 arg1, u16 arg2)
     sub_801D12C((BattleObj *)obj, 0);
 }
 // @ 0x0804621C
-INCLUDE_ASM("asm/nonmatchings", sub_804621C);
+// 敌方对象池槽位筛选:
+// 清空 outSlots[0..6] 与 localSlots[0..6]; 收集活动敌方槽位 (5..11, sub_8045F10==2) 到 localSlots;
+// 再按 (pool[slot]->pad_AC[0] & mask) == (obj->pad_AC[0] & mask) 过滤出匹配槽位写入 outSlots 并返回数量。
+u8 sub_804621C(BattleObj *obj, u8 *outSlots, u8 mask)
+{
+    u8 localSlots[12];
+    u8 *buf;
+    BattleObj *pool;
+    u8 targetVal;
+    u8 count;
+    u8 outCount;
+    u8 i;
+    u8 j;
+    u8 endSlot = 12;
+
+    targetVal = obj->pad_AC[0] & mask;
+    pool = (BattleObj *)GetObjPool();
+
+    for (j = 0; j <= 6; j++)
+        outSlots[j] = 0;
+
+    buf = localSlots;
+    count = 0;
+    for (i = 0; i <= 6; i++)
+        buf[i] = 0;
+
+    i = 5;
+    do {
+        if (sub_8045F10(&pool[i], 0x1FF) == 2) {
+            buf[count] = i;
+            count++;
+        }
+        i++;
+    } while (i < endSlot);
+
+    i = count;
+    outCount = 0;
+    for (j = 0; j < i; j++) {
+        if ((pool[localSlots[j]].pad_AC[0] & mask) == targetVal) {
+            outSlots[outCount] = localSlots[j];
+            outCount++;
+        }
+    }
+    return outCount;
+}
 // @ 0x080462E4
 INCLUDE_ASM("asm/matchings", sub_80462E4); /* 函数清单修正: yaml=[1] 且 .s 已在 matchings/ (坑7) */
 // @ 0x08046480
@@ -2331,15 +2375,159 @@ u8 sub_8049C1C(u8 *arg0)
     return result;
 }
 // @ 0x08049D58
-INCLUDE_ASM("asm/nonmatchings", sub_8049D58);
+u8 sub_8049D58(u8 arg0)
+{
+    switch (gBattleIntroPhase)
+    {
+    case 0:
+    {
+        ObjHead *obj;
+
+        if (gBattleIntroState != 0)
+        {
+            obj = (ObjHead *)gBattleIntroObj;
+            if (!(obj->kindFlags & 0x800))
+                return sub_801B8AC(obj, obj->f_2D);
+        }
+        return arg0;
+    }
+    case 1:
+        break;
+    case 2:
+        if (gBattleIntroState > 1)
+        {
+            DmaCopy16(3, (void *)0x02035AC0, (void *)0x06007000, 0x800);
+            DmaWait(3);
+        }
+        break;
+    }
+}
 // @ 0x08049DF8
 INCLUDE_ASM("asm/nonmatchings", sub_8049DF8);
 // @ 0x0804A148
-INCLUDE_ASM("asm/nonmatchings", sub_804A148);
+void sub_804A148(void)
+{
+    BattleObj *pool;
+    u8 buf0[8];
+    u8 buf1[8];
+    u8 count0;
+    u8 count1;
+    u8 i;
+
+    pool = (BattleObj *)GetObjPool();
+    gTurnAilCount = 0;
+    gTurnAilMask = 0;
+
+    count0 = sub_80489E8(pool, buf0, 0, 0xFF);
+    count1 = sub_80489E8(pool, buf1, 1, 0xFF);
+
+    for (i = 0; i < count0; i++)
+    {
+        if (pool[buf0[i]].statusAil != 0)
+        {
+            gTurnAilMask |= pool[buf0[i]].statusAil;
+            gTurnAilSlots[gTurnAilCount] = buf0[i];
+            gTurnAilCount++;
+        }
+    }
+
+    for (i = 0; i < count1; i++)
+    {
+        if (pool[buf1[i]].statusAil != 0)
+        {
+            // 注: 原版 ROM 存在复制粘贴残留 bug, 此处 OR 运算误读了玩家侧 buf0[i]
+            gTurnAilMask |= pool[buf0[i]].statusAil;
+            gTurnAilSlots[gTurnAilCount] = buf1[i];
+            gTurnAilCount++;
+        }
+    }
+
+    for (i = 0; i < count0; i++)
+    {
+        if (pool[buf0[i]].state & 0x10)
+        {
+            if (pool[buf0[i]].pad_BA[0] <= 1)
+            {
+                pool[buf0[i]].pad_BA[0]++;
+            }
+            else
+            {
+                pool[buf0[i]].state &= ~0x10;
+                pool[buf0[i]].pad_BA[0] = 0;
+            }
+        }
+    }
+
+    count0 = sub_80489E8(pool, buf0, 0, 0x2C);
+    count1 = sub_80489E8(pool, buf1, 1, 0x2C);
+
+    if (count0 == 1)
+    {
+        gTurnActSlots[gTurnActCount] = buf0[0];
+        gTurnActCount++;
+    }
+    else
+    {
+        gTurnActCount = gTurnActIdx = 0;
+        for (i = 0; i < count0; i++)
+        {
+            if (sub_8048C80(&pool[buf0[i]]) == 1)
+            {
+                gTurnActSlots[gTurnActCount] = buf0[i];
+                gTurnActCount++;
+            }
+        }
+    }
+
+    for (i = 0; i < count1; i++)
+    {
+        if (((u32 (*)(void))Rng_LcgNext)() % 100 <= 39)
+        {
+            gTurnActSlots[gTurnActCount] = buf1[i];
+            gTurnActCount++;
+        }
+    }
+
+    gTurnStep = 1;
+}
 // @ 0x0804A368
 INCLUDE_ASM("asm/nonmatchings", sub_804A368);
 // @ 0x0804AA2C
-INCLUDE_ASM("asm/nonmatchings", sub_804AA2C);
+void sub_804AA2C(u16 mask)
+{
+    BattleObj *pool;
+    u8 buf0[8];
+    u8 buf1[8];
+    u8 count0;
+    u8 count1;
+    u8 i;
+
+    pool = (BattleObj *)GetObjPool();
+    gTurnAilCount = 0;
+    gTurnAilIdx = 0;
+
+    count0 = sub_80489E8(pool, buf0, 0, 0xFF);
+    count1 = sub_80489E8(pool, buf1, 1, 0xFF);
+
+    for (i = 0; i < count0; i++)
+    {
+        if (pool[buf0[i]].statusAil & mask)
+        {
+            gTurnAilSlots[gTurnAilCount] = buf0[i];
+            gTurnAilCount++;
+        }
+    }
+
+    for (i = 0; i < count1; i++)
+    {
+        if (pool[buf1[i]].statusAil & mask)
+        {
+            // 注: 原版 ROM 复制粘贴 bug, 此处误写入玩家侧 buf0[i]
+            gTurnAilSlots[gTurnAilCount] = buf0[i];
+            gTurnAilCount++;
+        }
+    }
+}
 typedef struct
 {
     u8 gap[0x35];

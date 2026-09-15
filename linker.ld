@@ -428,6 +428,14 @@ SECTIONS {
         . = 0x0000097C; gBattleDlgFlashTimer = .;
         . = 0x0000097D; gBattleDlgFlashPal = .;
         . = 0x0000097E; gBattleIntroFadeFlag = .;
+        . = 0x0000097F; gTurnStep = .;
+        . = 0x00000988; gTurnAilSlots = .;
+        . = 0x00000994; gTurnAilCount = .;
+        . = 0x00000995; gTurnAilIdx = .;
+        . = 0x00000996; gTurnAilMask = .;
+        . = 0x000009B0; gTurnActSlots = .;
+        . = 0x000009BC; gTurnActCount = .;
+        . = 0x000009BD; gTurnActIdx = .;
         . = 0x000009BE; gResultsDropCount = .;
         . = 0x000009BF; gResultsDropSelIdx = .;
         . = 0x000009C0; gResultsDropTablePtr = .;

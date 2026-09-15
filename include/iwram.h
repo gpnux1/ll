@@ -66,7 +66,6 @@ typedef struct
  * 与 UISpriteEntity 前 0x10B 同布局 (0x48 区仅 0x10 大小, 无 baseTileId/pad);
  * 目标位姿取 gUnk_087EB1F4/214/22C[gMenuCursorGrp][gMenuCursorSel] */
 extern MenuCursorSprite gMenuCursorSprite;
-#define gUnk_03000048 gMenuCursorSprite
 
 typedef struct
 {
@@ -154,7 +153,6 @@ extern u32 gUnk_03000248;
 /* ---- 输入/波浪 (sio_link.c): gKeysHeld=本帧按键(~REG_KEYINPUT, gGstate312=新按下),
  * gKeyIgnoreTimer=输入屏蔽倒计时(sub_8018744 装 10 帧); gWave*=BattleFx_Init 参数 */
 extern u16 gKeysHeld;
-#define gUnk_03000310 gKeysHeld
 extern u16 gGstate312;
 
 /* gGstate314 = 按键连发状态字 (sub_80182A8 维护, sub_80187E8 返回):
@@ -211,7 +209,6 @@ typedef union
 
 extern u16 gGstate314;
 extern u8 gKeyIgnoreTimer;
-#define gUnk_03000316 gKeyIgnoreTimer
 extern u8 gUnk_03000317;
 extern UnkNode gUnk_03000318; // 战斗待机行动链表头 (ListNode_Init)
 extern u16 gGstate324;
@@ -240,27 +237,17 @@ extern u16 gFlashFlags;
  * (常指 gUnk_02036EC0), WaveAngle/AngleVel=相位/步进(%360), WaveRowOffset=逐行偏移表,
  * WaveBgHofsTbl/VofsTbl=BG HOFS/VOFS 寄存器地址表 */
 extern u16 gWaveAngle;
-#define gUnk_03000386 gWaveAngle
 extern u16 gWaveRowOffset[];
-#define gUnk_03000390 gWaveRowOffset
 
 extern u8 gWaveAngleVel;
-#define gUnk_030004D4 gWaveAngleVel
 extern u8 gWaveAmp;
-#define gUnk_030004D5 gWaveAmp
 extern u8 gWaveRowStep;
-#define gUnk_030004D6 gWaveRowStep
 extern u8 gWaveMode;
-#define gUnk_030004D7 gWaveMode
 extern u32 gWaveTablePtr;
-#define gUnk_030004D0 gWaveTablePtr
 extern u32 gWaveBgHofsTbl[4];
-#define gUnk_030004D8 gWaveBgHofsTbl
 extern u32 gWaveBgVofsTbl[4];
-#define gUnk_030004E8 gWaveBgVofsTbl
 
 extern u8 gBgLoadSlot;
-#define gUnk_030004F8 gBgLoadSlot
 
 typedef struct
 {
@@ -276,7 +263,6 @@ typedef struct
 /* ---- BG 滚动偏移备份 (field_0..E = BG0..BG3 的 HOFS/VOFS 成对备份,
  * sub_801A2AC 族写回 REG_BGxHOFS/VOFS; 波浪引擎经 gWaveBgHofsTbl/VofsTbl 逐行覆盖) */
 extern BgScrollBackup gBgScrollBackup;
-#define gUnk_03000500 gBgScrollBackup
 extern u16 gBattleUiFlags;
 extern u8 gUnk_03000512;   /* 0x03000512: BgLoad 状态 (0..5), 见 sub_8019B98 */
 extern u8 gBgLoadChunkIdx; /* 0x03000513: 已 DMA 进 VRAM 的图块块数 (sub_8019B98 case5) */
@@ -294,23 +280,17 @@ extern u16 gUnk_03000622;
 extern u8 gUnk_03000624;
 /* ---- 伤害数字弹出 (sub_801D568 族: 弹槽 tile 基号=*4+0x158, 相位/级数控制滚动) */
 extern u8 gDmgPopupSlot;
-#define gUnk_0300068C gDmgPopupSlot
 extern u8 gDmgPopupPhase;
-#define gUnk_0300068D gDmgPopupPhase
 extern u8 gDmgPopupLevel;
-#define gUnk_0300068E gDmgPopupLevel
 extern u32 gUnk_0300062C;
 extern u8 gUnk_03000630;
 extern u8 *gUnk_03000638[12];
 extern u8 gUnk_03000668;
 extern u8 gUnk_03000669;
 extern struct BattleObj *gFxQueueObjs[]; /* 战斗效果/步进队列 (7 槽), 消费者 sub_801E040 */
-#define gUnk_030006F8 gFxQueueObjs
 /* ---- 战斗效果/步进队列游标 (队列=gUnk_030006F8[7]) */
 extern u8 gFxQueueWriteIdx;
-#define gUnk_03000714 gFxQueueWriteIdx
 extern u8 gFxQueueReadIdx;
-#define gUnk_03000715 gFxQueueReadIdx
 extern u8 gUnk_03000716;
 
 /* 战斗"待选池"链节点 (16B, 步长 0x10): 前 12 字节就是 UnkNode, 故 gUnk_030006A0[i]
@@ -328,16 +308,13 @@ typedef struct TaskPoolNode
     u32 data;
 } TaskPoolNode;
 extern TaskPoolNode gTaskPoolNodes[];
-#define gUnk_030006A0 gTaskPoolNodes
 /* ---- 战斗"待选池" (等待被选中的对象池, 术语沿旧注释): sub_801DC20 挂入
  * (ListNode_InsertSorted 按 key 排序, 节点=TaskPoolNodes[池槽 0..4], Count++),
  * sub_801DD04 摘链 (Count--); 在池期间 dmgAmount 逐帧 +1 作蓄力权重 (sub_8020AE4),
  * sub_801FF40 按权重挑选对象出战。邻接 gFxQueueObjs=效果/步进队列 (死亡/特效入队,
  * gFxQueueReadIdx/WriteIdx 游标, 消费者 sub_801E040 按槽类重放登场) */
 extern UnkNode gTaskPoolHead;  /* 待选池链表头: UnkNode 哨兵 (key=0xFF), 遍历取 ->next */
-#define gUnk_03000690 gTaskPoolHead
 extern u8 gTaskPoolCount;       /* 待选池计数: sub_801DC20 挂入时 ++, sub_801DD04 摘链时 -- */
-#define gUnk_030006F0 gTaskPoolCount
 extern u32 gUnk_03000718;
 extern u8 gUnk_0300071C;
 extern u32 gUnk_03000730;
@@ -408,62 +385,38 @@ extern u16 gMenuWindowFlags;    ///< 0x03000818 (原 gUnk_03000818) 窗口标志
  * 组登记(低4位=池槽), ActWait*=等待窗互斥(全0=放行 sub_80444E8), SceneFadeOut/In=场景淡出/入量,
  * MoveFromX/Y=移动插值起点, SfxLatch=一次性音效闩, SceneTransStep=场景切换PC (sub_8044394族) */
 extern u8 gObjActStep;
-#define gUnk_03000820 gObjActStep
 extern u16 gObjActSavedF2A;
-#define gUnk_03000822 gObjActSavedF2A
 extern u8 gObjActSavedPal;
-#define gUnk_03000824 gObjActSavedPal
 extern u8 gObjActStepTimer;
-#define gUnk_03000825 gObjActStepTimer
 extern u16 gObjActResult;
-#define gUnk_03000826 gObjActResult
 extern u8 gObjActSavedX;
-#define gUnk_03000828 gObjActSavedX
 extern u8 gObjActSavedY;
-#define gUnk_03000829 gObjActSavedY
 /* 当前动作候选目标槽位表 (0xC 项: 槽号; sub_80489E8 输出 — event_hub:634 mode1 敌侧,
  * sub_8032EA0 mode0 我侧, 消费者按 [i]*0xC8 取目标) */
 extern u8 gTargetSlotList[];
 extern u8 gTargetSlotCount;   /* 候选数 (sub_80489E8 返回值) */
 extern u8 gObjActGroupCount;
-#define gUnk_0300083D gObjActGroupCount
 extern u8 *gObjActGroupSlots;
-#define gUnk_03000840 gObjActGroupSlots
 extern u8 gActWaitBusy0;
-#define gUnk_03000844 gActWaitBusy0
 extern u8 gActWaitBusy1;
-#define gUnk_03000845 gActWaitBusy1
 extern u8 gActWaitBusy2;
-#define gUnk_03000856 gActWaitBusy2
 extern u8 gActWaitCnt0;
-#define gUnk_03000857 gActWaitCnt0
 extern u8 gActEventCount;
-#define gUnk_03000858 gActEventCount
 extern u16 gActWaitFrames;
-#define gUnk_0300085A gActWaitFrames
 extern u8 gActWaitCnt1;
-#define gUnk_0300085C gActWaitCnt1
 extern u8 gObjActDoneCount; ///< 0x03000865 (原 gUnk_03000865) 对象演出完成计数: sub_803FF54 步进器 case 在 obj->slot=0xFF/variantClass=7/gObjActStep=0x38 后 ++; sub_804448C 清 0 (BattleTask_Run 开场), getter sub_8044498 供 ObjGroup_AnyEvent 等待 !=0
 extern u8 gSceneFadeOut;
-#define gUnk_03000867 gSceneFadeOut
 extern u8 gSceneFadeIn;
-#define gUnk_03000868 gSceneFadeIn
 extern u8 gObjActBranch;
-#define gUnk_0300086A gObjActBranch
 extern u8 gObjActParam;
-#define gUnk_0300086B gObjActParam
 extern u16 gUnk_0300086C; ///< sub_803E58C 动画基准表项 (0x350/0x353/0x356, 加 1/2 变体)
 extern u8 gObjActMoveFromX;
-#define gUnk_0300086E gObjActMoveFromX
 extern u8 gObjActMoveFromY; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
-#define gUnk_0300086F gObjActMoveFromY
 extern u16 gActHitDmgAmount; ///< 0x03000882 (原 gUnk_03000882) 战斗脚本族 (sub_8040690/8042E70 等) 从 BattleObj.dmgAmount(+0xB2) 快照的当前伤害值; getter sub_8044420, 合击/连锁处理 (sub_801BE34/801C484) 累加进 0x03000742; 战斗脚本 case 起手清 0
 extern u8 gObjActSfxLatch;
-#define gUnk_03000884 gObjActSfxLatch
 extern u16 gActWaitSfxId;   ///< 0x03000886 (原 gUnk_03000886) 演出等待结束音效号: sub_8044514 置默认 0x37, sub_8044574 由脚本参数给定; 等待结束时 Sfx_Play(本值,0,gActWaitSfxParam) (sub_803F658 合击状态机等)
 extern u8 gActWaitSfxParam; ///< 0x03000888 (原 gUnk_03000888) 上述 Sfx_Play 第 3 参 (sub_8044574 arg2 / 默认 0)
 extern u8 gSceneTransStep;
-#define gUnk_03000889 gSceneTransStep
 extern u8 gUnk_0300088B; ///< sub_80489E8 返回的参演角色数 (sub_8028AD8 登记)
 extern u8 gUnk_0300088C; ///< 当前处理角色下标 (sub_8028AD8)
 extern u8 gUnk_03000890[]; ///< 角色 obj 池槽号表 (sub_80489E8 输出, 按 0x8C 下标; sub_8028AD8)
@@ -474,7 +427,6 @@ extern u16 gUnk_030008A0[]; ///< 暂存 headA.f_1E (sub_8028AD8)
 extern u8 gUnk_030008A4; ///< 当前相位/组下标 (sub_8028AD8)
 extern u8 gUnk_030008A5; ///< sub_802A154 演出序号 (0..2, 索引 gUnk_0839DF90 的 (x,y) 对)
 extern u32 gStatRecalcPool;
-#define gUnk_030008EC gStatRecalcPool
 extern u8 gChoiceListLen;
 /* 战斗结算/展示渲染状态簇 (0x03000949..0x0300097D, 2026-09-14 zcode-dlg-9xx 定名):
  * 主状态机 = sub_8048FB8 (按 gBattleIntroState 分派 22 态, battle task @0x08017E00 逐帧调用;
@@ -502,34 +454,22 @@ extern s8 gBattleDlgLearnCount; ///< 0x03000968 习得列表长度 (sub_8045860 
 extern u8 gBattleDlgLearnIdx; ///< 0x03000969 习得列表遍历光标
 extern u16 *gBattleDlgLearnGfx; ///< 0x0300096C 当前习得项图形段指针 (sub_804ACC0 切 0x0839B462 段表返回; sub_8049B70 消费)
 extern s8 gResultsDropCount;
-#define gUnk_030009BE gResultsDropCount
 extern s8 gResultsDropSelIdx;
-#define gUnk_030009BF gResultsDropSelIdx
 extern u32 gResultsDropTablePtr;
-#define gUnk_030009C0 gResultsDropTablePtr
 extern u8 gResultsStepDone;
-#define gUnk_030009C4 gResultsStepDone
 extern s8 gResultsViewKind;
-#define gUnk_030009C5 gResultsViewKind
 extern u32 *gResultsStatePtr;
-#define gUnk_030009C8 gResultsStatePtr
 extern u8 gChoiceSubIdx;
 /* ---- 战斗结算/属性计算 (sub_80494F0 结算总驱动; BattleDrops_Roll 写掉落表): 
  * Results*=结果屏掉落/视图状态, SkillHealAmount=技能回血量, StatRecalc*=能力重算
  * (sub_8048ACC 递归重算 statMods), FxReq*=能力变化演出请求(sub_8048B30, 第三参=
  * gUnk_08393B28 效果索引) */
 extern u8 gStatRecalcKind;
-#define gUnk_030008F0 gStatRecalcKind
 extern u8 gFxReqTimer;
-#define gUnk_030008F1 gFxReqTimer
 extern u8 gFxReqKind;
-#define gUnk_030008F2 gFxReqKind
 extern u8 gFxReqFrames;
-#define gUnk_030008F3 gFxReqFrames
 extern u16 gFxReqAnimIdx;
-#define gUnk_03000906 gFxReqAnimIdx
 extern u16 gSkillHealAmount;
-#define gUnk_03000908 gSkillHealAmount
 extern u8 gBattleIntroState;      ///< 战斗开场 BGM/淡入演出状态机 (sub_8049C1C): 0..4
 extern u8 gBattleIntroTimer;      ///< 上述状态机的帧计数
 extern u8 gBattleIntroObj[];      ///< 战斗开场对象的 ObjHead (sub_804AD60 用 sub_801B81C 装配)
@@ -541,6 +481,14 @@ extern u8 gBattleDlgFlashState; ///< 0x0300097B 调色板闪光状态机状态 (
 extern u8 gBattleDlgFlashTimer; ///< 0x0300097C 调色板闪光帧计数 (sub_8048F0C)
 extern u8 gBattleDlgFlashPal; ///< 0x0300097D 闪光对象的 OBJ 调色板槽 (= pool[0x949].headA.palSlot; sub_804B96C/804C4D8 淡变)
 extern u8 gBattleIntroFadeFlag;   ///< sub_804ADF8 复位 (淡入/开场演出标志)
+extern u8 gTurnStep;              ///< 0x0300097F 回合状态机阶段 (sub_804A148 置 1, sub_804A368 分派 1..18)
+extern u8 gTurnAilSlots[12];      ///< 0x03000988 异常状态槽号表 (sub_804A148/sub_804AA2C 收集)
+extern u8 gTurnAilCount;          ///< 0x03000994 异常状态槽数
+extern u8 gTurnAilIdx;            ///< 0x03000995 异常状态遍历光标 (sub_804AA2C 清 0, sub_804A368 消费)
+extern u16 gTurnAilMask;          ///< 0x03000996 异常状态综合掩码 (sub_804A148 按 statusAil 累积, sub_804A368 判 bit)
+extern u8 gTurnActSlots[12];      ///< 0x030009B0 回合行动待选槽号表 (sub_804A148 收集, sub_804A368 消费)
+extern u8 gTurnActCount;          ///< 0x030009BC 回合行动待选槽数
+extern u8 gTurnActIdx;            ///< 0x030009BD 回合行动遍历光标 (sub_804A148 清 0, sub_804A368 消费)
 
 /* 战斗转场/擦除 (wipe) 效果 (sub_804AE2C 逐帧更新, sub_804B1EC 复位, sub_804B1F8 启动):
  * gWipeDesc 指向转场源对象 (sub_804B1F8 的首参); 其 +0x2D/+0x2E 给出受影响的 OAM 下标范围
@@ -1348,7 +1296,6 @@ typedef struct
     void *unk_30; // 0x30
 } SioCommState;
 extern SioCommState gSioCommState;
-#define gUnk_03004DF0 gSioCommState
 
 typedef struct
 {
@@ -1384,7 +1331,6 @@ typedef struct
 extern Unk_03004F80 gSioXferCtx;
 
 extern u8 gObjSlotFxCmd[];
-#define gUnk_03004F90 gObjSlotFxCmd
 
 extern u16 gUnk_03007FF8;
 

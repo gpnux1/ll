@@ -627,7 +627,98 @@ void sub_804B8E8(u8 arg0, u8 arg1)
     }
 }
 // @ 0x0804B96C
-INCLUDE_ASM("asm/nonmatchings", sub_804B96C);
+/* 启动 OBJ 调色板淡变动画 (opcode 3, 由 sub_804B4D0 逐帧插值消费):
+ * 为动画槽 [arg0, arg0+arg1) 配置淡变参数 (gObjPalAnim 0x03000AE8)。
+ * - 将 RGB 增量 arg2/arg3/arg4 钳位至不超过 0x1F。
+ * - 对槽位范围内的每个条目 (跳过正在运行淡变动画 ctrl&0xF==3 的槽):
+ *   - mode 2 (直接指定槽): 调 sub_804C3E4 备份原调色板, 标记 ctrl=0x23, palSlot=arg0+i,
+ *     period=arg5, 若 arg6 在 (0, arg5) 范围内则 dir=arg6 否则 dir=period, counter=arg5-1,
+ *     frameIdx=0, dR/dG/dB=arg2/arg3/arg4, shift=0。
+ *   - mode 3 (动态分配空槽): 从 max(0, arg7) 起扫描 gObjPalSlotUsed 的首个空位 (<=0xF);
+ *     若找到空槽 b 则调 sub_804C364 标记占用, 调 sub_804C3E4 备份原调色板, 标记 ctrl=3,
+ *     palSlot=b, 其余参数同 mode 2; 若未找到空槽 (b > 0xF) 则置空该槽 (ctrl=0xFF, palSlot=-1,
+ *     period=0, counter=0)。
+ * - 返回首槽的有符号调色板槽号 (s8)gObjPalAnim[arg0].palSlot。 */
+s32 sub_804B96C(u8 arg0, u8 arg1, s8 arg2, s8 arg3, s8 arg4, u8 arg5, u8 arg6, s8 arg7, u8 arg8)
+{
+    u8 i;
+    u8 b;
+    u32 slot;
+
+    if (arg2 > 0x1F)
+        arg2 = 0x1F;
+    if (arg3 > 0x1F)
+        arg3 = 0x1F;
+    if (arg4 > 0x1F)
+        arg4 = 0x1F;
+
+    slot = arg0 * 16;
+    for (i = 0; i < arg1; i++)
+    {
+        if ((gObjPalAnim[arg0 + i].ctrl & 0xF) == 3)
+            continue;
+
+        switch (arg8)
+        {
+        case 2:
+            sub_804C3E4(arg0 + i);
+            gObjPalAnim[arg0 + i].ctrl = 0x23;
+            gObjPalAnim[arg0 + i].palSlot = arg0 + i;
+            gObjPalAnim[arg0 + i].period = arg5;
+            if (arg6 != 0 && arg6 < arg5)
+                gObjPalAnim[arg0 + i].dir = arg6;
+            else
+                gObjPalAnim[arg0 + i].dir = gObjPalAnim[arg0 + i].period;
+            gObjPalAnim[arg0 + i].counter = arg5 - 1;
+            gObjPalAnim[arg0 + i].frameIdx = 0;
+            gObjPalAnim[arg0 + i].dR = arg2;
+            gObjPalAnim[arg0 + i].dG = arg3;
+            gObjPalAnim[arg0 + i].dB = arg4;
+            gObjPalAnim[arg0 + i].shift = 0;
+            break;
+
+        case 3:
+            if (arg7 >= 0)
+                b = arg7;
+            else
+                b = 0;
+            for (; b <= 0xF; b++)
+            {
+                if (!((gObjPalSlotUsed >> b) & 1))
+                    break;
+            }
+
+            if (b <= 0xF)
+            {
+                sub_804C364(b, 1);
+                sub_804C3E4(arg0 + i);
+                gObjPalAnim[arg0 + i].ctrl = 3;
+                gObjPalAnim[arg0 + i].palSlot = b;
+                gObjPalAnim[arg0 + i].period = arg5;
+                if (arg6 != 0 && arg6 < arg5)
+                    gObjPalAnim[arg0 + i].dir = arg6;
+                else
+                    gObjPalAnim[arg0 + i].dir = gObjPalAnim[arg0 + i].period;
+                gObjPalAnim[arg0 + i].counter = arg5 - 1;
+                gObjPalAnim[arg0 + i].frameIdx = 0;
+                gObjPalAnim[arg0 + i].dR = arg2;
+                gObjPalAnim[arg0 + i].dG = arg3;
+                gObjPalAnim[arg0 + i].dB = arg4;
+                gObjPalAnim[arg0 + i].shift = 0;
+            }
+            else
+            {
+                gObjPalAnim[arg0 + i].ctrl = 0xFF;
+                gObjPalAnim[arg0 + i].palSlot = -1;
+                gObjPalAnim[arg0 + i].period = 0;
+                gObjPalAnim[arg0 + i].counter = 0;
+            }
+            break;
+        }
+    }
+
+    return (s8)gObjPalAnim[arg0].palSlot;
+}
 // @ 0x0804BB64
 /* 停止 OBJ 调色板动画槽 [start, start+count): 与 sub_804B8E8 逻辑相同但用 do-while 展开,
  * 且 index 为 u32。对每个 opcode==3 的条目注销调色板槽 (sub_804C3A4/sub_804C420) 并标记为空。 */

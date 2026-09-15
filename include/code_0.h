@@ -399,7 +399,7 @@ void ListNode_Init(UnkNode *);
 void ListNode_InitKey(UnkNode *, u8);
 void ListNode_InsertSorted(UnkNode *, UnkNode *);
 void sub_8018838(u32);
-u16 Rng_LcgNext();
+u32 Rng_LcgNext(void);
 u32 GetObjPool();
 u32 GetCtx_0248();
 u32 GetBuf_37410();
@@ -500,6 +500,12 @@ typedef struct ObjHead
  *  - sub_802151C/sub_802192C/sub_801FAB8/sub_802103C 对 0x03000248 访问 +0x24/+0x37/+0x38/+0xB0/+0xBD/+0xBE;
  *  - BattleTask_Run 尾部 ListNode_InitKey(obj, obj[0x38]) 把对象挂 0x03000318 行动链 → +0x00 是链表头。
  * 语义: +0x00 12B UnkNode (key=+0x38 值), 两个 ObjHead 图形/脚本头, +0xB0 状态字, +0xBE 槽号。 */
+typedef struct ObjAnimIdxBlk
+{
+    u16 mainAnim[4];
+    u16 subIdx[4];
+} ObjAnimIdxBlk;
+
 typedef struct BattleObj
 {
     UnkNode node;                          /* +0x00 key/prev/next (key 由 +0x38=headA.f_2C 值填充) */
@@ -515,7 +521,7 @@ typedef struct BattleObj
     u16 men;                               /* +0x7A 精神 = base_men+equip_men (同上) */
     u16 res;                               /* +0x7C 抗性 = base_res+equip_res (同上) */
     u16 statMods[5];                       /* +0x7E..0x87 能力修正值 [0..4]↔atc/def/agl/men/res: sub_8046F0C case5-9 与 +0x74..0x7C 成对相加截断 u16; sub_8048D40(战斗开始/我方) 与 sub_80200E8(装载) 连清 5×u16; sub_8048CEC 以 [0]/[1] 非零作状态标记 */
-    u8 *animPtr;                           /* +0x88 动画/图形数据块指针 ([+2]/[+8+idx*2]/[+0x1A]/[+0x20] 为 u16 索引入口; u8 [+0x23]/[+0x24] 为 f_C3 源 (sub_801CA08 case3/4); 多处 *(u8**) 消费; 低 16 位在 slot≤6 复用为计数/阈值 (sub_80209C8 每次+=4, sub_8048B5C 写 0x20/arg1, sub_801DC20 清 0, sub_801CF90 作渐变阈值 0-32)) */
+    u8 *animPtr;                             /* +0x88 动画/图形数据块指针 ([+2]/[+8+idx*2]/[+0x1A]/[+0x20] 为 u16 索引入口; u8 [+0x23]/[+0x24] 为 f_C3 源 (sub_801CA08 case3/4); 多处 *(u8**) 消费; 低 16 位在 slot≤6 复用为计数/阈值 (sub_80209C8 每次+=4, sub_8048B5C 写 0x20/arg1, sub_801DC20 清 0, sub_801CF90 作渐变阈值 0-32)) */
     u8 field_8C;                           /* +0x8C (sub_80200E8 不写; sub_802192C 以 u32 视图读 +0x98 跨本区) */
     u8 equipSlots[6];                      /* +0x8D..0x92 ← stats.equip_slot1..6 (E3: sub_80200E8 逐字节搬运; 0xB3=空槽哨兵, sub_8048B5C 判 equip5/6 是否为空) */
     u8 pad_93[0x99 - 0x93];                /* +0x93..0x98 未验证 (sub_80200E8 不写) */
@@ -904,7 +910,7 @@ u8 sub_8045F10(BattleObj *, u16);
 void sub_8045F94(BattleObj *obj, u16 arg1);
 void sub_8046060(BattleObj *obj, u16 arg1);
 void sub_804612C(BattleObj *obj, u16 arg1, u16 arg2);
-void sub_804621C();
+u8 sub_804621C(BattleObj *, u8 *, u8);
 u32 sub_80462E4(BattleObj *, u8 *, u16);
 u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode);
 u8 sub_8046558(u8 *, u8 *, u8, u8); // 收集符合条件的对象池槽号到 out 数组, 返回数量; 契约由 sub_803E58C 调用点推定 (未匹配)
@@ -917,11 +923,11 @@ u16 sub_8046F0C(BattleObj *obj); // 2026-09-11 zcode-engine: 调用点返回值�
 u16 sub_8047024();
 u8 sub_80471AC();
 u32 sub_80472E8();
-void sub_804753C();
+void sub_804753C(BattleObj *, u8, u8);
 u8 sub_80476DC();
 u8 sub_8047B1C();
 u8 sub_8047D28(BattleObj *obj, u8 mask);
-u8 sub_8047DC8();
+u8 sub_8047DC8(BattleObj *obj);
 s32 sub_8047FCC(u16);
 void sub_80480EC();
 void sub_80481B8();
@@ -970,7 +976,7 @@ u8 sub_8049D58(u8); // 唯一调用点 sub_8018070: 入参/返回均 u8
 u8 sub_8049DF8(void *, void *);
 void sub_804A148();
 u8 sub_804A368(void *);
-void sub_804AA2C();
+void sub_804AA2C(u16 mask);
 void sub_804AB10(void);
 void sub_804AB40();
 void sub_804ABD0(void);
@@ -997,7 +1003,7 @@ s32 sub_804B654(u8 arg0, u8 arg1, s8 *arg2, u8 arg3, u8 arg4, u8 arg5);
 void sub_804B7B0(u8, u8);
 s8 sub_804B834(u8, u8, u8, s8, u8);
 void sub_804B8E8(u8, u8);
-void sub_804B96C();
+s32 sub_804B96C(u8, u8, s8, s8, s8, u8, u8, s8, u8);
 void sub_804BB64(u8, u8);
 u8 sub_804BBDC(u8, u32, u32, u32, u32, u32, u32, u32);
 void sub_804BD54(u8, u8);
@@ -1046,22 +1052,22 @@ void sub_804CE48(BattleObj *);
 void sub_804CEBC();
 void sub_804CEE0();
 void sub_804D0F8(BattleObj *obj); // obj槽位填充: 守卫+移除匹配obj[0xAC]+随机取回
-void sub_804D1B4(BattleObj *obj, u8 *arg1); // obj槽位概率填充: 守卫+表驱动随机
-void sub_804D260(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x10, sub_804D1B4 孪生)
-void sub_804D310(BattleObj *obj, u8 *arg1);
-void sub_804D3A0(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x13, 同族孪生)
-void sub_804D44C(BattleObj *obj, u8 *arg1); // obj槽位概率填充 (x10, 同族孪生)
-void sub_804D4FC(BattleObj *obj, u8 *arg1);
-void sub_804D5B4(BattleObj *obj, u8 *arg1);
-void sub_804D708(BattleObj *obj, u8 *arg1);
-void sub_804D798();
-void sub_804D840(BattleObj *obj, u8 *arg1);
-void sub_804D8F4(BattleObj *obj, u8 *arg1);
-void sub_804DA04(BattleObj *obj, u8 *arg1);
-void sub_804DABC(BattleObj *obj, u8 *arg1);
-void sub_804DB64(BattleObj *obj, u8 *arg1);
-void sub_804DC24(BattleObj *obj, u8 *arg1);
-void sub_804DCD8(BattleObj *obj, u8 *arg1);
+void sub_804D1B4(BattleObj *obj, BattleObj *pool); // obj槽位概率填充: 守卫+表驱动随机
+void sub_804D260(BattleObj *obj, BattleObj *pool); // obj槽位概率填充 (x10, sub_804D1B4 孪生)
+void sub_804D310(BattleObj *obj, BattleObj *pool);
+void sub_804D3A0(BattleObj *obj, BattleObj *pool); // obj槽位概率填充 (x13, 同族孪生)
+void sub_804D44C(BattleObj *obj, BattleObj *pool); // obj槽位概率填充 (x10, 同族孪生)
+void sub_804D4FC(BattleObj *obj, BattleObj *pool);
+void sub_804D5B4(BattleObj *obj, BattleObj *pool);
+void sub_804D708(BattleObj *obj, BattleObj *pool); // pool = sub_80489E8 的对象池基址 (BattleObj[] 步长 0xC8)
+void sub_804D798(BattleObj *obj, BattleObj *pool);
+void sub_804D840(BattleObj *obj, BattleObj *pool);
+void sub_804D8F4(BattleObj *obj, BattleObj *pool);
+void sub_804DA04(BattleObj *obj, BattleObj *pool);
+void sub_804DABC(BattleObj *obj, BattleObj *pool);
+void sub_804DB64(BattleObj *obj, BattleObj *pool);
+void sub_804DC24(BattleObj *obj, BattleObj *pool);
+void sub_804DCD8(BattleObj *obj, BattleObj *pool);
 void sub_804DD70(BattleObj *ptr, u32 arg1);
 u8 sub_804DD90(u8, u8); /** 勿改宽原型/K&R: u8原型+Sub6C结构形态才是 sub_8045EB8 的解 */
 void sub_804DE20();

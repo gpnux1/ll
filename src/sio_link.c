@@ -685,7 +685,7 @@ void sub_8018838(u32 arg0)
     LCG（linear congruential generator）线性同余算法
 */
 // @ 0x08018844
-u16 Rng_LcgNext(void)
+u32 Rng_LcgNext(void)
 {
     u32 seed;
     seed = gBattleRngSeed * 0x41C64E6D + 0x3039;
