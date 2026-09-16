@@ -78,6 +78,8 @@ gUnk_08393A48 = 0x08393A48;    /* u8 成员数×? 坐标表 X (sub_8032948 case2
 gUnk_08393A4D = 0x08393A4D;    /* u8 成员数×? 坐标表 Y (sub_8032948 case25 用) */
 /* gUnk_08393B28 已搬到 src/data_08393B28.c (const ObjAnimEntry gUnk_08393B28[992]) */
 gUnk_0839D5BC = 0x0839D5BC;
+gUnk_0839D9B8 = 0x0839D9B8;   /* 战后掉落概率表 A (101项 × 5B, BattleDrops_Roll 查) */
+gUnk_0839DBB1 = 0x0839DBB1;   /* 战后掉落概率表 B (BattleDrops_Roll 查, 4B步长) */
 gUnk_0839DBF6 = 0x0839DBF6;
 gUnk_083988A8 = 0x083988A8;    /* 24-byte 动画条目表 (sub_801CBA4 用) */
 gUnk_0839DF5C = 0x0839DF5C;   /* 强度斜坡 {1,2,3,4,4,3,2,1} (sub_801CF90 渐变 LUT) */
@@ -128,6 +130,7 @@ gUnk_0809888B = 0x0809888B;    /* 角色显示参数表 u8[] */
 gUnk_080981A5 = 0x080981A5;    /* 数字字形/物品名辅助表 */
 gUnk_0830FC04 = 0x0830FC04;    /* 装备名表 (u8[] 0xFF 终止项, 名字绘制源) */
 gUnk_087EB1E8 = 0x087EB1E8;    /* 存档块指针表 {&gUnk_03004D48, gSaveTimers, gSaveFlags, ...} */
+gSaveSlotSourceTable = 0x087EB180;  /* 存档槽数据块源指针表 (Save_FillSlot1/2 序列化, 与 word_80981B0 长度表配对) */
 gDialogPortraitTilemapPtrs = 0x087E9818; /* four dialog portrait tilemap positions */
 gUnk_087EB2E0 = 0x087EB2E0;    /* 角色头像 LZ77 指针表 (存档/队伍菜单用) */
 gUnk_087EBDF0 = 0x087EBDF0;    /* BG tileset LZ77 指针表[4] → VRAM 0x06008000 + idx*0x1000 */
@@ -373,6 +376,7 @@ SECTIONS {
         . = 0x00000858; gActEventCount = .;
         . = 0x0000085A; gActWaitFrames = .;
         . = 0x0000085C; gActWaitCnt1 = .;
+        . = 0x00000864; gUnk_03000864 = .;
         . = 0x00000865; gObjActDoneCount = .;
         . = 0x00000867; gSceneFadeOut = .;
         . = 0x00000868; gSceneFadeIn = .;
@@ -380,6 +384,7 @@ SECTIONS {
         . = 0x0000086B; gObjActParam = .;
         . = 0x0000086E; gObjActMoveFromX = .;
         . = 0x0000086F; gObjActMoveFromY = .;
+        . = 0x00000870; gUnk_03000870 = .;
         . = 0x00000882; gActHitDmgAmount = .;
         . = 0x00000884; gObjActSfxLatch = .;
         . = 0x00000886; gActWaitSfxId = .;
@@ -479,6 +484,8 @@ SECTIONS {
         . = 0x000E05; gBattleFxState = .;
         . = 0x000E08; gBattleDrops = .; gBattleDropsBlk = .; /* BattleDrops 结构体基址视图 */
         . = 0x000E30; gBattleDropCount = .;
+        . = 0x000E38; gBattleCardDrops = .;
+        . = 0x000E60; gBattleCardDropCount = .;
         . = 0x00000E68; gScriptReturnSetId = .;
         . = 0x00000E69; gScriptPendingEntry = .;
         . = 0x00000E6C; gScriptCursor = .;
@@ -756,7 +763,14 @@ SECTIONS {
         src/sprite_engine.o(.text);
         src/vram_transfer.o(.text);
         src/map_view.o(.text);
-        src/anim_slot.o(.text);
+        src/anim_slot_core.o(.text);
+        src/map_zone.o(.text);
+        src/option_scene_loader.o(.text);
+        src/map_portrait_viewport.o(.text);
+        src/screen_fx_loader.o(.text);
+        src/sprite_bg_sheet_loader.o(.text);
+        src/map_misc_runtime.o(.text);
+        src/chest_objects.o(.text);
         src/player_stats.o(.text);
         src/menu_ui.o(.text);
         src/save.o(.text);

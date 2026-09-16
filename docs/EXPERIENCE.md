@@ -2931,3 +2931,25 @@ grep '^Register ' gccdump.lreg; grep '^;; Register .* in' gccdump.lreg; rm -f gc
 
 
 
+
+262. **⭐⭐ 窄返回原型函数的"调用点无截断"指纹 = 原始调用方声明的是宽返回；解法是升级共享原型 + 被调体内显式 `(u16)` 值截断，禁止 fnptr 强转**（2026-09-16，案例 `sub_802DE04` 破 5 字节 home 墙 + `Rng_LcgNext` 全仓 52 处 cast 清理）。
+    指纹判据: ROM 中 `bl f;` 之后 r0 **直接进入** `adds/orrs/cmp`（没有先 `mov` 到别的伪寄存器、也没有 `lsls/lsrs` 扩展），而头文件声明 `u16 f()` → 说明原始 TU 的 f 声明返回 u32/int（或 K&R 隐式 int）。egcs 对 u16 返回值会生成 `(set (reg:HI X)(call ...))` 的 HI 伪拷贝，随后加法把 sum 并进 r0（候选形态）；宽返回则调用直接落 SI，sum 与装载值合并 → home 翻到目标形态（sub_802DE04 case20 `adds r1,r1,r0`）。
+    解法（三步，全部有 ROM 证据支撑）:
+    ① 头文件原型 u16→u32；
+    ② 被调函数体**若其自身 ROM 有返回截断**（如 `sub_8048D64` 尾部 `lsls r0,#0x10; lsrs r0,#0x10`），把 `return diff;` 改成 `return (u16)diff;`，函数体逐字节不变（fncheck OK 30B），语义仍然正确；被调体无截断（如 `Rng_LcgNext` 在体内自掩码 `(seed>>16)&0x7FFF`）则原型直接 u32 即可；
+    ③ 全仓审计其余调用者：凡 ROM 出现 u16/u8/s8 截断或 signed `__modsi3` 的调用点，改成值截断形式 `(u16)f()`/`(u8)f()`/`(int)f() % k`，逐点 `make clean && make -j4 && sha1sum -c` 验证（Rng_LcgNext: 52 处全绿；u32-cast→直调，int-cast→`(int)`，s32-cast→`(s32)`，依据 ROM `__umodsi3` vs `__modsi3`）。
+    ⚠ 禁止 `((u32 (*)(void))f)()` 类函数指针强转（用户 2026-09-16 规则）——它是同一机制的历史 hack，掩盖原型错误且不可读；遇到"只有 fnptr 强转才能过字节"的调用点，即提示**共享头里该函数返回类型声明错了**，走上面三步。
+    关联: 经验 143 (home 互换卡点)、经验 2510 区段 (窄返回调用扩展判据)、docs/handoffs/BLOCKED-802DE04-20260913.md (被本条推翻)。
+
+263. **⭐⭐ "prologue 残值读" = 原始源码声明后从未赋值的指针局部；复现三杠杆：独立 `p=base+3` 语句防 combine 偏移折叠、基址指针先物化定字面池 home、经 static inline 传参固定"实参先行"求值序**（2026-09-16，案例 `sub_801E30C`，bytecmp 456B 全等）。
+    指纹: `push {r4-r7,lr}; mov r7,sl; mov r6,sb; mov r5,r8; push {r5-r7}` 序言下, 体内首条 `adds r0, r6, #3`（或任何 r5/r6/r7 使用）之前**不存在**对 r6 的赋值 → 原始 C 有未赋值局部被读（真 UB），其 allocno home = r6，运行时值 = 调用方 sb 残留。判 UB 合法性的佐证: 函数在 ROM 无 bl、无指针表引用（死代码/罕见路径），或全调用方恒设 sb。同族已匹配函数若把该值写成 `arg->animPtr` 加载则是**错的**（本例 E4D4 用 animPtr 而 E30C 根本没有 ldr [r3,#0x88]）。
+    复现要点（每条都有独立 bytecmp 差分支撑）:
+    ① `p = anim + 3; ... p[idx]`：把 base+常量拆成独立语句并用 `p[...]` 取下标；直接写 `*(anim + 3 + idx)` 会被 combine 折成 `ldrb r1,[r0,#3]`，指令数与 home 全变（11B 差）。
+    ② case0 的表寻址写成 `q = (const u16 *)gUnk_0839CC4C;` 再 `q[equipSlots[0]*2]`：让字面池加载 `ldr r2,=tbl` 先物化进 r2（否则 literal allocno 平手抢 r0，差 11B）。
+    ③ 群体循环的回绕入队必须 `Inl_QueuePushObj((BattleObj *)(i*0xC8+(u32)arg1));`：inline 的参数表达式先求值（重算 member `muls r1,r7,r1` 3op 形态）再走"槽地址→str→idx++→slot 判"，手工展开成 `gFxQueueObjs[..] = expr;` 会先算存储地址且 muls 变 2op（差 28B）。case0 单体入队两种写法同序，只有循环内不同。
+    ④ 把 `static inline Inl_QueuePushObj` 定义提升到首个用户（E30C 位置最靠前）之前即可，三用户内联产物不变（E4D4/E690 fncheck 回归 OK 验证）。
+    关联: 经验 155/143 (未初始化局部/伪寄存器生死)、经验 2510 (bl 后截断指纹)、docs/handoffs/MATCH-801E30C-20260916.md。
+264. **状态机族演出模板的"幽灵栈帧"复刻: 目标 `sub sp,#0x1c` 而体内最长栈访问只到 `[sp,#0x10]` → 未使用的 `u8 values[8];` 局部数组**（2026-09-16，案例 `sub_8033988`，fncheck OK 1188B）。
+    指纹: 单参 `BattleObj *` 状态机 (0x0839D4CC 动作表族), 体内唯一多栈实参调用是 9 参 `sub_804BF14(...,0x1C,4,4,-1,2)` (5 个栈槽 #0→#0x10), 故"必要帧"仅 0x14; 目标却 `sub sp,#0x1c`。同族已匹配 `sub_8032EA0`/`sub_80334B8` 也同为 0x1c 帧 → 模板复刻残留 (经验 174/157 同机制)。
+    复现要点: 在函数首部声明 `u8 values[8];` (零引用), `sub sp` 立即由 #0x14 变 #0x1c, 指令流其余部分逐条不变, 文本尺寸恰为目标 1188B。判定顺序: 先对齐指令流 (fndiff), 若仅 `sub sp`/`add sp` 与 `[sp,#N]` 偏移差一个常数, 直接按"未用局部数组按 4B 取整"补 (5/6/7/8 字节数组都产出 +8B 帧)。
+    关联: 经验 174 (幽灵栈帧真因)、经验 157 (局部数组按 4B 取整)、docs/handoffs/MATCH-8033988-20260916.md。

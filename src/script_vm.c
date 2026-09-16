@@ -1,4 +1,16 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "script_vm.h"
+#include "map_scene_runtime.h"
+#include "battle_task_services.h"
+#include "engine_core.h"
+#include "map_view.h"
+#include "menu.h"
+#include "player_stats.h"
+#include "save.h"
+#include "sound.h"
+#include "sprite_engine.h"
+#include "text_engine.h"
+#include "vram_transfer.h"
 #include "data_87E83F0.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -7,9 +19,6 @@
 #include "include_asm.h"
 #include "iwram.h"
 #include "m4a.h"
-#include "save.h"
-#include "sound.h"
-#include "script_vm.h"
 
 // @ 0x0804F280
 INCLUDE_ASM("asm/nonmatchings", sub_804F280);
@@ -1327,7 +1336,7 @@ u32 Op_RandomJump(u32 *pScriptCursor)
     if (pBytecode[1] < pBytecode[2])
     {
         diff = pBytecode[2] - pBytecode[1];
-        val = jtbl[(u8)(pBytecode[1] + ((u32 (*)(void))Rng_LcgNext)() % (diff + 1))];
+        val = jtbl[(u8)(pBytecode[1] + Rng_LcgNext() % (diff + 1))];
     }
     *pScriptCursor = 0x02016200 + val;
     return 1;

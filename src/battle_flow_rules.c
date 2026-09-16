@@ -1,4 +1,13 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_flow_rules.h"
+#include "battle_itemuse_rewards.h"
+#include "battle_object_engine.h"
+#include "battle_palette_wipe.h"
+#include "battle_special_targets.h"
+#include "battle_task_services.h"
+#include "player_stats.h"
+#include "script_vm.h"
+#include "sound.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +17,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 // @ 0x0804473C
 u32 sub_804473C(BattleObj *arg0, u8 *arg1)
@@ -193,7 +201,7 @@ u32 sub_8044F4C(BattleObj *arg0, BattleObj *arg1)
         arg1->dmgAmount = bit;
         return 0;
     }
-    mod = ((u32 (*)(void))Rng_LcgNext)() % (sub_8047024(arg0, 8) / 10);
+    mod = Rng_LcgNext() % (sub_8047024(arg0, 8) / 10);
     w9 = sub_8047024(arg1, 9);
     v = sub_80472E8(arg0, sub_8048764(arg0), 0);
     dmg = (sub_8047024(arg0, 8) + v * arg0->lv + mod - w9) / 2;
@@ -258,7 +266,7 @@ u8 sub_8045328(BattleObj *arg0, BattleObj *arg1, u8 arg2)
             v = 0x1E;
         if (sub_804E76C((BattleObj *)arg1, 2, 8) >= 0)
             v -= 50;
-        if ((s16)(((u32 (*)(void))Rng_LcgNext)() % 100) < v)
+        if ((s16)(Rng_LcgNext() % 100) < v)
             result = 1;
         else
             result = 0;
@@ -1226,7 +1234,7 @@ u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode)
         {
             if (*(u8 *)(buf[i] * stride + (u32)pool + 0xAB) == 3)
             {
-                if (((u32 (*)(void))Rng_LcgNext)() % 100 <= 0x45)
+                if (Rng_LcgNext() % 100 <= 0x45)
                 {
                     sub_804612C((BattleObj *)(pool + buf[i] * stride), 5, 0);
                 }
@@ -2129,7 +2137,7 @@ u8 sub_8048C80(BattleObj *obj)
         break;
     }
     threshold = base + (sw + v1);
-    if ((u16)(((u32 (*)(void))Rng_LcgNext)() % 100) < threshold)
+    if ((u16)(Rng_LcgNext() % 100) < threshold)
         ret = 1;
     return ret;
 }
@@ -2172,14 +2180,14 @@ void sub_8048D40(BattleObj *arg0)
     *(u16 *)((u8 *)arg0 + 0x86) = 0;
 }
 // @ 0x08048D64
-u16 sub_8048D64(BattleObj *arg0, u16 arg1)
+u32 sub_8048D64(BattleObj *arg0, u16 arg1)
 {
     s32 diff;
 
     diff = arg0->maxHp - arg0->hp;
     if (diff < arg1)
     {
-        return diff;
+        return (u16)diff;
     }
 
     return arg1;
@@ -2648,7 +2656,7 @@ void sub_804A148(void)
 
     for (i = 0; i < count1; i++)
     {
-        if (((u32 (*)(void))Rng_LcgNext)() % 100 <= 39)
+        if (Rng_LcgNext() % 100 <= 39)
         {
             gTurnActSlots[gTurnActCount] = buf1[i];
             gTurnActCount++;

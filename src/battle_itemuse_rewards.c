@@ -1,4 +1,11 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_itemuse_rewards.h"
+#include "battle_flow_rules.h"
+#include "battle_object_engine.h"
+#include "battle_palette_wipe.h"
+#include "battle_stage_dialogue.h"
+#include "battle_task_services.h"
+#include "sound.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +15,8 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
+#include "player_stats.h"
+#include "menu.h"
 
 typedef void (*UnkFuncDD70)(u8 *, u32);
 extern UnkFuncDD70 gUnk_0839CE38[];
@@ -20,6 +28,8 @@ void sub_804DD70(BattleObj *ptr, u32 arg1)
 }
 extern const u8 gUnk_087EA580[];
 extern const u8 gUnk_0839CEFC[];
+extern const u8 gUnk_0839D9B8[][5];
+extern const u8 gUnk_0839DBB1[][4];
 
 // @ 0x0804DD90
 u8 sub_804DD90(u8 arg0, u8 arg1)
@@ -450,10 +460,296 @@ u8 BattleFx_Update(void)
 
     return result;
 }
+// 收集参战槽位辅助内联 (BattleDrops_Roll 与 sub_804EC04 共有)
+static inline u8 Battle_CollectSlots(BattleObj *objs, u8 *values, u8 mode, u16 flags)
+{
+    return sub_80489E8(objs, values, mode, flags);
+}
+
 // @ 0x0804E9DC
-INCLUDE_ASM("asm/nonmatchings", BattleDrops_Roll);
+// 战后掉落掷取与背包入库
+u8 BattleDrops_Roll(u32 *arg0)
+{
+    u8 values[8];
+    u8 count;
+    u8 i;
+    u8 j;
+    u8 v;
+    u8 vtmp;
+    u8 k;
+    u8 ok;
+    u8 val;
+    u8 found;
+    u8 bonus;
+    u8 *pool;
+    u8 *objs;
+    u8 *list;
+    u8 *items;
+    u32 i4;
+    u8 idx;
+
+    gBattleDropCount = 0;
+    pool = (u8 *)GetObjPool();
+    list = (u8 *)sub_8020E68();
+    found = 0xFF;
+    objs = (u8 *)GetObjPool();
+    count = Battle_CollectSlots((BattleObj *)objs, values, 0, 0x1FF);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        v = sub_804E76C((BattleObj *)(objs + values[idx] * 0xC8), 5, 4);
+        if ((s8)v >= 0)
+        {
+            found = v;
+            break;
+        }
+    }
+
+    if ((s8)found >= 0)
+        bonus = 0xF;
+    else
+        bonus = 0;
+
+    for (i = 0; i < list[0]; i++)
+    {
+        ok = 0;
+        val = 0;
+        if (pool[i * 0xC8 + 0x493] == 7)
+            continue;
+
+        i4 = i * 4;
+        items = list + 1;
+        vtmp = items[i4];
+        v = vtmp;
+
+        if (v <= 0x70)
+        {
+            k = (u8)(v - 0xC);
+            if ((int)Rng_LcgNext() % 100 <= 0x3B)
+            {
+                if ((int)Rng_LcgNext() % 100 < gUnk_0839D9B8[k][1])
+                {
+                    val = (u8)(gUnk_0839D9B8[k][0] + bonus);
+                    ok = 1;
+                }
+            }
+            else
+            {
+                if ((int)Rng_LcgNext() % 100 < gUnk_0839D9B8[k][3])
+                {
+                    val = (u8)(gUnk_0839D9B8[k][2] + bonus);
+                    ok = 1;
+                }
+            }
+        }
+        else
+        {
+            k = (u8)(v - 0x71);
+            if ((int)Rng_LcgNext() % 100 <= 0x3B)
+            {
+                if ((int)Rng_LcgNext() % 100 < gUnk_0839DBB1[k][1])
+                {
+                    val = (u8)(gUnk_0839DBB1[k][0] + bonus);
+                    ok = 1;
+                }
+            }
+            else
+            {
+                if ((int)Rng_LcgNext() % 100 < gUnk_0839DBB1[k][3])
+                {
+                    val = (u8)(gUnk_0839DBB1[k][2] + bonus);
+                    ok = 1;
+                }
+            }
+        }
+
+        if (ok != 1 || val == 0)
+            continue;
+
+        ok = 0;
+        for (j = 0; j < gBattleDropCount; j++)
+        {
+            if (val == gBattleDrops[j].itemId)
+            {
+                ok = 1;
+                break;
+            }
+        }
+
+        if (ok == 1)
+        {
+            gBattleDrops[j].count++;
+        }
+        else
+        {
+            gBattleDrops[gBattleDropCount].itemId = val;
+            gBattleDrops[gBattleDropCount].count = 1;
+            gBattleDropCount++;
+        }
+    }
+
+    for (i = 0; i < gBattleDropCount; i++)
+    {
+        Inventory_AddItem(gBattleDrops[i].itemId, gBattleDrops[i].count);
+    }
+
+    *arg0 = (u32)gBattleDrops;
+    return gBattleDropCount;
+}
 // @ 0x0804EC04
-INCLUDE_ASM("asm/nonmatchings", sub_804EC04);
+// BattleCards_Roll: 战后怪物卡片掉落掷取与图鉴计数
+u8 sub_804EC04(u32 *arg0)
+{
+    u8 values[8];
+    u8 count;
+    u8 i;
+    u8 j;
+    u8 v;
+    u8 k;
+    u8 ok;
+    u8 found;
+    u8 rateMode;
+    u8 *pool;
+    u8 *objs;
+    u8 *list;
+    u8 *items;
+    u8 *obj20B48;
+    u32 i4;
+    u8 idx;
+    u8 vtmp;
+
+    rateMode = 0;
+    for (i = 0; i <= 9; i++)
+    {
+        gBattleCardDrops[i].cardId = 0;
+        gBattleCardDrops[i].count = 0;
+    }
+    gBattleCardDropCount = 0;
+
+    pool = (u8 *)GetObjPool();
+    list = (u8 *)sub_8020E68();
+    obj20B48 = (u8 *)sub_8020B48();
+    found = 0xFF;
+    objs = (u8 *)GetObjPool();
+    count = Battle_CollectSlots((BattleObj *)objs, values, 0, 0x1FF);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        v = sub_804E76C((BattleObj *)(objs + values[idx] * 0xC8), 5, 2);
+        if ((s8)v >= 0)
+        {
+            found = v;
+            break;
+        }
+    }
+
+    if ((s8)found >= 0)
+        rateMode = 1;
+
+    found = 0xFF;
+    objs = (u8 *)GetObjPool();
+    count = Battle_CollectSlots((BattleObj *)objs, values, 0, 0x1FF);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        v = sub_804E76C((BattleObj *)(objs + values[idx] * 0xC8), 5, 3);
+        if ((s8)v >= 0)
+        {
+            found = v;
+            break;
+        }
+    }
+
+    if ((s8)found >= 0)
+        rateMode = 2;
+
+    for (i = 0; i < list[0]; i++)
+    {
+        ok = 0;
+        if (pool[i * 0xC8 + 0x493] == 7)
+            continue;
+
+        i4 = i * 4;
+        items = list + 1;
+        vtmp = items[i4];
+        v = vtmp;
+        if (v <= 0x70)
+        {
+            k = (u8)(v - 0xC);
+            if (pool[i * 0xC8 + 0x494] == obj20B48[0xAC])
+            {
+                switch (rateMode)
+                {
+                case 0:
+                    if ((int)Rng_LcgNext() % 100 < gUnk_0839D9B8[k][4])
+                        ok = 1;
+                    break;
+                case 1:
+                    if ((int)Rng_LcgNext() % 100 <= 0x31)
+                        ok = 1;
+                    break;
+                case 2:
+                    ok = 1;
+                    break;
+                }
+            }
+            else
+            {
+                if ((int)Rng_LcgNext() % 100 < gUnk_0839D9B8[k][4])
+                    ok = 1;
+            }
+        }
+        else
+        {
+            k = (u8)(v - 0x71);
+            if (k > 0xB)
+                k--;
+            if (pool[i * 0xC8 + 0x4A6] != 0x79)
+                ok = 1;
+        }
+
+        if (ok != 1)
+            continue;
+
+        ok = 0;
+        for (j = 0; j < gBattleCardDropCount; j++)
+        {
+            if (k == gBattleCardDrops[j].cardId)
+            {
+                ok = 1;
+                break;
+            }
+        }
+
+        if (ok == 1)
+        {
+            gBattleCardDrops[j].count++;
+        }
+        else
+        {
+            gBattleCardDrops[gBattleCardDropCount].cardId = k;
+            gBattleCardDrops[gBattleCardDropCount].count = 1;
+            gBattleCardDropCount++;
+        }
+    }
+
+    for (i = 0; i < gBattleCardDropCount; i++)
+    {
+        if (sub_80187B4() & 0x20)
+        {
+            SaveTimer_Inc(gBattleCardDrops[i].cardId + 0xA0);
+            if (gBattleCardDrops[i].cardId > 0xA)
+                gBattleCardDrops[i].cardId++;
+        }
+        else
+        {
+            SaveTimer_Inc(gBattleCardDrops[i].cardId + 0x3B);
+        }
+    }
+
+    *arg0 = (u32)gBattleCardDrops;
+    return gBattleCardDropCount;
+}
 // @ 0x0804EEC4
 void sub_804EEC4(void)
 {

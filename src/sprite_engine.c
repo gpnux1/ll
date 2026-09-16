@@ -1,13 +1,21 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "sprite_engine.h"
+#include "map_scene_runtime.h"
+#include "data_87E83F0.h"
+#include "engine_core.h"
+#include "map_view.h"
+#include "menu.h"
+#include "menu_ui.h"
+#include "player_stats.h"
+#include "sound.h"
+#include "vram_transfer.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "globals.h"
-#include "data_87E83F0.h"
 #include "data_805769C.h"
 #include "include_asm.h"
 #include "iwram.h"
 #include "m4a.h"
-#include "sound.h"
 
 extern void IntrMain();
 
@@ -205,7 +213,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 sprNodeIdx, s16 z, u8 arg4)
         gCurSpriteW = gWalkAnimDimTable[ ((sprNode->attr0 >> 11) & 0x18) + ((sprNode->attr1 >> 13) & 6)];
         gCurSpriteH = gWalkAnimDimTable[ ((sprNode->attr0 >> 11) & 0x18) + ((sprNode->attr1 >> 13) & 6) + 1];
 
-
         if(sprNode->tileOffsetX > 256)
         {
             offsetX = sprNode->tileOffsetX - 511;
@@ -236,7 +243,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 sprNodeIdx, s16 z, u8 arg4)
         {
             sprNode->flags |= 0x80;
         }
-
 
         sprNode = sprNode->next;
 
@@ -277,7 +283,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 sprNodeIdx, s16 z, u8 arg4)
                         break;
                     j++;
                 }
-
 
                 return 0;
             }
@@ -332,7 +337,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 arg2, s16 z, u8 arg4) {
         gCurSpriteW = gWalkAnimDimTable[ ((sprNode->attr0 >> 11) & 0x18) + ((sprNode->attr1 >> 13) & 6)];
         gCurSpriteH = gWalkAnimDimTable[ ((sprNode->attr0 >> 11) & 0x18) + ((sprNode->attr1 >> 13) & 6) + 1];
 
-
         if(sprNode->tileOffsetX > 256)
         {
             offsetX = sprNode->tileOffsetX - 511;
@@ -363,7 +367,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 arg2, s16 z, u8 arg4) {
         {
             sprNode->flags |= 0x80;
         }
-
 
         sprNode = sprNode->next;
 
@@ -403,7 +406,6 @@ u8 Sprite_EnqueueRender(s16 x, s16 y, u8 arg2, s16 z, u8 arg4) {
                     j++;
                 }
 
-
                 return 0;
             }
 
@@ -423,14 +425,11 @@ INCLUDE_ASM("asm/matchings", Sprite_UpdateCharaAnim);
 u8 gWalkAnimFrameMapping[] = {0, 1, 2, 1, 0, 1, 0, 1};
 u8 gWalkDirectionMapping[] = {2, 3, 3, 3, 0, 1, 1, 1, 1, 2, 2, 2, 3, 0, 0, 0, 0};
 
-
-
 extern SpriteNode gSpriteNodePool[128];
 
 extern SpriteNode* gSpriteRenderQueue[128];
 
 extern Actor gActors[];
-
 
 // @ 0x0800271C
 void Sprite_UpdateCharaAnim(u8 arg0)
@@ -590,7 +589,6 @@ INCLUDE_ASM("asm/matchings", Anim_PlayCustom);
 
 /*
 
-
 extern u8* gCutsceneAnimPals[];
 extern u8 gCutsceneAnimSlots[];
 extern u8 gCutsceneAnimFlags[];
@@ -602,7 +600,6 @@ u8 PalTransfer_AllocSlot();
 void Anim_BuildOamChain(u8 arg0, u8 *arg1);
 
 void PalTransfer_Enqueue(u8 , void* , u8 , u8 );
-
 
 // @ 0x080029D8
 void Anim_PlayCustom(u8 arg0) {
@@ -625,7 +622,6 @@ void Anim_PlayCustom(u8 arg0) {
     // offset = animDataPtr[2] + (animDataPtr[3] << 8);
 
     frameDataPtr = animDataPtr +  (animDataPtr[2] + (animDataPtr[3] << 8));
-
 
     if(chara->animFrameTimer == 0)
     {
@@ -694,7 +690,6 @@ void Anim_PlayCustom(u8 arg0) {
             count--;
         }
 
-
         if(chara->animFrameTimer != 0xFF)
         {
             chara->animFrameTimer++;
@@ -734,7 +729,6 @@ const u8 gSpriteTileCountTable[] = {
     99, 99, 99, 99 // Invalid/Prohibited Shape
 };
 
-
 const u8 gSpriteDimensionsTable[] = {
     8, 8, 16, 16, 32, 32, 64, 64, // Shape 0: Square
     16, 8, 32, 8, 32, 16, 64, 32, // Shape 1: Horizontal
@@ -743,7 +737,6 @@ const u8 gSpriteDimensionsTable[] = {
 };
 
 void VramTransfer_Enqueue(u16 id, void* src, void* dest, u8 arg3);
-
 
 //00 00   idx
 //02 00   num
@@ -972,7 +965,6 @@ void LogoBlendEffect_Update(void)
 
 #define GET_PLTT(n)    ((n) + 0)
 #define GET_TILEMAP(n) ((n) + 32)
-// INCLUDE_ASM("asm/matchings", LogoAssets_Load);
 
 // @ 0x08002F6C
 void LogoAssets_Load(void)
@@ -1402,7 +1394,6 @@ void Chara_InitFromDesc(u8 arg0, UnkStruct* arg1) {
     renderObj->animFrame = 0;
 }
 
-
 */
 // @ 0x0800375C
 void Chara_InitDialogArrow(u8 arg0)
@@ -1754,7 +1745,6 @@ u8 CheckFacingEvent(void)
 }
 // @ 0x080040E4
 INCLUDE_ASM("asm/nonmatchings", Party_FollowAnim);
-// INCLUDE_ASM("asm/matchings", Followers_ResetHistory);
 
 // @ 0x08004358
 void Followers_ResetHistory(void)
@@ -1912,7 +1902,6 @@ void Party_FollowStep(void) {
         }
     }
 
-
 }
 */
 
@@ -2000,7 +1989,6 @@ void CutsceneAnim_Load(u16 arg0, u8 arg1, u8 arg2) {
     LZ77UnCompWram(gUnk_087E8D84[gUnk_0805888C[arg0].field_2], (u32)(VRAM_BASE + arg1 * VRAM_STRIDE));
 
 }
-
 
 */
 

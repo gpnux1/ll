@@ -2,7 +2,6 @@
 #define _IWRAM_H
 
 #include "gba/types.h"
-#include "menu.h"
 
 #define NULL 0
 
@@ -132,9 +131,9 @@ extern u8 gSkillMenuTmpB;
 extern u8 gPartyMenuIdx;
 extern u8 gSkillMenuPage;
 extern u8 gMenuItemId;    ///< 0x03000229 (原 gUnk_03000229) 道具界面光标处道具 id (InvUi_Main 存储; 80146A8 据此索引 gUnk_03004980 数量表)
-extern u8 gUnk_03000204;
-extern u8 gUnk_03000208;
-extern u32 gUnk_03000210;
+extern u8 gUnk_03000204[];
+extern u8 gUnk_03000208[];
+extern u32 gUnk_03000210[];
 extern u8 gItemPocketIdx; ///< 0x0300022A (原未登记) 道具分类页 (sub_8015658: sub_800AADC 类别映射, 4→5/>4→6; 8014A68 消费)
 extern u8 gInvUiMode;     ///< 0x0300022B (原 gUnk_0300022B) 道具界面打开模式标志 (sub_801417C 存档菜单路径置位; 80146A8/8014A68 分支)
 extern u32 gMenuItemIcon; ///< 0x0300022C (原 gUnk_0300022C) 光标道具图标 tile 基址 (InvUi_Main 存储; sub_8015658 清零/重绘)
@@ -323,6 +322,7 @@ extern u8 gUnk_0300073D;
 extern u8 gUnk_03000744;
 extern u8 gUnk_03000765;
 extern u8 gUnk_08393A30[];
+extern u8 gUnk_08393A48[]; ///< 0x08393A48 成员 X 坐标字符表 (sub_80257D8 case5 插值起点 / sub_8032948 存 gObjActSavedX); 同族 gUnk_08393A4D 为 Y
 extern u8 gUnk_0839DF90[]; ///< sub_802A154 case30/36 用的 (x,y) 对表 (各 2 字节)
 extern float gCosTable[];
 extern float gSinTable[];
@@ -404,6 +404,7 @@ extern u8 gActWaitCnt0;
 extern u8 gActEventCount;
 extern u16 gActWaitFrames;
 extern u8 gActWaitCnt1;
+extern u8 gUnk_03000864; ///< 0x03000864 (原 gUnk_03000864) 战斗对象逃跑判定结果 (0=成功, 1=失败; sub_803FF54 消费)
 extern u8 gObjActDoneCount; ///< 0x03000865 (原 gUnk_03000865) 对象演出完成计数: sub_803FF54 步进器 case 在 obj->slot=0xFF/variantClass=7/gObjActStep=0x38 后 ++; sub_804448C 清 0 (BattleTask_Run 开场), getter sub_8044498 供 ObjGroup_AnyEvent 等待 !=0
 extern u8 gSceneFadeOut;
 extern u8 gSceneFadeIn;
@@ -412,6 +413,7 @@ extern u8 gObjActParam;
 extern u16 gUnk_0300086C; ///< sub_803E58C 动画基准表项 (0x350/0x353/0x356, 加 1/2 变体)
 extern u8 gObjActMoveFromX;
 extern u8 gObjActMoveFromY; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
+extern u8 gUnk_03000870[];  ///< 0x03000870 目标对象保存 X 坐标表 (sub_80401AC 逃跑演出用)
 extern u16 gActHitDmgAmount; ///< 0x03000882 (原 gUnk_03000882) 战斗脚本族 (sub_8040690/8042E70 等) 从 BattleObj.dmgAmount(+0xB2) 快照的当前伤害值; getter sub_8044420, 合击/连锁处理 (sub_801BE34/801C484) 累加进 0x03000742; 战斗脚本 case 起手清 0
 extern u8 gObjActSfxLatch;
 extern u16 gActWaitSfxId;   ///< 0x03000886 (原 gUnk_03000886) 演出等待结束音效号: sub_8044514 置默认 0x37, sub_8044574 由脚本参数给定; 等待结束时 Sfx_Play(本值,0,gActWaitSfxParam) (sub_803F658 合击状态机等)
@@ -639,6 +641,18 @@ typedef struct BattleDrops
     u8 count;                  /* +0x28 = gBattleDropCount */
 } BattleDrops;
 extern BattleDrops gBattleDropsBlk; /* 0x03000E08 (结构体基址视图) */
+/* ---- 战后卡片掉落结果表 (sub_804EC04 / BattleCards_Roll:
+ * 遍历敌方怪物按怪物槽号掷取卡片/图鉴 entry, 查 sub_804E76C 装备属性 (字段 5==2 / 5==3) 提升掉落率,
+ * 去重写入本表, 并逐项通过 SaveTimer_Inc 递增卡片图鉴计数。*out=本表, 返回记录数。
+ * 容量 10 项, 布局与 BattleDropEntry 一致: {cardId@+0, count@+1, pad_2@+2}) */
+typedef struct BattleCardDropEntry
+{
+    u8 cardId; /* 0x03000E38[i]+0: 卡片/怪物图鉴 id */
+    u8 count;  /* +1: 掉落计数 */
+    u16 pad_2;
+} BattleCardDropEntry;
+extern BattleCardDropEntry gBattleCardDrops[]; /* 0x03000E38 (容量 10) */
+extern u8 gBattleCardDropCount;                /* 0x03000E60 已用卡片记录数 */
 extern u8 gScriptReturnSetId; /* 0x03000E68 ScriptSet_Load 记挂的脚本集号; 脚本退场时还原到 gEnvScriptSetId */
 extern u8 gScriptPendingEntry; /* 0x03000E69 mode==2 记挂的入口号, 解压完成后跳 entryTbl[本值] */
 extern u32 gScriptCursor; /* 0x03000E6C: 脚本 VM PC 槽, 存当前 opcode 字节地址 (EWRAM 脚本区) */
@@ -1077,7 +1091,7 @@ extern u8 gSpawnTileX;
 extern u16 *gPendingPortraitPalette;
 extern u16 gBg1ScrollMode;
 
-#include "anim_slot.h"
+#include "map_scene_runtime.h"
 
 /* 当前地图的区域头表指针 (MapScene_Load 从 0x087EBB20[mapIdx] 装载):
  * {u32 cells; u32 type0..type4} — cells: {u8 count, {u8 xTile, u8 yTile, u8 type, u8 entryIdx}[count]}
@@ -1437,5 +1451,8 @@ extern u8 *gChoiceListPtr; /* 0x0300462C */
 extern u8 gChoiceListLen; /* 0x03004640 */
 extern u8 gChoiceCursor; /* 0x0300466C */
 extern u8 gChoiceSel; /* 0x0300469C: 当前选中项的低 nibble */
+
+/* iwram consumers also need menu title enum/constants; include after iwram types are defined. */
+#include "menu.h"
 
 #endif

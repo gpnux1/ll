@@ -1,4 +1,16 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "menu.h"
+#include "map_scene_runtime.h"
+#include "engine_core.h"
+#include "map_view.h"
+#include "menu_ui.h"
+#include "player_stats.h"
+#include "save.h"
+#include "scene_mgr.h"
+#include "sound.h"
+#include "sprite_engine.h"
+#include "text_engine.h"
+#include "vram_transfer.h"
 #include "data_87E83F0.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
@@ -9,14 +21,12 @@
 #include "iwram.h"
 #include "ewram.h"
 #include "m4a.h"
-#include "menu.h"
-#include "save.h"
-#include "sound.h"
 
 // @ 0x08010F10
 INCLUDE_ASM("asm/nonmatchings", sub_8010F10);
 
 extern u8 gUnk_08095828[][8];
+extern const u8 gUnk_08095028[][8];
 
 // @ 0x0801114C
 void sub_801114C(void)
@@ -75,7 +85,66 @@ void sub_801114C(void)
     }
 }
 // @ 0x08011268
-INCLUDE_ASM("asm/nonmatchings", sub_8011268);
+void sub_8011268(void)
+{
+    u16 page;
+    u16 slot;
+    int row;
+    u8 item;
+    int itemRow;
+    u8 paletteId;
+    u8 y;
+    u8 j;
+    u8 charCode;
+    const u8 *src;
+    u16 *dest;
+
+    ClearBuffer((u16 *)0x02005AA0, 8, 6);
+    ClearBuffer((u16 *)0x02005AB6, 2, 6);
+
+    page = gSkillMenuPage;
+    slot = 0;
+
+    for (; (slot < 3) && (page <= 15); page++)
+    {
+        item = Inv_FindHeldItemOnPage(page);
+        if (item != 0xFF)
+        {
+            if (slot == (gMenuCursorSel - 16))
+            {
+                gSkillMenuTmpB = item;
+                paletteId = 0xD;
+            }
+            else
+            {
+                paletteId = 0xB;
+            }
+
+            row = slot * 2;
+            y = row + 10;
+            itemRow = row;
+
+            if (item != 0)
+            {
+                src = gUnk_08095028[item];
+                dest = (u16 *)0x02005820 + (y * 32);
+
+                for (j = 0; j < 8; j++)
+                {
+                    charCode = *src++;
+                    if (charCode == 0)
+                    {
+                        break;
+                    }
+                    Text_PutGlyph(dest++, charCode, paletteId);
+                }
+            }
+
+            sub_800EAE4((u16 *)0x02005AB8 + (itemRow * 32), gInventory[item], 12);
+            slot++;
+        }
+    }
+}
 
 /* 在 16 页道具表 gInvPageItemIds[] 中, 从 gSkillMenuPage+1 页向后找第一个
  * 仍持有的道具页 i (gInventory[itemId] != 0); 之后至少还要有 2 个持有页
@@ -183,7 +252,6 @@ extern u16 gUnk_02005900[];
 void TitleMenu_ProcessFrame(void) {
     u16 *tilemapCursor;
     u16 workCounter;
-
 
     if (gScreenTransitionState != 0)
     {
@@ -571,7 +639,6 @@ void TitleMenu_ProcessFrame(void) {
                     workCounter++;
                 }
 
-
                 Menu_DrawTextLayout(gGalleryMenuDesc);
 
                 sub_800EAE4((void * ) 0x02005878, gCardRecvId, 0xB);
@@ -579,7 +646,6 @@ void TitleMenu_ProcessFrame(void) {
                 break;
 
             }
-
 
         case TITLE_PHASE_GALLERY_SCENE_FADEIN: // _08011E40
         case TITLE_PHASE_GALLERY_SCENE_LOOP:
@@ -612,7 +678,6 @@ void TitleMenu_ProcessFrame(void) {
             DmaCopy16(3, gUnk_080A12D0, 0x05000340, 0x40);
             DmaCopy16(3, gUnk_0808B7D4, 0x050001C0, 0x40);
 
-
             REG_DISPCNT = 0x15E0;
             REG_BG0CNT = 0x1F09;
             REG_BG2CNT = 0x3C02;
@@ -626,8 +691,6 @@ void TitleMenu_ProcessFrame(void) {
             DmaCopy16(3, 0x02005800, 0x0600F000, 0x800);
             DmaCopy16(3, 0x02004000, 0x0600E000, 0x800);
             DmaCopy16(3, 0x02004800, 0x0600E800, 0x800);
-
-
 
             gBlendControl = 0x0441;
             gBlendCoefficients = 0x070F;
@@ -661,21 +724,17 @@ void TitleMenu_ProcessFrame(void) {
             LZ77UnCompVram(gUnk_087EB2E0[11], (void * ) 0x06013800);
             DmaCopy16(3, gUnk_0809E644, 0x05000240, 0x20);
 
-
             LZ77UnCompVram(gUnk_080A0B58, (void * ) 0x06017000);
 
             DmaCopy16(3, gUnk_080A12D0, 0x05000340, 0x40);
 
             DmaCopy16(3, gUnk_0808B7D4, 0x050001C0, 0x40);
 
-
             LZ77UnCompVram(gUnk_08097B60, (void * ) 0x0600C000);
 
             DmaCopy16(3, gUnk_08097B60+0x1F0, 0x05000100, 0x60);
 
-
             DmaCopy16(3, gUnk_0808B7D4, 0x050001C0, 0x40);
-
 
             REG_BG0CNT = 0x1F08;
             REG_BG1CNT = 0x1E09;
@@ -698,8 +757,6 @@ void TitleMenu_ProcessFrame(void) {
                 tilemapCursor++;
                 workCounter++;
             }
-
-
 
             sub_8012530(gCardSendId);
             DmaCopy16(3, (u16*)0x02005000, 0x0600F000, 0x800);
@@ -754,7 +811,6 @@ void TitleMenu_ProcessFrame(void) {
                 gBlendCoefficients -= 0x300;
             }
 
-
             break;
 
         case TITLE_PHASE_CARD_EXCHANGE_FINISH_FADE: // _080122F0
@@ -799,8 +855,6 @@ void TitleMenu_ProcessFrame(void) {
 
             break;
 
-
-
         case TITLE_PHASE_CARD_EXCHANGE_POLL: // _080123C4
             TitleMenu_UpdateUi();
             workCounter = 0;
@@ -824,7 +878,6 @@ void TitleMenu_ProcessFrame(void) {
                         break;
                     case CARD_EXCHANGE_FAILED:
                         Msg_ShowById(0x16D, 0xB);
-
 
                         if (gNewKeysRaw & 3) {
                             workCounter = 1;
@@ -877,8 +930,6 @@ void TitleMenu_ProcessFrame(void) {
             gScenePhase = TITLE_PHASE_INIT;
         break;
     }
-
-
 
 }
 // @ 0x08012530
@@ -1597,6 +1648,45 @@ INCLUDE_ASM("asm/nonmatchings", sub_8015658);
 
 // @ 0x08015AF0
 INCLUDE_ASM("asm/matchings", sub_8015AF0);
+/*
+extern u8 gUnk_03000228;
+extern u8 gUnk_08093550[];
+
+static inline void SetBgUnknown1(u16* buf, u16 val)
+{
+    *buf = val;
+}
+
+static inline void SetBgUnknown(u16* buf, u16 val)
+{
+    *buf = val + 0xb240;
+}
+
+void sub_8015AF0(void) {
+    s16 var_r0;
+    u8 temp_r3;
+
+    if(gUnk_03000228 != 0)
+    {
+        SetBgUnknown((u16*)0x020059AA, (((gUnk_03000198 >> 3) & 1) + 0x826));
+    }
+    else
+    {
+        SetBgUnknown1((u16*)0x020059AA, 0xB27F);
+    }
+
+    if( gUnk_08093550[gUnk_03004DD4 * 8 + 4 + gUnk_03000228] == 0xFF || gUnk_03000228 > 3)
+    {
+         SetBgUnknown1((u16*)0x02005BEA, 0xB27F);
+    }
+    else
+    {
+        SetBgUnknown((u16*)0x020059AA, (((gUnk_03000198 >> 3) & 1) + 0x26));
+    }
+
+}
+
+*/
 // ⏸ 无候选; 逻辑已全解(见 progress.md): 两处 tilemap 写(0x020059AA/0x02005BEA)+gUnk_08093550 查表;
 //   卡在 GCC2 调度: 目标把 store 基址 ldr 插在 (bit|0x826) 之后, 我方版本提前物化基址 → +0xd 起错位。
 //   需 gUnk_03000228(IWRAM)/gUnk_08093550(ROM) 符号 + 逐条对齐调度, 待攻。

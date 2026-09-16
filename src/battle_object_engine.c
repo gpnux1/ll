@@ -1,4 +1,11 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_object_engine.h"
+#include "battle_flow_rules.h"
+#include "battle_itemuse_rewards.h"
+#include "battle_menu_windows.h"
+#include "battle_palette_wipe.h"
+#include "battle_stage_state.h"
+#include "battle_task_services.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "gba/macro.h"
@@ -8,7 +15,6 @@
 #include "m4a.h"
 #include "save.h"
 #include "sound.h"
-
 
 /* === 战斗 ObjHead 图形加载族 (原 src/battle_gfx_load.c, 2026-09-13 并入本 TU:
    ROM 内 .text 与本文件相邻 [0x0801A3C4,0x0801A884) 紧接本文件, 两文件 include 集
@@ -209,7 +215,6 @@ INCLUDE_ASM("asm/nonmatchings", sub_801AD0C);
 // @ 0x0801B0B8
 INCLUDE_ASM("asm/nonmatchings", sub_801B0B8);
 
-
 // @ 0x0801B570
 void sub_801B570(ObjHead *obj)
 {
@@ -262,6 +267,73 @@ void sub_801B570(ObjHead *obj)
 }
 // @ 0x0801B688
 INCLUDE_ASM("asm/matchings", sub_801B688);
+
+/*
+typedef union{
+    struct {
+        u32 VPos:8;
+        u32 AffineMode:2;
+        u32 ObjMode:2;
+        u32 Mosaic:1;
+        u32 ColorMode:1;
+        u32 Shape:2;
+        u32 HPos:9;
+        u32 AffineParamNo_L:3;
+        u32 HFlip:1;
+        u32 VFlip:1;
+        u32 Size:2;
+
+        u16 CharNo:10;
+        u16 Priority:2;
+        u16 Pltt:4;
+        u16 AffineParam;
+    }fields;
+
+    u32 attrs[2];
+
+}GameOamData;
+
+extern GameOamData gUnk_030035C0[128];
+
+
+
+void sub_801B688(u8 arg0) {
+    u16 dmaSize;
+    GameOamData sp4;
+
+
+    sp4.fields.VPos = 161;
+    sp4.fields.AffineMode = 0;
+    sp4.fields.ObjMode = 0;
+    sp4.fields.Mosaic = 0;
+    sp4.fields.ColorMode = 0;
+    sp4.fields.Shape = 0;
+
+    sp4.fields.HPos = 260;
+    sp4.fields.AffineParamNo_L = 0;
+    sp4.fields.HFlip = 0;
+    sp4.fields.VFlip = 0;
+    sp4.fields.Size = 0;
+
+    
+    sp4.fields.CharNo = 0;
+    sp4.fields.Priority = 0;
+    sp4.fields.Pltt = 0;
+
+    if(arg0 >= 0x7F)
+    {
+        dmaSize = 0x400;
+    }
+    else
+    {
+        dmaSize = arg0 * 8 + 8;
+    }
+    
+    DmaFill32(3, *(u32*)&sp4, gUnk_030035C0, dmaSize );
+
+}
+
+*/
 
 // @ 0x0801B760
 void sub_801B760(u16 arg0)
@@ -1157,7 +1229,6 @@ void sub_801DC20(BattleObj *arg0, u8 arg1)
     gTaskPoolCount += 1;
 }
 
-
 /* 从对象排序链表 (0x030006A0) 摘除节点, 清对象字段并按 field_BE 分派:
  * ≤0xA → sub_801CBA4, ≤0x70 → sub_801CA08, 其余 (field_BE-0x71 ≤ 0x8D) → sub_801CE80,
  * 均传 (obj, 0, idx*22+9, (u8)(idx+1), 0); 末尾 sub_801D12C(obj,0)。 */
@@ -1415,8 +1486,6 @@ u8 sub_801E040(void)
 // @ 0x0801E1D8
 INCLUDE_ASM("asm/nonmatchings", sub_801E1D8);
 // @ 0x0801E30C
-INCLUDE_ASM("asm/nonmatchings", sub_801E30C);
-// @ 0x0801E4D4
 /* 战斗效果入队 (等价已匹配的 sub_8020B90): 写队列槽 gFxQueueObjs[count] 后 count++,
  * 对象类型 > 0xB 时同时登记 gUnk_03000718。原 ROM 在 sub_801E4D4/801E30C/801E690 三处
  * 内联展开本逻辑; 因 GCC2 不会内联定义在后面的函数, 此处用 static inline 复现内联形状
@@ -1431,6 +1500,106 @@ static inline void Inl_QueuePushObj(BattleObj *obj)
     }
 }
 
+extern u8 gUnk_0839CC4C[]; /* 道具效果配对表 (u32/项; 同 battle_flow_rules.c 的 file-local 声明) */
+/* 战斗效果扣血引擎第 3 变体 (同 sub_801E4D4/801E690 族, 三处均内联展开 Inl_QueuePushObj):
+ * 按 arg0->fxKind 选效果索引, 查 gUnk_08393B28[].targetMode 分派单体/群体扣血并入队回绕对象。
+ * ROM 中无直接调用者 (同族死代码)。索引来源:
+ *   case0: (anim + 3)[le16(gUnk_0839CC4C + equipSlots[0] * 4)]   (装备道具 1 的效果配对 id)
+ *   case1: (anim + 3)[skills[animSubIdx]]                         (施放技能槽的附属索引)
+ * ★ ROM 真 UB: anim 从未赋值 — 序言 `mov r6, sb` 令 r6 残留调用方 sb,
+ *   `anim + 3` 即以该残值寻址 [r6 + 3 + id]; 与未匹配 sub_801CBA4 笔记的 r5/r6 互换同现象。
+ *   查表基址指针 q 与 p = anim + 3 的语句切分是 GCC2.9 字面池 home (ldr r2,=表基址) 与
+ *   群体分支求值顺序 (实参先行、后写队列槽) 的复现关键。 */
+u32 sub_801E30C(BattleObj *arg0, BattleObj *arg1)
+{
+    u8 *anim;
+    u8 *p;
+    const u16 *q;
+    u8 flags[7];
+    const ObjAnimEntry *entry;
+    u32 result;
+    u32 limit;
+    u8 wrapped;
+    u8 i;
+
+    result = 0;
+    for (i = 0; i <= 6; i++)
+        flags[i] = 0;
+
+    switch ((s8)arg0->fxKind)
+    {
+    case 0:
+        q = (const u16 *)gUnk_0839CC4C;
+        p = anim + 3;
+        entry = &gUnk_08393B28[p[q[arg0->equipSlots[0] * 2]]];
+        break;
+    case 1:
+        p = anim + 3;
+        entry = &gUnk_08393B28[p[arg0->skills[arg0->animSubIdx]]];
+        break;
+    }
+
+    switch (entry->targetMode)
+    {
+    case 0:
+        if (*(s16 *)&arg1->hp - *(s16 *)&arg1->dmgAmount <= 0)
+        {
+            arg1->hp = entry->targetMode;
+            wrapped = 1;
+        }
+        else
+        {
+            arg1->hp -= arg1->dmgAmount;
+            wrapped = 0;
+        }
+        flags[0] = wrapped;
+        if (wrapped != 0)
+            Inl_QueuePushObj(arg1);
+        break;
+    case 1:
+        limit = (arg1->slot > 0xA) ? 7 : 5;
+        for (i = 0; i < limit; i++)
+        {
+            BattleObj *member = (BattleObj *)(i * 0xC8 + (u32)arg1);
+            if (member->slot == 0xFF)
+                continue;
+            if (member->variantClass == 8)
+                continue;
+            if (*(s16 *)&member->hp - *(s16 *)&member->dmgAmount <= 0)
+            {
+                member->hp = 0;
+                wrapped = 1;
+            }
+            else
+            {
+                member->hp -= member->dmgAmount;
+                wrapped = 0;
+            }
+            flags[i] = wrapped;
+            if (wrapped != 0)
+                Inl_QueuePushObj((BattleObj *)(i * 0xC8 + (u32)arg1));
+        }
+        break;
+    }
+
+    i = 0;
+    if (flags[0] == 1)
+        result = flags[0];
+    else
+    {
+        while (++i <= 6)
+        {
+            if (flags[i] == 1)
+            {
+                result = flags[i];
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+// @ 0x0801E4D4
 /* 由 arg0[0xBC] 选择的效果查表 (gUnk_08393B28[idx].targetMode) 决定处理模式:
  * 0 → 对 arg1 单体做 [0x6C] -= [0xB2] (下溢清零), 回绕则入队;
  * 1 → 对 arg1 起始的 0xC8 步长成员数组 (5 或 7 个, 按 arg1[0xBE] 分档) 逐个执行同一扣减;
@@ -2173,8 +2342,8 @@ s8 sub_801FF40(u8 mode)
     for (; i <= 4; i++)
         buf[i] = 0;
 
-    sub_8018838(((u32 (*)(void))Rng_LcgNext)());
-    ((u32 (*)(void))Rng_LcgNext)();
+    sub_8018838(Rng_LcgNext());
+    Rng_LcgNext();
 
     node = (TaskPoolNode *)gTaskPoolHead.next;
     count = 0;
@@ -2188,7 +2357,7 @@ s8 sub_801FF40(u8 mode)
             slot = i;
             break;
         }
-        if ((u8)(((u32 (*)(void))Rng_LcgNext)() % 101) <= (s32)((*(u16 *)(node->data + 0xB2) + 1) * 40))
+        if ((u8)(Rng_LcgNext() % 101) <= (s32)((*(u16 *)(node->data + 0xB2) + 1) * 40))
         {
             slot = i;
             break;
@@ -2203,7 +2372,7 @@ s8 sub_801FF40(u8 mode)
 
     if (count != 0)
     {
-        slot = buf[((u32 (*)(void))Rng_LcgNext)() % count];
+        slot = buf[Rng_LcgNext() % count];
         for (i = 0; i < n; i++)
         {
             if (*(u8 *)(gTaskPoolNodes[i].data + 0xBB) == (s8)slot)

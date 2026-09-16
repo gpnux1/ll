@@ -1,5 +1,11 @@
 #include "data_87E83F0.h"
-#include "code_0.h"
+#include "battle_types.h"
+#include "map_scene_runtime.h"
+#include "battle_task_services.h"
+#include "scene_mgr.h"
+#include "sprite_engine.h"
+#include "text_engine.h"
+#include "vram_transfer.h"
 #include "data_805769C.h"
 
 // 87E83F0
@@ -546,8 +552,6 @@ const CutsceneAnimConfig* gCutsceneAnimConfigTable[] = {
 //     gGfx_Face_Alex_Normal
 // };
 
-
-
 const u8 gUnk_087E94FC[][4] = {
     { 0x01, 0x23, 0x43, 0x55 },  // 087E94FC
     { 0x02, 0xFF, 0x43, 0x55 },  // 087E9500
@@ -572,10 +576,6 @@ const u8 gUnk_087E94FC[][4] = {
     { 0x56, 0xFF, 0x41, 0x0D },  // 087E954C
     { 0x75, 0xFF, 0x6F, 0xD8 },  // 087E9550
 };
-
-
-
-
 
 // Four 8x8 portrait positions: top-left, top-right, bottom-left, bottom-right.
 // 0x087E9818
@@ -604,8 +604,6 @@ const u32 gDialogPortraitTilemapPtrs[] = {0x2005840, 0x200586C, 0x2005B00, 0x200
 //     gAnim_WaterWheel,
 //     gAnim_WaterWheel,
 // };
-
-
 
 */
 

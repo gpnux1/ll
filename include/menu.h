@@ -2,6 +2,8 @@
 #define GUARD_MENU_H
 
 #include "gba/types.h"
+#include "iwram.h"
+#include "battle_types.h"
 
 /* One 32-bit SIO transfer. Only cardIdLo/cardIdHi carry payload here; the
  * upper halfword remains zero after RAM reset. Keep byte fields because the
@@ -90,5 +92,101 @@ enum CardExchangeStatus {
 
 // 标题与菜单系统函数声明
 void TitleMenu_ProcessFrame(void);
+
+/* Generated module API declarations (was include/code_0.h). */
+
+void sub_8010F10(u8, u8, u8, u8);
+
+void sub_801114C();
+
+void sub_8011268();
+
+u8 sub_80113CC(void);
+
+void TitleMenu_ProcessFrame();
+
+void sub_8012530();
+
+void TitleMenu_UpdateUi();
+
+void TitleMenu_DrawOptions();
+
+void OptionsMenu_DrawEntries();
+
+void sub_8013B0C(u16);
+
+void sub_8013C00();
+
+void Save_LoadSlot0();
+
+void Save_LoadContinue();
+
+void SaveTimer_CountUsed();
+
+void SaveTimer_Inc(u8);
+
+void SaveTimer_Dec(u8);
+
+void sub_801417C();
+
+void sub_8014488();
+
+void sub_801455C();
+
+void sub_80146A8();
+
+void sub_8014A68();
+
+void sub_801543C(u8);
+
+void sub_80154E8(u8);
+
+void sub_8015658();
+
+void sub_8015AF0();
+
+void InvUi_DrawCursors();
+
+void InvUi_Main();
+
+void sub_8015E1C();
+
+void Save_ResetReadState();
+
+void Save_StartWrite();
+
+s32 sub_8015ED0(u8);
+
+void SaveUi_DrawSlots();
+
+u32 SaveTimer_Get(u8);
+
+void SaveFlag_Set(u8);
+
+s32 SaveFlag_Get(u8);
+
+void SaveUi_Open(u8);
+
+void sub_8016038(u8);
+
+void sub_8016068();
+
+void sub_80160CC();
+
+void sub_80160F4();
+
+void sub_8016178(u16);
+
+void sub_80161F4();
+
+void Num_Draw16(s16, u16 *);
+
+void Hud_DrawLv(u8, u8, u8);
+
+void Hud_DrawHp(u8, u8, u8);
+
+void Hud_DrawMp(u8, u8, u8);
+
+void Text_PutGlyph(u16 *, u16, u8);
 
 #endif // GUARD_MENU_H

@@ -1,4 +1,9 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_special_targets.h"
+#include "battle_flow_rules.h"
+#include "battle_itemuse_rewards.h"
+#include "battle_object_engine.h"
+#include "battle_task_services.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -16,7 +21,7 @@
  * +0x08 的 4 项为动画副索引表 —— fxKind==1 时按 obj->animSubIdx 选取 (同 sub_801CE80 kind5),
  * 选中表项的 targetMode 决定 f_BD 赋值模式 (0=随机存活候选, 1=0)。 */
 
-/* gUnk_08393B28 (ObjAnimEntry, 见 code_0.h): 本文件族 = slot≥0x71 特殊对象的目标选取
+/* gUnk_08393B28 (ObjAnimEntry, 见 battle_types.h): 本文件族 = slot≥0x71 特殊对象的目标选取
  * handler, 经 sub_804DD70 分派表 gUnk_0839CE38[slot-0x71] 进入 (调用者 sub_801EA70/sub_8020C58)。
  * targetMode==0 → f_BD=values[] 中随机存活候选; ==1 → f_BD=0。 */
 

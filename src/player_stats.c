@@ -1,4 +1,12 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "player_stats.h"
+#include "map_scene_runtime.h"
+#include "battle_flow_rules.h"
+#include "engine_core.h"
+#include "script_vm.h"
+#include "sound.h"
+#include "sprite_engine.h"
+#include "vram_transfer.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +16,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 void ChestObject_Open(u8 arg0)
 {
@@ -506,7 +513,7 @@ void StaticObjs_Spawn(u8 arg0)
     }
 }
 
-/* ⚠ code_0.h 里的 u8 返回类型会生成 lsls/cmp 截断; 目标是直接 cmp。
+/* ⚠ battle_types.h 里的 u8 返回类型会生成 lsls/cmp 截断; 目标是直接 cmp。
  * 本 C 文件 内用宏把调用改指到 s32 原型的本地别名 (同一 ROM 符号, 链接期同一地址)。 */
 s32 Sprite_EnqueueRender_S32(u16, u16, u8, u16, u8);
 
@@ -1248,7 +1255,6 @@ u32 LevelToExp(u8 arg0)
     }
     return sum;
 }
-
 
 // @ 0x0800A8D0
 u8 ItemFindSlot(u8 arg0, u8 arg1)

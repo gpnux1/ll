@@ -1,6 +1,7 @@
 
 #include "sound.h"
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_task_services.h"
 #include "gba/gba.h"
 #include "globals.h"
 #include "include_asm.h"

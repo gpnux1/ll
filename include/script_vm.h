@@ -2,6 +2,8 @@
 #define GUARD_SCRIPT_VM_H
 
 #include "gba/types.h"
+#include "iwram.h"
+#include "battle_types.h"
 
 /* ========================================================================== */
 /* 脚本虚拟机 (Script VM) 操作码枚举 (0x00 .. 0x4F, 共 80 项)                 */
@@ -150,7 +152,7 @@ enum SysFxPalStep
 /* 外部数据表与分发表声明                                                     */
 /* ========================================================================== */
 
-extern u16 (*gScriptOpcodeHandlers[])(u32 *);
+extern u16 (*const gScriptOpcodeHandlers[])(u32 *);
 extern u8 *gUnk_087ED904[];
 extern u8 gUnk_0862D574[];
 extern const u32 gScriptSetTable[];
@@ -180,5 +182,218 @@ void TileDma_Reset();
 s16 sub_80527AC(void);
 u32 TileDma_GetCtx(u32 *);
 u32 Op_LoadTileGfx(u8);
+
+/* Generated module API declarations (was include/code_0.h). */
+
+void sub_804F280();
+
+#define Op_CharaControl sub_804F280
+
+u32 Op_CameraPan(u32 *);
+
+u32 Op_RemovePartyMember(u32 *);
+
+u32 Op_AddPartyMember(u32 *);
+
+u32 Op_ScriptBattle(u32 *);
+
+u32 Op_IfAllFlagsJump(u32 *);
+
+u32 Op_IfAllFlagsClearJump(u32 *);
+
+u32 Op_IfAnyFlagJump(u32 *);
+
+u32 Op_SysEffect(u32 *);
+
+void ScriptPump_Run();
+
+void ScriptPump_ServiceFrame();
+
+void sub_80501B8();
+
+void sub_8050434();
+
+void sub_805063C();
+
+void sub_8050720();
+
+#define Op_DialogMessage sub_8050720
+
+u8 Op_ScriptReturn(u32 *arg0);
+
+u32 Op_ScriptStop(u32 *);
+
+u32 sub_80512C4(u32 *);
+
+#define Op_ScriptStreamLZ sub_80512C4
+
+u32 sub_80513A0(u32 *);
+
+#define Op_ScriptReturnChunk sub_80513A0
+
+void sub_805144C();
+
+#define Op_DialogText sub_805144C
+
+u32 Op_OpenWindow(u32 *);
+
+s16 sub_8051AEC(s16, s16, s16, s16, u8);  /** 同 sub_801768C 插值家族: 第5参必须 u8 (switch 内 cast (s8)); 结果复用 arg1 做累加器 (default 路径 r0=arg1 直达尾部) **/
+
+void sub_8051BE4();
+
+#define Op_DialogChoice sub_8051BE4
+
+u16 Script_GetFlags();
+
+void Script_ResetVM();
+
+void ScriptSet_Load(u8, u8, u8);
+
+void ScriptPump_JumpToEntry(u8, u8);
+
+void Script_Abort(u8);
+
+void BgTiles_LoadSet(u16);
+
+void TileDma_Reset();
+
+s16 sub_80527AC(void); // FlushTileDma: 把待传图块经 DMA3 从 0x0203DE00 刷到 VRAM 0x0600B800 并等完成
+
+#define FlushTileDma sub_80527AC
+
+u32 TileDma_GetCtx(u32 *);
+
+u32 Op_LoadTileGfx(u8);
+
+u32 Op_ScriptJump(u32 *); // ScriptGotoEntry: 脚本指针跳到 gUnk_02016200 + gUnk_02016000[data[1]]
+
+#define ScriptGotoEntry Op_ScriptJump
+
+u32 Script_Call(u32 *);
+
+void Op_Nop();
+
+u32 Op_DialogSetup(u32 *);
+
+u32 Op_CloseWindow(u32 *);
+
+u8 Op_WaitFrames();
+
+u32 Op_BgmPlay(u32 *);
+
+u32 Op_BgmStop(u32 *);
+
+u32 Op_BgmVolume(u32 *);
+
+u32 Op_BgmFadeIn(u32 *);
+
+u32 Op_BgmFadeOut(u32 *);
+
+u32 Op_SfxPlay(u32 *);
+
+u32 Op_SfxStop(u32 *);
+
+u32 Op_RandomJump(u32 *);
+
+u32 Op_ScriptCallAlt(u32 *);
+
+u32 Op_WaitCharsStop(u32 *);
+
+u32 Op_LoadCharaGfx(u32 *);
+
+u32 Op_LoadCharaPal(u32 *);
+
+u32 Op_WaitSpriteLoad(u32 *);
+
+u32 Op_SceneChangeFade(u32 *);
+
+u32 Op_SceneChangePlain(u32 *);
+
+u32 Op_WaitSceneIdle(u32 *);
+
+u32 Op_LoadMap(u32 *);
+
+u32 Op_IfEventFlagJump(u32 *);
+
+u32 Op_SetEventFlag(u32 *);
+
+u32 Op_ClearEventFlag(u32 *);
+
+u32 Op_IfSwitchJump(u32 *);
+
+u32 Op_SetSwitch(u32 *);
+
+u32 Op_ClearSwitch(u32 *);
+
+u32 Op_CameraSnap(u32 *);
+
+s32 Op_CameraFollow(u32 *);
+
+u32 Op_WaitCameraPan(u32 *);
+
+u32 Op_LoadCutsceneAnim(u32 *);
+
+u32 Op_RestartCharaAnim(u32 *);
+
+u32 Op_WaitCharaAnim(u32 *);
+
+u32 Op_IfPartyMemberJump(u32 *);
+
+u32 Op_LoadAnimSet(u32 *);
+
+u32 Op_AnimSlotResume(u32 *);
+
+u32 Op_AnimSlotPause(u32 *);
+
+u32 Op_WaitAnimSlotIdle(u32 *);
+
+u32 Op_MenuLoadAnims(u32 *);
+
+u32 Op_MenuUnlock(u32 *);
+
+u32 Op_MenuLock(u32 *);
+
+u32 Op_WaitMenuReady(u32 *);
+
+u32 Op_FullHealParty(u32 *);
+
+u32 Op_EquipItem(u32 *);
+
+u32 Op_GiveTakeItem(u32 *);
+
+u32 Op_SilverAddSub(u32 *);
+
+u32 Op_IfItemQtyJump(u32 *);
+
+u32 Op_ChestOpen(u32 *);
+
+u32 Op_SaveUiTrigger(u32 *);
+
+u32 Op_IfSaveLoadedJump(u32 *);
+
+u32 Op_SaveTimerA(u32 *);
+
+u32 Op_SaveTimerB(u32 *);
+
+u32 Op_IfSaveFlagJump(u32 *);
+
+u32 Op_SaveOp(u32 *);
+
+u32 Op_SetFlagsList(u32 *);
+
+u32 Op_ClearFlagsList(
+    u32 *); // ScriptClearFlags: 把脚本里 data[1]>>1 个 u16 标志号逐个清位(<=0x1FF 走 0x03001C60 位图, 否则 -0x200 走 0x030018F0 位图)
+
+#define ScriptClearFlags Op_ClearFlagsList
+
+u32 Op_ClearSwitchTail(u32 *);
+
+u32 Op_IfMoneyJump(u32 *);
+
+u32 Op_StartLogoFade(u32 *);
+
+u32 Op_WaitLogoFade(u32 *);
+
+u32 Op_SetCharacterLevel(u32 *);
 
 #endif /* GUARD_SCRIPT_VM_H */

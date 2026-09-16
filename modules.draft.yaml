@@ -23,13 +23,13 @@ modules:
     funcs_list: ['VBlank_UpdateGameScreen', 'VBlank_UpdateScreenSimple', 'HBlankWave_ApplyLineScroll', 'VBlankIntr', 'Display_ShutdownSequence', 'Sio_LinkTask', 'System_SoftReset', 'HBlankWave_BuildTables', 'LZ_UncompressChunk', 'Intr_SetMode', 'Display_RestartAfterLoad', 'System_ResetToLogo', 'nullsub_5', 'VBlankWait_PumpSound', 'VBlankWaitExit_PumpSound', 'LZ_InitContext', 'Rand_TableNext', 'EventFlags_ClearAll', 'EventFlags_Test', 'EventFlags_Set', 'EventFlags_Reset', 'SwitchFlags_ClearAll', 'SwitchFlags_Test', 'SwitchFlags_Set', 'SwitchFlags_Reset', 'SwitchFlags_ClearRange', 'System_Init', 'ReadKeysRaw', 'ReadKeys', 'DummyIntr3', 'Intr_HandleHBlank', 'DummyIntr4', 'DummyIntr5', 'AgbMain']
   - id: M01
     range: [0x080012B8, 0x08004D38]
-    funcs: 66   unmatched: 4   un_insn: 978
+    funcs: 66   unmatched: 3   un_insn: 822
     dispatch_tables: ['0x087E83F0(16)']
     area: BOOT/INTR
-    anchors: ['Anim_BuildOamChain', 'Anim_PlayCustom', 'Anim_StepChara', 'Chara_FreeSprite', 'Chara_InitDialogArrow', 'Chara_InitEffect', 'Chara_InitEffectAtPlayer', 'Chara_InitFromDesc', 'Chara_MoveBy', 'Chara_ProcessCmdStream']
+    anchors: ['Anim_BuildOamChain', 'Anim_PlayCustom', 'Anim_StepChara', 'BattleTransition_Enter', 'Chara_FreeSprite', 'Chara_InitDialogArrow', 'Chara_InitEffect', 'Chara_InitEffectAtPlayer', 'Chara_InitFromDesc', 'Chara_MoveBy']
     key_iwram: ['0x3002e80', '0x3003ac0', '0x3001944', '0x3002600']
     key_rom: ['0x8058834', '0x87e8430', '0x80b9dfc', '0x805881c']
-    funcs_list: ['VBlank_UpdateScreenMode5', 'SceneTransition_Load', 'NewGame_Init', 'Scene_EnterMap', 'Scene_ExitToMenu', 'Scene_Reload', 'Scene_EnterDoor', 'Scene_RestoreAfterBattle', 'Task_MapExplore', 'Sprites_UpdateFrame', 'Sprite_SetupDialogArrow', 'Sprite_EnqueueRender', 'Sprite_UpdateCharaAnim', 'Anim_PlayCustom', 'Anim_BuildOamChain', 'CheckEncounter', 'LogoBlendEffect_Update', 'LogoAssets_Load', 'Task_DispatchGameState', 'SceneTransition_RequestMap', 'Task_DialogueFrame', 'Task_BattleMenuFrame', 'Scene_ReloadViaMenu', 'Task_SaveMenuFrame', 'Task_TextFrame', 'Scene_ResetResources', 'Anim_StepChara', 'PalTransfer_Flush', 'OAM_FlushFromQueue', 'Sprites_ReleaseAll', 'Sprites_LoadMapNPCs', 'Chara_InitFromDesc', 'Chara_InitDialogArrow', 'Chara_InitEffect', 'Chara_InitEffectAtPlayer', 'PendingSpriteLoad_Flush', 'Chara_SetWalkPath', 'Chara_ProcessCmdStream', 'Chara_StepMove', 'CheckFacingEvent', 'Party_FollowAnim', 'Followers_ResetHistory', 'Followers_SyncToTail', 'Party_FollowStep', 'CutsceneAnim_Load', 'CutsceneAnim_PlayFrame', 'MapGroup_Lookup', 'Chara_SetTilePos', 'Chara_MoveBy', 'VramTransfer_AllocSlot', 'PalTransfer_AllocSlot', 'PalTransfer_Enqueue', 'VramTransfer_Clear', 'VramTransfer_Flush', 'VramTransfer_Enqueue', 'PalTransfer_Clear', 'SpritePool_Clear', 'Queue34C0_Clear', 'RenderQueue_Clear', 'Sprite_AllocNode', 'Sprite_InitChainNode', 'LoadSpriteSheetGfx', 'LoadSpriteSheetPal', 'LoadArrowObjTiles', 'Chara_SetGfxPal', 'Chara_FreeSprite']
+    funcs_list: ['VBlank_UpdateScreenMode5', 'SceneTransition_Load', 'NewGame_Init', 'Scene_EnterMap', 'BattleTransition_Enter', 'Scene_Reload', 'Scene_EnterDoor', 'Scene_RestoreAfterBattle', 'Task_MapExplore', 'Sprites_UpdateFrame', 'Sprite_SetupDialogArrow', 'Sprite_EnqueueRender', 'Sprite_UpdateCharaAnim', 'Anim_PlayCustom', 'Anim_BuildOamChain', 'CheckEncounter', 'LogoBlendEffect_Update', 'LogoAssets_Load', 'Task_DispatchGameState', 'SceneTransition_RequestMap', 'Task_DialogueFrame', 'Task_BattleMenuFrame', 'Scene_ReloadViaMenu', 'Task_TitleMenuFrame', 'Task_TextFrame', 'Scene_ResetResources', 'Anim_StepChara', 'PalTransfer_Flush', 'OAM_FlushFromQueue', 'Sprites_ReleaseAll', 'Sprites_LoadMapNPCs', 'Chara_InitFromDesc', 'Chara_InitDialogArrow', 'Chara_InitEffect', 'Chara_InitEffectAtPlayer', 'PendingSpriteLoad_Flush', 'Chara_SetWalkPath', 'Chara_ProcessCmdStream', 'Chara_StepMove', 'CheckFacingEvent', 'Party_FollowAnim', 'Followers_ResetHistory', 'Followers_SyncToTail', 'Party_FollowStep', 'CutsceneAnim_Load', 'CutsceneAnim_PlayFrame', 'MapGroup_Lookup', 'Chara_SetTilePos', 'Chara_MoveBy', 'VramTransfer_AllocSlot', 'PalTransfer_AllocSlot', 'PalTransfer_Enqueue', 'VramTransfer_Clear', 'VramTransfer_Flush', 'VramTransfer_Enqueue', 'PalTransfer_Clear', 'SpritePool_Clear', 'Queue34C0_Clear', 'RenderQueue_Clear', 'Sprite_AllocNode', 'Sprite_InitChainNode', 'LoadSpriteSheetGfx', 'LoadSpriteSheetPal', 'LoadArrowObjTiles', 'Chara_SetGfxPal', 'Chara_FreeSprite']
   - id: M02
     range: [0x08004D8C, 0x08004E88]
     funcs: 8   unmatched: 0   un_insn: 0
@@ -40,12 +40,12 @@ modules:
     funcs_list: ['Chara_SetCmdPtr', 'Chara_StartMoving', 'Chara_AnyMoving', 'Party_SetFollowMode', 'SetSlotGfxId', 'SetSlotPalId', 'GetPendingSpriteLoad', 'Chara_SetPosDir']
   - id: M03
     range: [0x08004EB8, 0x08008DF8]
-    funcs: 55   unmatched: 10   un_insn: 4019
+    funcs: 55   unmatched: 9   un_insn: 3908
     area: BOOT/INTR
-    anchors: ['AnimSlot_Active', 'AnimSlot_BankReload', 'AnimSlot_Parse', 'AnimSlot_ParseLoop', 'AnimSlot_Pause', 'AnimSlot_PlayOnce', 'AnimSlot_Resume', 'AnimSlots_Release', 'AnimSlots_StepAll', 'BattleIntro_Cursor']
+    anchors: ['AnimSlot_Active', 'AnimSlot_BankReload', 'AnimSlot_LoadSet', 'AnimSlot_Parse', 'AnimSlot_ParseLoop', 'AnimSlot_Pause', 'AnimSlot_PlayOnce', 'AnimSlot_Resume', 'AnimSlot_Step', 'AnimSlots_Release']
     key_iwram: ['0x300467c', '0x40000d4', '0x30046a0', '0x3004550']
     key_rom: ['0x8088d80', '0x8087216', '0x87e9aa0', '0x87ea020']
-    funcs_list: ['Chara_GetDrawZ', 'Chara_GetDrawX', 'Sprite_FreeChain', 'Sprite_WriteOam', 'Chara_StartScriptAnim', 'Chara_AnimWaitDone', 'sub_8005020', 'ScreenFade_Apply', 'ScreenFade_Update', 'sub_80052F8', 'sub_80053B4', 'sub_80055E8', 'MapTile_At', 'MapTile_CollisionBits', 'Viewport_UpdateScroll', 'BgMap_FillPattern', 'MapBg_LoadFull', 'MapScene_Load', 'MapScene_LoadNpcSlotIds', 'MapScene_InitSprites', 'sub_8007350', 'AnimSlot_Parse', 'AnimSlot_ParseLoop', 'sub_8007A1C', 'sub_8007ADC', 'sub_8007BD0', 'MapBg_LoadInterior', 'Logo_LoadAssets', 'sub_8008124', 'BattleIntro_Cursor', 'ChoiceMenu_HandleInput', 'DialogPortrait_Set', 'sub_80086FC', 'IntroBg_Load', 'ScreenFade_Start', 'AnimSlot_BankReload', 'Win0H_WaveDmaByVCount', 'ScreenFx_SetMode', 'AnimSlots_Release', 'AnimSlots_StepAll', 'BgTiles_LoadUiSet', 'BgScroll_LoadFromTable', 'PlayerSheets_Load', 'sub_8008BA4', 'AnimSlot_Pause', 'AnimSlot_Resume', 'AnimSlot_Active', 'ReloadSpriteSheet', 'ReloadAllSpriteSheets', 'ChoiceMenu_ResolveDest', 'DialogPortrait_FlushPending', 'Camera_GetDrawOffset', 'Bgm_Request', 'BgPal_ResetFirst', 'AnimSlot_PlayOnce']
+    funcs_list: ['Chara_GetDrawZ', 'Chara_GetDrawX', 'Sprite_FreeChain', 'Sprite_WriteOam', 'Chara_StartScriptAnim', 'Chara_AnimWaitDone', 'sub_8005020', 'ScreenFade_Apply', 'ScreenFade_Update', 'sub_80052F8', 'sub_80053B4', 'sub_80055E8', 'MapTile_At', 'MapTile_CollisionBits', 'Viewport_UpdateScroll', 'BgMap_FillPattern', 'MapBg_LoadFull', 'MapScene_Load', 'MapScene_LoadNpcSlotIds', 'MapScene_InitSprites', 'MapScene_LoadEventAnimations', 'AnimSlot_Parse', 'AnimSlot_ParseLoop', 'AnimSlot_Step', 'sub_8007ADC', 'sub_8007BD0', 'MapBg_LoadInterior', 'Logo_LoadAssets', 'ChoiceMenu_BuildList', 'BattleIntro_Cursor', 'ChoiceMenu_HandleInput', 'DialogPortrait_Set', 'Viewport_UpdateEffects', 'IntroBg_Load', 'ScreenFade_Start', 'AnimSlot_BankReload', 'Win0H_WaveDmaByVCount', 'ScreenFx_SetMode', 'AnimSlots_Release', 'AnimSlots_StepAll', 'BgTiles_LoadUiSet', 'BgScroll_LoadFromTable', 'PlayerSheets_Load', 'AnimSlot_LoadSet', 'AnimSlot_Pause', 'AnimSlot_Resume', 'AnimSlot_Active', 'ReloadSpriteSheet', 'ReloadAllSpriteSheets', 'ChoiceMenu_ResolveDest', 'DialogPortrait_FlushPending', 'Camera_GetDrawOffset', 'Script_SetEnvSet', 'BgPal_ResetFirst', 'AnimSlot_PlayOnce']
   - id: M04
     range: [0x08008E44, 0x08009184]
     funcs: 8   unmatched: 0   un_insn: 0
@@ -56,23 +56,23 @@ modules:
     funcs_list: ['BgMap_FillRow', 'MapBg_FlushPending', 'ChestObjects_LoadForMap', 'ChestObject_BuildSprite', 'ChestObject_Open', 'LoadDigitFontObjTiles', 'ChestFlags_ClearAll', 'ChestFlags_Toggle']
   - id: M05
     range: [0x080091A4, 0x08009E80]
-    funcs: 19   unmatched: 2   un_insn: 643
+    funcs: 19   unmatched: 1   un_insn: 477
     area: ENGINE/SYS
-    anchors: ['ChestFlags_Test', 'MenuEnt_ClearStates', 'MenuEnt_GetState', 'MenuEnt_Lock', 'MenuEnt_ParseAll', 'MenuEnt_ParseDesc', 'MenuEnt_ParseRange', 'MenuEnt_Unlock', 'PaletteFx_Apply', 'Palette_Backup']
+    anchors: ['ChestFlags_Test', 'MenuEnt_ClearStates', 'MenuEnt_GetState', 'MenuEnt_Lock', 'MenuEnt_ParseAll', 'MenuEnt_ParseDesc', 'MenuEnt_ParseRange', 'MenuEnt_Unlock', 'PaletteEffects_Update', 'PaletteFx_Apply']
     key_iwram: ['0x3000010', '0x3004910', '0x40000d4', '0x3000020']
     key_rom: ['0x87ea138', '0x808a234', '0x80baba0', '0x808ea0c']
-    funcs_list: ['ChestFlags_Test', 'sub_80091C4', 'sub_8009370', 'PaletteFx_Apply', 'sub_80094FC', 'sub_8009600', 'MenuEnt_ClearStates', 'MenuEnt_ParseAll', 'MenuEnt_ParseRange', 'MenuEnt_Unlock', 'MenuEnt_Lock', 'MenuEnt_GetState', 'Palette_Backup', 'Palette_FillWhite', 'MenuEnt_ParseDesc', 'StaticObjGfx_LoadPair', 'StaticObjs_Spawn', 'StaticObjs_StepAll', 'StaticObj_BuildChain']
+    funcs_list: ['ChestFlags_Test', 'PaletteEffects_Update', 'PaletteTransfer_Update', 'PaletteFx_Apply', 'PaletteFx_Step', 'PaletteFx_Transform', 'MenuEnt_ClearStates', 'MenuEnt_ParseAll', 'MenuEnt_ParseRange', 'MenuEnt_Unlock', 'MenuEnt_Lock', 'MenuEnt_GetState', 'Palette_Backup', 'Palette_FillWhite', 'MenuEnt_ParseDesc', 'StaticObjGfx_LoadPair', 'StaticObjs_Spawn', 'StaticObjs_StepAll', 'StaticObj_BuildChain']
   - id: M06
     range: [0x08009F48, 0x0800AC08]
-    funcs: 29   unmatched: 3   un_insn: 536
+    funcs: 29   unmatched: 0   un_insn: 0
     area: ENGINE/SYS
-    anchors: ['Chara_ClearTempStatus', 'Chara_GetFormGfx', 'EquipItem', 'ExpToLevel', 'FullHealParty', 'ItemFindSlot', 'ItemGetValue', 'LevelToExp', 'PartyForm_ApplyBonus', 'Party_AnyEquip']
+    anchors: ['Chara_ClearTempStatus', 'Chara_GetFormGfx', 'EquipItem', 'ExpToLevel', 'FullHealParty', 'Inventory_AddItem', 'ItemFindSlot', 'ItemGetValue', 'LevelToExp', 'PartyForm_ApplyBonus']
     key_iwram: ['0x3004ac0', '0x3004aa8', '0x3004ab8', '0x3004ab0']
     key_rom: ['0x87ea580', '0x8092248', '0x8093418', '0x80921f0']
-    funcs_list: ['StaticObjs_Reset', 'sub_8009F70', 'Stats_BuildSkillList', 'Chara_GetFormGfx', 'sub_800A1B4', 'sub_800A3C8', 'sub_800A534', 'sub_800A664', 'Stats_RecalcEquip', 'ExpToLevel', 'LevelToExp', 'ItemFindSlot', 'Party_InitStats', 'ItemGetValue', 'sub_800A970', 'sub_800A978', 'FullHealParty', 'EquipItem', 'sub_800AA60', 'sub_800AA84', 'Silver_Add', 'Silver_Sub', 'sub_800AADC', 'sub_800AAF8', 'sub_800AB18', 'Party_AnyEquip', 'Chara_ClearTempStatus', 'Stats_ClearEquipBonus', 'PartyForm_ApplyBonus']
+    funcs_list: ['StaticObjs_Reset', 'sub_8009F70', 'Stats_BuildSkillList', 'Chara_GetFormGfx', 'sub_800A1B4', 'sub_800A3C8', 'sub_800A534', 'Stats_RebuildEquipBonuses', 'Stats_RecalcEquip', 'ExpToLevel', 'LevelToExp', 'ItemFindSlot', 'Party_InitStats', 'ItemGetValue', 'sub_800A970', 'sub_800A978', 'FullHealParty', 'EquipItem', 'Inventory_AddItem', 'sub_800AA84', 'Silver_Add', 'Silver_Sub', 'sub_800AADC', 'sub_800AAF8', 'sub_800AB18', 'Party_AnyEquip', 'Chara_ClearTempStatus', 'Stats_ClearEquipBonus', 'PartyForm_ApplyBonus']
   - id: M07
     range: [0x0800ACA4, 0x08010770]
-    funcs: 37   unmatched: 21   un_insn: 7970
+    funcs: 37   unmatched: 14   un_insn: 6990
     area: ENGINE/SYS
     anchors: ['BattleIntro_Setup', 'FullHealCharacter', 'ItemGetUsePower', 'MenuHp_Update', 'MenuState_Reset', 'MenuUi_DrawItemList', 'MenuUi_SetEntityPos', 'MenuUi_SpawnAuxSprites', 'Msg_RenderLine', 'PartyUi_InitEntities']
     key_iwram: ['0x3000188', '0x3004aa0', '0x3000186', '0x3000187']
@@ -80,15 +80,15 @@ modules:
     funcs_list: ['FullHealCharacter', 'sub_800ACC8', 'SceneBg_Reload', 'MenuState_Reset', 'MenuHp_Update', 'sub_800B374', 'Msg_RenderLine', 'PartyUi_InitEntities', 'sub_800BFF8', 'BattleIntro_Setup', 'sub_800C194', 'sub_800C2F8', 'MenuUi_SetEntityPos', 'sub_800E244', 'sub_800E668', 'UiSprite_BeginSlide', 'UiSprites_Update', 'sub_800E8F8', 'sub_800EAE4', 'MenuUi_SpawnAuxSprites', 'sub_800EC54', 'sub_800F128', 'sub_800F3AC', 'MenuUi_DrawItemList', 'sub_800F670', 'sub_800F70C', 'sub_800FA24', 'sub_800FB2C', 'sub_800FDEC', 'sub_800FF10', 'sub_8010170', 'ItemGetUsePower', 'sub_8010300', 'WarpTable_Check', 'sub_80104F8', 'sub_8010624', 'sub_8010770']
   - id: M08
     range: [0x08010978, 0x08016C2C]
-    funcs: 87   unmatched: 16   un_insn: 6999
+    funcs: 85   unmatched: 9   un_insn: 4864
     area: ENGINE/SYS
     anchors: ['Hud_DrawHp', 'Hud_DrawLv', 'Hud_DrawMp', 'InvUi_DrawCursors', 'InvUi_Main', 'Inv_FindFirstHeld', 'Inv_FindHeldItemOnPage', 'Inv_FindPrevHeld', 'Inv_NextNonZero', 'Inv_PrevNonZero']
-    key_iwram: ['0x2005800', '0x3000187', '0x3004aa0', '0x3004980']
+    key_iwram: ['0x2005800', '0x3000187', '0x3004980', '0x3004aa0']
     key_rom: ['0x8098199', '0x8095028', '0x839cfaa', '0x87eb2e0']
-    funcs_list: ['ScreenIdleIcons_BuildList', 'Save_Fsm', 'Save_FillSlot0', 'Save_FillSlot1', 'Save_FillSlot2', 'Save_FillSlot3', 'sub_8010F10', 'sub_801114C', 'sub_8011268', 'sub_80113CC', 'sub_8011454', 'sub_8012530', 'SaveUi_LoadScreen', 'sub_8013870', 'sub_8013934', 'sub_8013B0C', 'sub_8013C00', 'Save_LoadSlot0', 'Save_LoadContinue', 'SaveTimer_CountUsed', 'SaveTimer_Inc', 'SaveTimer_Dec', 'sub_801417C', 'sub_8014488', 'sub_801455C', 'sub_80146A8', 'sub_8014A68', 'sub_801543C', 'sub_80154E8', 'sub_8015658', 'sub_8015AF0', 'InvUi_DrawCursors', 'InvUi_Main', 'sub_8015E1C', 'Save_ResetReadState', 'Save_StartWrite', 'sub_8015ED0', 'SaveUi_DrawSlots', 'SaveTimer_Get', 'SaveFlag_Set', 'SaveFlag_Get', 'SaveUi_Open', 'sub_8016038', 'sub_8016068', 'sub_80160CC', 'sub_80160F4', 'sub_8016178', 'sub_80161F4', 'Num_Draw16', 'Hud_DrawLv', 'Hud_DrawHp', 'Hud_DrawMp', 'Text_PutGlyph', 'TextBlocks_Render', 'Math_DivLoop', 'Msg_ShowEndMark', 'Msg_DrawPoolSegment', 'Msg_BuildSegmentIndex', 'Msg_Show', 'Msg_ShowById', 'Text_WriteOrClear', 'Menu_GetFocus', 'Text_ClearRect', 'MenuUi_SetExclusive', 'MenuUi_HideAll', 'Text_DrawChar', 'sub_80166FC', 'sub_8016758', 'MenuUi_MoveCursor', 'Party_SlotOfMember', 'SkillMenu_SaveCursor', 'ItemUse_Execute', 'ItemUse_SetCtx', 'SkillMenu_RestoreCursor', 'SkillMenu_GetSkill', 'Inv_FindFirstHeld', 'Inv_FindPrevHeld', 'Inv_FindHeldItemOnPage', 'Save_SyncShadow', 'Inv_SeekFirst', 'Inv_PrevNonZero', 'Inv_NextNonZero', 'sub_8016B30', 'SaveUi_OpenLoad', 'Text_WriteChars', 'Text_FillHidden', 'Text_TileAt']
+    funcs_list: ['ScreenIdleIcons_BuildList', 'Save_Fsm', 'Save_FillSlot0', 'Save_FillSlot1', 'Save_FillSlot2', 'Save_FillSlot3', 'sub_8010F10', 'sub_801114C', 'sub_8011268', 'sub_80113CC', 'TitleMenu_ProcessFrame', 'sub_8012530', 'TitleMenu_UpdateUi', 'TitleMenu_DrawOptions', 'OptionsMenu_DrawEntries', 'sub_8013B0C', 'sub_8013C00', 'Save_LoadSlot0', 'Save_LoadContinue', 'SaveTimer_CountUsed', 'SaveTimer_Inc', 'SaveTimer_Dec', 'sub_801417C', 'sub_8014488', 'sub_801455C', 'sub_80146A8', 'sub_8014A68', 'sub_801543C', 'sub_80154E8', 'sub_8015658', 'sub_8015AF0', 'InvUi_DrawCursors', 'InvUi_Main', 'sub_8015E1C', 'Save_ResetReadState', 'Save_StartWrite', 'sub_8015ED0', 'SaveUi_DrawSlots', 'SaveTimer_Get', 'SaveFlag_Set', 'SaveFlag_Get', 'SaveUi_Open', 'sub_8016038', 'sub_80160CC', 'sub_80160F4', 'sub_8016178', 'Num_Draw16', 'Hud_DrawLv', 'Hud_DrawHp', 'Hud_DrawMp', 'Text_PutGlyph', 'TextBlocks_Render', 'Math_DivLoop', 'Msg_ShowEndMark', 'Msg_DrawPoolSegment', 'Msg_BuildSegmentIndex', 'Msg_Show', 'Msg_ShowById', 'Text_WriteOrClear', 'Menu_GetFocus', 'Text_ClearRect', 'MenuUi_SetExclusive', 'MenuUi_HideAll', 'Text_DrawChar', 'sub_80166FC', 'sub_8016758', 'MenuUi_MoveCursor', 'Party_SlotOfMember', 'SkillMenu_SaveCursor', 'ItemUse_Execute', 'ItemUse_SetCtx', 'SkillMenu_RestoreCursor', 'SkillMenu_GetSkill', 'Inv_FindFirstHeld', 'Inv_FindPrevHeld', 'Inv_FindHeldItemOnPage', 'Save_SyncShadow', 'Inv_SeekFirst', 'Inv_PrevNonZero', 'Inv_NextNonZero', 'sub_8016B30', 'SaveUi_OpenLoad', 'Text_WriteChars', 'Text_FillHidden', 'Text_TileAt']
   - id: M09
     range: [0x08016C44, 0x08017640]
-    funcs: 16   unmatched: 6   un_insn: 878
+    funcs: 16   unmatched: 2   un_insn: 540
     area: ENGINE/SYS
     anchors: ['Sio_BuildPacket', 'Sio_ClearSlot', 'Sio_IsHost', 'Sio_SetReady', 'Sio_SetXferCtx', 'Sio_Shutdown']
     key_iwram: ['0x3004df0', '0x4000208', '0x4000128', '0x3004f20']
@@ -96,37 +96,39 @@ modules:
     funcs_list: ['sub_8016C44', 'sub_8016C88', 'sub_8016D24', 'Sio_BuildPacket', 'sub_8016E80', 'sub_8016F30', 'sub_8016FC0', 'Sio_SetReady', 'Sio_Shutdown', 'sub_8017120', 'sub_80171E4', 'Sio_IsHost', 'sub_80175C0', 'Sio_SetXferCtx', 'Sio_ClearSlot', 'sub_8017640']
   - id: M10
     range: [0x0801768C, 0x0801A36C]
-    funcs: 74   unmatched: 21   un_insn: 3790
+    funcs: 72   unmatched: 5   un_insn: 1581
     area: ENGINE/CORE
-    anchors: ['BattleFx_DispOff', 'BattleFx_Init', 'BattleFx_Stop', 'BattleTask_Run', 'BattleUiFlag_Clear', 'BattleUiFlag_Get', 'BattleUiFlag_Reset', 'BattleUiFlag_Set', 'Bg0_InitClear', 'BgLoad_Finish']
+    anchors: ['BattleFx_DispOff', 'BattleFx_Init', 'BattleFx_Stop', 'BattleFx_UpdateTable', 'BattleTask_Run', 'BattleUiFlag_Clear', 'BattleUiFlag_Get', 'BattleUiFlag_Reset', 'BattleUiFlag_Set', 'Bg0_InitClear']
     key_iwram: ['0x3000324', '0x3000384', '0x40000d4', '0x3000348']
     key_rom: ['0x80936a0', '0x861a4a4', '0x861a7e4', '0x87ed394']
-    funcs_list: ['sub_801768C', 'BattleTask_Run', 'sub_8017FA4', 'sub_8018070', 'sub_80182A8', 'sub_80184A8', 'sub_801869C', 'sub_8018744', 'sub_8018750', 'sub_801878C', 'sub_8018798', 'sub_80187A8', 'sub_80187B4', 'sub_80187C0', 'sub_80187D4', 'sub_80187E8', 'sub_80187F4', 'ListNode_Init', 'ListNode_InitKey', 'ListNode_InsertSorted', 'sub_8018838', 'Rng_LcgNext', 'GetObjPool', 'GetCtx_0248', 'GetBuf_37410', 'sub_801887C', 'sub_801889C', 'sub_80188BC', 'sub_8018928', 'sub_8018A58', 'sub_8018BF8', 'sub_8018D9C', 'sub_8018E34', 'sub_8018EA8', 'sub_8018FC0', 'Bg0_InitClear', 'sub_80191CC', 'DialogCtx_Clear3', 'sub_801933C', 'sub_80196D4', 'DialogCtx_SetPair', 'sub_8019784', 'sub_80199E0', 'sub_8019AD0', 'sub_8019B98', 'BattleUiFlag_Clear', 'BattleUiFlag_Set', 'BattleUiFlag_Get', 'BattleUiFlag_Reset', 'Disp_ObjOff', 'Disp_ObjOn', 'sub_8019E60', 'Disp_Bg1Off', 'DialogCtx_SetHead', 'sub_8019F08', 'sub_8019F78', 'DialogCtx_GetField_C', 'BgMap_PalFillRect', 'DialogCtx_Flush', 'FlashFlag_Clear', 'FlashFlag_Get', 'FlashFlag_Reset', 'BattleFx_Init', 'BattleFx_Stop', 'BattleFx_DispOff', 'sub_801A270', 'sub_801A2AC', 'sub_801A2EC', 'BgLoad_Reset', 'BgLoad_Finish', 'BgLoad_GetPos', 'sub_801A348', 'sub_801A35C', 'BgScrolls_WriteAll']
+    funcs_list: ['sub_801768C', 'BattleTask_Run', 'sub_8017FA4', 'sub_8018070', 'sub_80182A8', 'sub_80184A8', 'sub_801869C', 'sub_8018744', 'sub_8018750', 'sub_801878C', 'sub_8018798', 'sub_80187A8', 'sub_80187B4', 'sub_80187C0', 'sub_80187D4', 'sub_80187E8', 'sub_80187F4', 'ListNode_Init', 'ListNode_InitKey', 'ListNode_InsertSorted', 'sub_8018838', 'Rng_LcgNext', 'GetObjPool', 'GetCtx_0248', 'GetBuf_37410', 'sub_801887C', 'sub_801889C', 'sub_80188BC', 'sub_8018928', 'sub_8018A58', 'sub_8018BF8', 'sub_8018D9C', 'sub_8018E34', 'sub_8018EA8', 'sub_8018FC0', 'Bg0_InitClear', 'sub_80191CC', 'DialogCtx_Clear3', 'sub_801933C', 'DialogCtx_SetPair', 'BattleFx_UpdateTable', 'sub_80199E0', 'sub_8019AD0', 'sub_8019B98', 'BattleUiFlag_Clear', 'BattleUiFlag_Set', 'BattleUiFlag_Get', 'BattleUiFlag_Reset', 'Disp_ObjOff', 'Disp_ObjOn', 'sub_8019E60', 'Disp_Bg1Off', 'DialogCtx_SetHead', 'sub_8019F08', 'sub_8019F78', 'DialogCtx_GetField_C', 'DialogCtx_Flush', 'FlashFlag_Clear', 'FlashFlag_Get', 'FlashFlag_Reset', 'BattleFx_Init', 'BattleFx_Stop', 'BattleFx_DispOff', 'sub_801A270', 'sub_801A2AC', 'sub_801A2EC', 'BgLoad_Reset', 'BgLoad_Finish', 'BgLoad_GetPos', 'sub_801A348', 'sub_801A35C', 'BgScrolls_WriteAll']
   - id: M11
     range: [0x0801A3A8, 0x0801B8FC]
-    funcs: 18   unmatched: 7   un_insn: 2060
+    funcs: 18   unmatched: 3   un_insn: 1488
     area: ENGINE/CORE
+    anchors: ['ObjGfxLoad_Copy', 'ObjGfxLoad_Step', 'sub_801B954']
     key_iwram: ['0x40000d4', '0x3000518', '0x202b2c0', '0x30035c0']
     key_rom: ['0x8393a30', '0x8393a24', '0x8393a18', '0x87ebe00']
-    funcs_list: ['sub_801A3A8', 'sub_801A3C4', 'sub_801A5EC', 'sub_801A684', 'sub_801A6F4', 'sub_801A884', 'sub_801AD0C', 'sub_801B0B8', 'sub_801B570', 'sub_801B688', 'sub_801B760', 'sub_801B790', 'sub_801B7B8', 'sub_801B81C', 'sub_801B878', 'sub_801B8AC', 'sub_801B8E8', 'sub_801B8FC']
+    funcs_list: ['sub_801A3A8', 'ObjGfxLoad_Step', 'ObjGfxLoad_Copy', 'sub_801A684', 'sub_801A6F4', 'sub_801A884', 'sub_801AD0C', 'sub_801B0B8', 'sub_801B570', 'sub_801B688', 'sub_801B760', 'sub_801B790', 'sub_801B7B8', 'sub_801B81C', 'sub_801B878', 'sub_801B8AC', 'sub_801B8E8', 'sub_801B8FC']
   - id: M12
     range: [0x0801B920, 0x08021064]
-    funcs: 89   unmatched: 42   un_insn: 8090
+    funcs: 89   unmatched: 11   un_insn: 4021
     area: ENGINE/CORE
-    anchors: ['ResetSceneObjects']
+    anchors: ['ResetSceneObjects', 'sub_8020B54']
     key_iwram: ['0x300068d', '0x30006f8', '0x300068c', '0x3000670']
     key_rom: ['0x8393b28', '0x861c664', '0x839cc4c', '0x861a004']
     funcs_list: ['sub_801B920', 'sub_801B954', 'sub_801B95C', 'sub_801B964', 'sub_801BE34', 'sub_801C484', 'sub_801CA08', 'sub_801CBA4', 'sub_801CE80', 'sub_801CF90', 'sub_801D12C', 'sub_801D19C', 'sub_801D214', 'sub_801D378', 'sub_801D468', 'sub_801D568', 'sub_801D710', 'sub_801D984', 'sub_801DAA0', 'sub_801DB3C', 'sub_801DC20', 'sub_801DD04', 'sub_801DDB0', 'sub_801DE44', 'sub_801DEDC', 'sub_801DF90', 'sub_801E040', 'sub_801E1D8', 'sub_801E30C', 'sub_801E4D4', 'sub_801E690', 'sub_801E848', 'sub_801EA70', 'sub_801EC3C', 'sub_801ED40', 'sub_801EE6C', 'sub_801EEE4', 'sub_801F3FC', 'sub_801F76C', 'sub_801F884', 'sub_801FA10', 'sub_801FAB8', 'sub_801FEBC', 'sub_801FF40', 'sub_80200E8', 'sub_8020228', 'sub_802031C', 'sub_8020648', 'sub_8020798', 'sub_80207A4', 'sub_80207B4', 'sub_80207DC', 'sub_8020840', 'sub_80208A4', 'sub_8020914', 'sub_802093C', 'sub_8020974', 'sub_80209C8', 'sub_80209EC', 'sub_8020A0C', 'sub_8020A7C', 'sub_8020AB0', 'sub_8020AE4', 'sub_8020B04', 'sub_8020B48', 'sub_8020B54', 'sub_8020B90', 'sub_8020BC0', 'sub_8020BF0', 'sub_8020C2C', 'sub_8020C58', 'sub_8020CC4', 'sub_8020D50', 'sub_8020DA0', 'sub_8020DE4', 'sub_8020DF0', 'sub_8020E54', 'sub_8020E5C', 'sub_8020E68', 'sub_8020E74', 'sub_8020E90', 'sub_8020EAC', 'sub_8020EC8', 'sub_8020EEC', 'sub_8020F08', 'sub_8020F4C', 'sub_8020FB8', 'sub_802103C', 'sub_8021064']
   - id: M13
     range: [0x080210C0, 0x080256E4]
-    funcs: 27   unmatched: 21   un_insn: 7180
+    funcs: 26   unmatched: 14   un_insn: 6411
     area: ENGINE/CORE
+    anchors: ['MenuSlot_ResetAll', 'SetHead']
     key_iwram: ['0x300076c', '0x3000781', '0x2035ac0', '0x3000768']
     key_rom: ['0x8393a74', '0x8393a30', '0x861a7a4', '0x839b2a4']
-    funcs_list: ['sub_80210C0', 'sub_8021130', 'sub_8021184', 'sub_80212B4', 'sub_802151C', 'sub_8021700', 'sub_8021788', 'sub_802181C', 'sub_802192C', 'sub_8022458', 'sub_8022550', 'sub_8022710', 'sub_8022F2C', 'sub_80230BC', 'sub_8023320', 'sub_8023414', 'sub_8023820', 'sub_80244BC', 'sub_8024618', 'sub_80246E8', 'sub_8024820', 'sub_8024940', 'sub_802550C', 'sub_8025518', 'sub_8025638', 'sub_8025650', 'sub_80256E4']
+    funcs_list: ['sub_80210C0', 'MenuSlot_ResetAll', 'sub_8021184', 'sub_80212B4', 'sub_802151C', 'sub_8021700', 'sub_8021788', 'sub_802181C', 'sub_802192C', 'sub_8022458', 'sub_8022550', 'sub_8022710', 'sub_8022F2C', 'sub_80230BC', 'sub_8023320', 'sub_8023414', 'sub_8023820', 'sub_80244BC', 'sub_8024618', 'sub_80246E8', 'sub_8024820', 'sub_8024940', 'sub_802550C', 'sub_8025518', 'sub_8025638', 'sub_80256E4']
   - id: M14
     range: [0x0802576C, 0x080313EC]
-    funcs: 62   unmatched: 61   un_insn: 16512
+    funcs: 62   unmatched: 4   un_insn: 1888
     dispatch_tables: ['0x0839CD5C(87)']
     area: ENGINE/OBJECT
     key_iwram: ['0x3000825', '0x3000820', '0x3000822', '0x3000824']
@@ -134,7 +136,7 @@ modules:
     funcs_list: ['sub_802576C', 'sub_80257D8', 'sub_8025994', 'sub_8025DA8', 'sub_80260BC', 'sub_80264C0', 'sub_802698C', 'sub_8026D08', 'sub_8026F88', 'sub_802723C', 'sub_802761C', 'sub_8027760', 'sub_8027A20', 'sub_8027D9C', 'sub_8028098', 'sub_80282EC', 'sub_80285A0', 'sub_80287EC', 'sub_8028AD8', 'sub_8029268', 'sub_8029510', 'sub_8029784', 'sub_80299C8', 'sub_8029BF8', 'sub_802A154', 'sub_802A86C', 'sub_802ADC4', 'sub_802B0F0', 'sub_802B608', 'sub_802B8BC', 'sub_802BB24', 'sub_802BD94', 'sub_802C0EC', 'sub_802C490', 'sub_802C714', 'sub_802C9E8', 'sub_802CE90', 'sub_802D1FC', 'sub_802D454', 'sub_802D728', 'sub_802DA78', 'sub_802DE04', 'sub_802DFDC', 'sub_802E234', 'sub_802E49C', 'sub_802E6C8', 'sub_802EAC4', 'sub_802EDD8', 'sub_802F100', 'sub_802F480', 'sub_802F6D8', 'sub_802F9EC', 'sub_802FE98', 'sub_803029C', 'sub_8030664', 'sub_80309B0', 'sub_8030C08', 'sub_8030D9C', 'sub_8030F30', 'sub_80310C4', 'sub_8031258', 'sub_80313EC']
   - id: M15
     range: [0x08031580, 0x080323B4]
-    funcs: 10   unmatched: 10   un_insn: 1220
+    funcs: 10   unmatched: 0   un_insn: 0
     dispatch_tables: ['0x0839CD5C(87)']
     area: ENGINE/OBJECT
     key_iwram: ['0x3000868', '0x3000889', '0x3000825', '0x3000867']
@@ -142,7 +144,7 @@ modules:
     funcs_list: ['sub_8031580', 'sub_8031714', 'sub_80318A8', 'sub_8031A3C', 'sub_8031BD0', 'sub_8031D64', 'sub_8031EF8', 'sub_803208C', 'sub_8032220', 'sub_80323B4']
   - id: M16
     range: [0x08032548, 0x0803F658]
-    funcs: 61   unmatched: 61   un_insn: 19107
+    funcs: 61   unmatched: 23   un_insn: 11817
     dispatch_tables: ['0x0839D4CC(59)']
     area: ENGINE/OBJECT
     key_iwram: ['0x3000820', '0x3000822', '0x3000824', '0x3000825']
@@ -150,7 +152,7 @@ modules:
     funcs_list: ['sub_8032548', 'sub_803272C', 'sub_8032948', 'sub_8032D74', 'sub_8032EA0', 'sub_80334B8', 'sub_8033988', 'sub_8033E2C', 'sub_8034440', 'sub_80345AC', 'sub_8034718', 'sub_80348A8', 'sub_8034BFC', 'sub_8034D94', 'sub_8034F00', 'sub_8035130', 'sub_8035360', 'sub_803586C', 'sub_8035B04', 'sub_8035D9C', 'sub_8036034', 'sub_80362CC', 'sub_8036564', 'sub_80368FC', 'sub_8036B30', 'sub_8036EA4', 'sub_8037078', 'sub_8037388', 'sub_8037868', 'sub_8037C40', 'sub_8037E14', 'sub_8037FE8', 'sub_80381BC', 'sub_8038390', 'sub_8038568', 'sub_803874C', 'sub_8038920', 'sub_8038C84', 'sub_8038E44', 'sub_8039024', 'sub_80392C0', 'sub_80393E0', 'sub_8039724', 'sub_8039C38', 'sub_803A478', 'sub_803A8D0', 'sub_803AF60', 'sub_803B484', 'sub_803BBEC', 'sub_803C328', 'sub_803CE0C', 'sub_803D20C', 'sub_803D60C', 'sub_803DECC', 'sub_803E58C', 'sub_803ED34', 'sub_803F21C', 'sub_803F328', 'sub_803F444', 'sub_803F5B4', 'sub_803F658']
   - id: M17
     range: [0x0803FF54, 0x08044680]
-    funcs: 32   unmatched: 20   un_insn: 6385
+    funcs: 32   unmatched: 14   un_insn: 5631
     dispatch_tables: ['0x0839CEC4(14)']
     area: ENGINE/OBJECT
     key_iwram: ['0x3000820', '0x3000825', '0x3000822', '0x3000824']
@@ -158,7 +160,7 @@ modules:
     funcs_list: ['sub_803FF54', 'sub_80401AC', 'sub_80405A4', 'sub_8040690', 'sub_8040EE8', 'sub_8041308', 'sub_80416F0', 'sub_80419E0', 'sub_8041EDC', 'sub_8042200', 'sub_80422B8', 'sub_8042784', 'sub_8042AB4', 'sub_8042B90', 'sub_8042E70', 'sub_8043554', 'sub_8043938', 'sub_8043B5C', 'sub_8043F90', 'sub_8044394', 'sub_8044414', 'sub_8044420', 'sub_804442C', 'sub_804448C', 'sub_8044498', 'sub_80444A4', 'sub_80444E8', 'sub_8044514', 'sub_8044574', 'sub_80445E0', 'sub_80445E8', 'sub_8044680']
   - id: M18
     range: [0x080446A4, 0x0804473C]
-    funcs: 8   unmatched: 1   un_insn: 56
+    funcs: 8   unmatched: 0   un_insn: 0
     dispatch_tables: ['0x0839D4CC(59)']
     area: ENGINE/OBJECT
     key_iwram: ['0x3000826', '0x3000884']
@@ -166,49 +168,49 @@ modules:
     funcs_list: ['sub_80446A4', 'sub_80446BC', 'sub_8044728', 'sub_804472C', 'sub_8044730', 'sub_8044734', 'sub_8044738', 'sub_804473C']
   - id: M19
     range: [0x080448A8, 0x08048B30]
-    funcs: 65   unmatched: 45   un_insn: 6040
+    funcs: 65   unmatched: 18   un_insn: 3430
     area: ENGINE/CORE
     key_iwram: ['0x3004ac0', '0x3004a88', '0x30008ec', '0x30008f0']
     key_rom: ['0x8093418', '0x839d5bc', '0x839d81a', '0x83988a8']
     funcs_list: ['sub_80448A8', 'sub_8044A40', 'sub_8044F4C', 'sub_8045098', 'sub_804519C', 'sub_8045328', 'sub_80453D8', 'sub_804542C', 'sub_80454A4', 'sub_80455A0', 'sub_8045688', 'sub_80457AC', 'sub_8045860', 'sub_8045940', 'sub_8045A10', 'sub_8045A74', 'sub_8045B90', 'sub_8045BF4', 'sub_8045D00', 'sub_8045EB8', 'sub_8045F10', 'sub_8045F94', 'sub_8046060', 'sub_804612C', 'sub_804621C', 'sub_80462E4', 'sub_8046480', 'sub_8046558', 'sub_804666C', 'sub_80466F0', 'sub_8046C50', 'sub_8046CD4', 'sub_8046E18', 'sub_8046F0C', 'sub_8047024', 'sub_80471AC', 'sub_80472E8', 'sub_804753C', 'sub_80476DC', 'sub_8047B1C', 'sub_8047D28', 'sub_8047DC8', 'sub_8047FCC', 'sub_80480EC', 'sub_80481B8', 'sub_8048310', 'sub_8048458', 'sub_80485A4', 'sub_8048690', 'sub_8048764', 'sub_804877C', 'sub_80487A4', 'sub_80487CC', 'sub_8048818', 'sub_8048868', 'sub_80488CC', 'sub_8048934', 'sub_8048984', 'sub_80489A4', 'sub_80489C8', 'sub_80489E8', 'sub_8048A68', 'sub_8048A88', 'sub_8048ACC', 'sub_8048B30']
   - id: M20
     range: [0x08048B5C, 0x08048D40]
-    funcs: 8   unmatched: 2   un_insn: 88
+    funcs: 8   unmatched: 0   un_insn: 0
     area: ENGINE/CORE
     key_iwram: []
     key_rom: ['0x839cc4c', '0x839d5bc']
     funcs_list: ['sub_8048B5C', 'sub_8048B88', 'sub_8048BAC', 'sub_8048BD0', 'sub_8048C30', 'sub_8048C80', 'sub_8048CEC', 'sub_8048D40']
   - id: M21
     range: [0x08048D64, 0x0804AD24]
-    funcs: 25   unmatched: 18   un_insn: 2939
+    funcs: 25   unmatched: 7   un_insn: 1782
     area: ENGINE/CORE
     key_iwram: ['0x300094d', '0x3000949', '0x3000910', '0x300094a']
     key_rom: ['0x839b2e0', '0x839d348', '0x861a7a4', '0x8095028']
     funcs_list: ['sub_8048D64', 'sub_8048D84', 'sub_8048DA4', 'sub_8048F0C', 'sub_8048FB8', 'sub_80492C0', 'sub_80494F0', 'sub_80497B0', 'sub_80498E0', 'sub_8049958', 'sub_8049AD8', 'sub_8049B70', 'sub_8049C1C', 'sub_8049D58', 'sub_8049DF8', 'sub_804A148', 'sub_804A368', 'sub_804AA2C', 'sub_804AB10', 'sub_804AB40', 'sub_804ABD0', 'sub_804ABF8', 'sub_804AC60', 'sub_804ACC0', 'sub_804AD24']
   - id: M22
     range: [0x0804AD54, 0x0804B1F8]
-    funcs: 9   unmatched: 3   un_insn: 399
+    funcs: 9   unmatched: 1   un_insn: 115
     area: ENGINE/CORE
     key_iwram: ['0x3000ade', '0x3000948', '0x3000910', '0x3000ad8']
     key_rom: ['0x8619a60', '0x8619430', '0x8393a24']
     funcs_list: ['sub_804AD54', 'sub_804AD60', 'sub_804ADE0', 'sub_804ADF8', 'sub_804AE2C', 'sub_804AF60', 'sub_804B080', 'sub_804B1EC', 'sub_804B1F8']
   - id: M23
     range: [0x0804B224, 0x0804C6B0]
-    funcs: 41   unmatched: 14   un_insn: 1616
+    funcs: 41   unmatched: 2   un_insn: 292
     area: ENGINE/CORE
     key_iwram: ['0x3000ae8', '0x3000be8', '0x40000d4', '0x3000ae0']
     key_rom: ['0x861aaa4', '0x861c764']
     funcs_list: ['sub_804B224', 'sub_804B288', 'sub_804B3C0', 'sub_804B458', 'sub_804B4D0', 'sub_804B56C', 'sub_804B654', 'sub_804B7B0', 'sub_804B834', 'sub_804B8E8', 'sub_804B96C', 'sub_804BB64', 'sub_804BBDC', 'sub_804BD54', 'sub_804BDD8', 'sub_804BE90', 'sub_804BF14', 'sub_804C10C', 'sub_804C184', 'sub_804C194', 'sub_804C1B4', 'sub_804C1E4', 'sub_804C214', 'sub_804C250', 'sub_804C278', 'sub_804C2A0', 'sub_804C2F0', 'sub_804C2FC', 'sub_804C364', 'sub_804C3A4', 'sub_804C3E4', 'sub_804C420', 'sub_804C45C', 'sub_804C4D8', 'sub_804C53C', 'sub_804C548', 'sub_804C5B8', 'sub_804C5F8', 'sub_804C638', 'sub_804C674', 'sub_804C6B0']
   - id: M24
     range: [0x0804C728, 0x0804D0F8]
-    funcs: 18   unmatched: 2   un_insn: 283
+    funcs: 18   unmatched: 1   un_insn: 249
     area: ENGINE/CORE
     key_iwram: ['0x3000d38', '0x3000be8']
     key_rom: ['0x8393b28', '0x839d5bc']
     funcs_list: ['sub_804C728', 'sub_804C78C', 'sub_804C890', 'sub_804C8E0', 'sub_804C9B4', 'sub_804CA2C', 'sub_804CAA0', 'sub_804CB18', 'sub_804CB8C', 'sub_804CC00', 'sub_804CC78', 'sub_804CCEC', 'sub_804CD60', 'sub_804CDD4', 'sub_804CE48', 'sub_804CEBC', 'sub_804CEE0', 'sub_804D0F8']
   - id: M25
     range: [0x0804D1B4, 0x0804D708]
-    funcs: 8   unmatched: 4   un_insn: 370
+    funcs: 8   unmatched: 0   un_insn: 0
     dispatch_tables: ['0x0839CD5C(87)']
     area: ENGINE/OBJECT
     key_iwram: []
@@ -216,7 +218,7 @@ modules:
     funcs_list: ['sub_804D1B4', 'sub_804D260', 'sub_804D310', 'sub_804D3A0', 'sub_804D44C', 'sub_804D4FC', 'sub_804D5B4', 'sub_804D708']
   - id: M26
     range: [0x0804D798, 0x0804DCD8]
-    funcs: 8   unmatched: 8   un_insn: 673
+    funcs: 8   unmatched: 0   un_insn: 0
     dispatch_tables: ['0x0839CD5C(87)']
     area: ENGINE/OBJECT
     key_iwram: []
@@ -224,35 +226,35 @@ modules:
     funcs_list: ['sub_804D798', 'sub_804D840', 'sub_804D8F4', 'sub_804DA04', 'sub_804DABC', 'sub_804DB64', 'sub_804DC24', 'sub_804DCD8']
   - id: M27
     range: [0x0804DD70, 0x0804F244]
-    funcs: 28   unmatched: 12   un_insn: 1684
+    funcs: 28   unmatched: 1   un_insn: 374
     area: ENGINE/CORE
-    anchors: ['CheckObjectKindSlot', 'SioBattle_GetState', 'SioBattle_ResetState']
+    anchors: ['BattleDrops_Roll', 'BattleFxObjs_Add', 'BattleFx_GetObjCount', 'BattleFx_Reset', 'BattleFx_Update', 'CheckObjectKindSlot', 'ItemUseFx_Reset', 'ItemUseFx_RunConsumable', 'ItemUseFx_RunWeapon', 'ItemUseFx_Update']
     key_iwram: ['0x3000d88', '0x3000ddc', '0x3004980', '0x3000e04']
     key_rom: ['0x839cfaa', '0x87ea580', '0x839ce38', '0x839cefc']
-    funcs_list: ['sub_804DD70', 'sub_804DD90', 'sub_804DE20', 'sub_804DE8C', 'sub_804DF14', 'sub_804DF74', 'sub_804DFD8', 'sub_804E0E4', 'sub_804E2AC', 'sub_804E6DC', 'sub_804E76C', 'sub_804E7EC', 'sub_804E85C', 'sub_804E9DC', 'sub_804EC04', 'sub_804EEC4', 'sub_804EF00', 'sub_804EF50', 'sub_804EF90', 'sub_804EFDC', 'sub_804F050', 'sub_804F07C', 'sub_804F088', 'sub_804F0B8', 'sub_804F10C', 'sub_804F17C', 'SioBattle_ResetState', 'SioBattle_GetState']
+    funcs_list: ['sub_804DD70', 'sub_804DD90', 'sub_804DE20', 'sub_804DE8C', 'sub_804DF14', 'sub_804DF74', 'sub_804DFD8', 'ItemUseFx_RunConsumable', 'ItemUseFx_RunWeapon', 'sub_804E6DC', 'sub_804E76C', 'BattleFxObjs_Add', 'BattleFx_Update', 'BattleDrops_Roll', 'sub_804EC04', 'sub_804EEC4', 'sub_804EF00', 'sub_804EF50', 'sub_804EF90', 'sub_804EFDC', 'sub_804F050', 'ItemUseFx_Reset', 'ItemUseFx_Update', 'sub_804F0B8', 'sub_804F10C', 'sub_804F17C', 'BattleFx_Reset', 'BattleFx_GetObjCount']
   - id: M28
     range: [0x0804F250, 0x0805305C]
-    funcs: 77   unmatched: 23   un_insn: 5036
+    funcs: 77   unmatched: 7   un_insn: 3535
     dispatch_tables: ['0x0862D434(80)']
     area: SCRIPT
-    anchors: ['BgTiles_LoadSet', 'FlushTileDma', 'Op_AnimSlotPause', 'Op_AnimSlotResume', 'Op_BgmFadeIn', 'Op_BgmFadeOut', 'Op_BgmPlay', 'Op_BgmStop', 'Op_BgmVolume', 'Op_CameraFollow']
+    anchors: ['BattleDrops_Clear', 'BgTiles_LoadSet', 'FlushTileDma', 'Op_AddPartyMember', 'Op_AnimSlotPause', 'Op_AnimSlotResume', 'Op_BgmFadeIn', 'Op_BgmFadeOut', 'Op_BgmPlay', 'Op_BgmStop']
     key_iwram: ['0x2016200', '0x3000e70', '0x2016000', '0x3000f24']
     key_rom: ['0x862d574', '0x87ed904', '0x87ed6d4', '0x83936a8']
-    funcs_list: ['SioBattle_ClearSlots', 'sub_804F280', 'sub_804F64C', 'Op_RemovePartyMember', 'sub_804F7F8', 'sub_804F8D8', 'sub_804F974', 'sub_804FA04', 'sub_804FA94', 'sub_804FB24', 'ScriptPump_Run', 'sub_805008C', 'sub_80501B8', 'sub_8050434', 'sub_805063C', 'sub_8050720', 'sub_80511A0', 'Op_ScriptStop', 'sub_80512C4', 'sub_80513A0', 'sub_805144C', 'Op_OpenWindow', 'sub_8051AEC', 'sub_8051BE4', 'Script_GetFlags', 'Script_ResetVM', 'sub_80525E8', 'sub_80526A0', 'Script_Abort', 'BgTiles_LoadSet', 'TileDma_Reset', 'sub_80527AC', 'TileDma_GetCtx', 'Op_LoadTileGfx', 'sub_8052858', 'Script_Call', 'nullsub_7', 'Op_DialogSetup', 'Op_CloseWindow', 'sub_80529B8', 'Op_BgmPlay', 'Op_BgmStop', 'Op_BgmVolume', 'Op_BgmFadeIn', 'Op_BgmFadeOut', 'Op_SfxPlay', 'Op_SfxStop', 'sub_8052AE8', 'sub_8052B34', 'Op_WaitCharsStop', 'Op_LoadCharaGfx', 'Op_LoadCharaPal', 'Op_WaitSpriteLoad', 'Op_SceneChangeFade', 'Op_SceneChangePlain', 'Op_WaitSceneIdle', 'Op_LoadMap', 'Op_IfEventFlagJump', 'Op_SetEventFlag', 'Op_ClearEventFlag', 'Op_IfSwitchJump', 'Op_SetSwitch', 'Op_ClearSwitch', 'Op_CameraSnap', 'Op_CameraFollow', 'Op_WaitCameraSnap', 'Op_LoadCutsceneAnim', 'Op_RestartCharaAnim', 'Op_WaitCharaAnim', 'sub_8052F44', 'Op_LoadAnimSet', 'Op_AnimSlotResume', 'Op_AnimSlotPause', 'Op_WaitAnimSlotIdle', 'Op_MenuLoadAnims', 'Op_MenuUnlock', 'Op_MenuLock']
+    funcs_list: ['BattleDrops_Clear', 'sub_804F280', 'Op_CameraPan', 'Op_RemovePartyMember', 'Op_AddPartyMember', 'Op_ScriptBattle', 'Op_IfAllFlagsJump', 'Op_IfAllFlagsClearJump', 'Op_IfAnyFlagJump', 'Op_SysEffect', 'ScriptPump_Run', 'ScriptPump_ServiceFrame', 'sub_80501B8', 'sub_8050434', 'sub_805063C', 'sub_8050720', 'Op_ScriptReturn', 'Op_ScriptStop', 'sub_80512C4', 'sub_80513A0', 'sub_805144C', 'Op_OpenWindow', 'sub_8051AEC', 'sub_8051BE4', 'Script_GetFlags', 'Script_ResetVM', 'ScriptSet_Load', 'ScriptPump_JumpToEntry', 'Script_Abort', 'BgTiles_LoadSet', 'TileDma_Reset', 'sub_80527AC', 'TileDma_GetCtx', 'Op_LoadTileGfx', 'Op_ScriptJump', 'Script_Call', 'Op_Nop', 'Op_DialogSetup', 'Op_CloseWindow', 'Op_WaitFrames', 'Op_BgmPlay', 'Op_BgmStop', 'Op_BgmVolume', 'Op_BgmFadeIn', 'Op_BgmFadeOut', 'Op_SfxPlay', 'Op_SfxStop', 'Op_RandomJump', 'Op_ScriptCallAlt', 'Op_WaitCharsStop', 'Op_LoadCharaGfx', 'Op_LoadCharaPal', 'Op_WaitSpriteLoad', 'Op_SceneChangeFade', 'Op_SceneChangePlain', 'Op_WaitSceneIdle', 'Op_LoadMap', 'Op_IfEventFlagJump', 'Op_SetEventFlag', 'Op_ClearEventFlag', 'Op_IfSwitchJump', 'Op_SetSwitch', 'Op_ClearSwitch', 'Op_CameraSnap', 'Op_CameraFollow', 'Op_WaitCameraPan', 'Op_LoadCutsceneAnim', 'Op_RestartCharaAnim', 'Op_WaitCharaAnim', 'Op_IfPartyMemberJump', 'Op_LoadAnimSet', 'Op_AnimSlotResume', 'Op_AnimSlotPause', 'Op_WaitAnimSlotIdle', 'Op_MenuLoadAnims', 'Op_MenuUnlock', 'Op_MenuLock']
   - id: M29
     range: [0x08053078, 0x080533B4]
-    funcs: 19   unmatched: 1   un_insn: 48
+    funcs: 19   unmatched: 0   un_insn: 0
     dispatch_tables: ['0x0862D434(80)']
     area: SCRIPT
-    anchors: ['Op_ChestOpen', 'Op_ClearSwitchTail', 'Op_EquipItem', 'Op_FullHealParty', 'Op_GiveTakeItem', 'Op_IfItemQtyJump', 'Op_IfMoneyJump', 'Op_IfSaveFlagJump', 'Op_IfSaveLoadedJump', 'Op_SaveOp']
+    anchors: ['Op_ChestOpen', 'Op_ClearFlagsList', 'Op_ClearSwitchTail', 'Op_EquipItem', 'Op_FullHealParty', 'Op_GiveTakeItem', 'Op_IfItemQtyJump', 'Op_IfMoneyJump', 'Op_IfSaveFlagJump', 'Op_IfSaveLoadedJump']
     key_iwram: ['0x2016000', '0x2016200', '0x3002604', '0x3004980']
     key_rom: []
-    funcs_list: ['Op_WaitMenuReady', 'Op_FullHealParty', 'Op_EquipItem', 'Op_GiveTakeItem', 'Op_SilverAddSub', 'Op_IfItemQtyJump', 'Op_ChestOpen', 'Op_SaveUiTrigger', 'Op_IfSaveLoadedJump', 'Op_SaveTimerA', 'Op_SaveTimerB', 'Op_IfSaveFlagJump', 'Op_SaveOp', 'sub_8053270', 'sub_80532DC', 'Op_ClearSwitchTail', 'Op_IfMoneyJump', 'Op_StartLogoFade', 'Op_WaitLogoFade']
+    funcs_list: ['Op_WaitMenuReady', 'Op_FullHealParty', 'Op_EquipItem', 'Op_GiveTakeItem', 'Op_SilverAddSub', 'Op_IfItemQtyJump', 'Op_ChestOpen', 'Op_SaveUiTrigger', 'Op_IfSaveLoadedJump', 'Op_SaveTimerA', 'Op_SaveTimerB', 'Op_IfSaveFlagJump', 'Op_SaveOp', 'Op_SetFlagsList', 'Op_ClearFlagsList', 'Op_ClearSwitchTail', 'Op_IfMoneyJump', 'Op_StartLogoFade', 'Op_WaitLogoFade']
   - id: M30
     range: [0x080533D4, 0x08053884]
     funcs: 18   unmatched: 0   un_insn: 0
     area: SCRIPT
-    anchors: ['Bgm_Continue', 'Bgm_FadeIn', 'Bgm_FadeOut', 'Bgm_Play', 'Bgm_SetVolume', 'Bgm_Stop', 'Sfx_GetLoopFlag', 'Sfx_Play', 'Sfx_PlayFade', 'Sfx_StopTrack']
+    anchors: ['Bgm_Continue', 'Bgm_FadeIn', 'Bgm_FadeOut', 'Bgm_Play', 'Bgm_SetVolume', 'Bgm_Stop', 'Op_SetCharacterLevel', 'Sfx_GetLoopFlag', 'Sfx_Play', 'Sfx_PlayFade']
     key_iwram: ['0x3000f38', '0x3000f42', '0x3000f43', '0x3000f40']
     key_rom: ['0x87edc80', '0x87ed910']
-    funcs_list: ['sub_80533D4', 'SoundMain_Frame', 'SoundTracks_Frame', 'Sound_Init', 'Sound_GetFlags', 'Sound_VSyncOff', 'Sound_VSyncOn', 'Bgm_Play', 'Bgm_Stop', 'Bgm_SetVolume', 'Bgm_FadeIn', 'Bgm_FadeOut', 'Bgm_Continue', 'Sfx_TrackBusy', 'Sfx_Play', 'Sfx_PlayFade', 'Sfx_StopTrack', 'Sfx_GetLoopFlag']
+    funcs_list: ['Op_SetCharacterLevel', 'SoundMain_Frame', 'SoundTracks_Frame', 'Sound_Init', 'Sound_GetFlags', 'Sound_VSyncOff', 'Sound_VSyncOn', 'Bgm_Play', 'Bgm_Stop', 'Bgm_SetVolume', 'Bgm_FadeIn', 'Bgm_FadeOut', 'Bgm_Continue', 'Sfx_TrackBusy', 'Sfx_Play', 'Sfx_PlayFade', 'Sfx_StopTrack', 'Sfx_GetLoopFlag']

@@ -1,4 +1,14 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_task_services.h"
+#include "battle_flow_rules.h"
+#include "battle_menu_windows.h"
+#include "battle_object_engine.h"
+#include "battle_palette_wipe.h"
+#include "engine_core.h"
+#include "scene_mgr.h"
+#include "script_vm.h"
+#include "sound.h"
+#include "text_engine.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +18,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 // @ 0x080170BC
 void Sio_SetReady(void)

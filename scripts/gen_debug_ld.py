@@ -30,7 +30,10 @@ GAP_BASE = 0x900000         # .text_gap 相对 ORIGIN(rom) 的偏移 (0x08900000
 TEXT_ORDER = [
     "asm/crt0.o",
     "src/engine_core.o", "src/scene_mgr.o", "src/sprite_engine.o",
-    "src/vram_transfer.o", "src/map_view.o", "src/anim_slot.o",
+    "src/vram_transfer.o", "src/map_view.o", "src/anim_slot_core.o",
+    "src/map_zone.o", "src/option_scene_loader.o", "src/map_portrait_viewport.o",
+    "src/screen_fx_loader.o", "src/sprite_bg_sheet_loader.o", "src/map_misc_runtime.o",
+    "src/chest_objects.o",
     "src/player_stats.o", "src/menu_ui.o", "src/save.o", "src/save_menu.o",
     "src/text_engine.o", "src/battle_task_services.o", "src/battle_gfx_load.o",
     "src/battle_object_engine.o", "src/battle_menu_windows.o", "src/battle_stage_actor.o",

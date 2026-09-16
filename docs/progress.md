@@ -6097,50 +6097,43 @@ u8 sub_804E85C(void)
 → permuter base score 0 → 合入 src/obj_pool.c → gen_asm → fncheck OK 384B
 → touch src/*.c + make + sha1 绿 (779/1059) → audit 779/779。经验 218 已归档。
 
-## sub_804E9DC (0x0804E9DC, obj_pool, 战斗掉落结算) — ⏸ 2026-09-10 claude_1 挂起
+## BattleDrops_Roll (0x0804E9DC, battle_itemuse_rewards, 战后掉落结算) — ✅ 2026-09-16 antigravity 匹配 (552B)
 
-271 asm 行。**结构已全部对齐, 只剩 global-alloc home** (终分 6030)。
+271 asm 行, fncheck OK 552B, 全量 make+SHA1 绿 (898/1059)。
 
-### 已还原的语义 (结构 100% 对)
+### 业务语义与建模
+```c
+u8 BattleDrops_Roll(u32 *arg0)
 ```
-u8 sub_804E9DC(u32 *arg0)
+- 战后掉落掷取核心:
+  1. 重置 `gBattleDropCount = 0`; 分别调用两次 `GetObjPool()` 获取 `pool` 与 `objs`; `sub_8020E68()` 取敌方怪物列表。
+  2. 友方参战槽位收集与幸运装备检测: 经 `Battle_CollectSlots` 收集友方参战槽位，遍历槽位调 `sub_804E76C(..., 5, 4)` 检查装备效果字段是否含幸运加成 (字段 5 == 4)，命中则 `bonus = 0xF` (掉落物品 ID + 15 升稀有档，如ヒールガム→ドラゴンリング)，否则 0。
+  3. 逐怪物掷骰: 跳过 `pool[i*0xC8+0x493] == 7` 的怪物; 槽号 `v <= 0x70` 查 `gUnk_0839D9B8` (101 项 × 5B 步长)，否则查 `gUnk_0839DBB1` (4B 步长); 两段 `Rng % 100` 掷骰 (60% 基础门 + 阈值比较)，命中则掉落 `val = base + bonus`。
+  4. 查重合并写入 `gBattleDrops`: 线性查找已有项累加 `count`，否则新增项并 `gBattleDropCount++`。
+  5. 逐项调用 `Inventory_AddItem(itemId, count)` 入玩家背包，`*arg0 = (u32)gBattleDrops`，返回 `gBattleDropCount`。
+
+### 历史卡点与最终破局 (GCC 2.91 RTL / CodeGen 机制)
+- **卡点复盘**: 历史尝试（claude_1 等）中，指令形状与分支完全对齐，但 `r4`/`r5` 互换错位（终分 6030），根因在于直接调用 `sub_80489E8(...)` 时，常数 `0x1FF` 触发 GCC 2.91 `precompute_register_parameters` 将其提前发射在 `mov r1, sp` 之前。
+- **破局解法**: 引入模块内部通用的 `static inline Battle_CollectSlots(BattleObj *objs, u8 *values, u8 mode, u16 flags)` 包装函数，使形参绑定为 `PARM_DECL` 从而绕过提前发射，精准复现 `mov r1, sp; movs r2, #0; ldr r3, =0x1FF; bl sub_80489E8`。同文件紧邻函数 `sub_804EC04` 两次调用亦有完全相同的指令序，证实为此模块原团队的通用写法。
+- **signed % 100**: 自然调用 `(s32)Rng_LcgNext() % 100` 生成 `__modsi3`，字节 100% 吻合。详见 `docs/handoffs/MATCH-BattleDrops_Roll-20260916.md`。
+
+## sub_804EC04 / BattleCards_Roll (0x0804EC04, battle_itemuse_rewards, 战后卡片掉落与图鉴结算) — ✅ 2026-09-16 antigravity 匹配 (704B)
+
+351 asm 行, fncheck OK 704B, 全量 make+SHA1 绿 (899/1059)。
+
+### 业务语义与建模
+```c
+u8 sub_804EC04(u32 *arg0) // BattleCards_Roll
 ```
-- `gUnk_03000E30 = 0`; `pool = GetObjPool()`; `list = sub_8020E68()` (含 `list[0]`=条数,
-  条目在 `list[i*4+1]`); `objs = GetObjPool()` (注意**两次** GetObjPool, 分存两个变量);
-- `count = sub_80489E8(objs, values, 0, 0x1FF)` (`u8 values[8]`);
-- **第一段**: 遍历 values 找第一个 `sub_804E76C(objs + values[i]*0xC8, 5, 4)` 返回 ≥0 的槽
-  (`v = sub_804E76C(...); if ((s8)v >= 0) { found = v; break; }` — u8 临时 + (s8) 判定,
-  这样 GCC 才会把 (u8) 归一化做在比较之前并复用 `lsls`); 命中则 `bonus = 0xF` 否则 0;
-- **第二段**: `for (i = 0; i < list[0]; i++)`: 跳过 `pool[i*0xC8+0x493] == 7` 的槽;
-  `v = list[i*4+1]`; `v <= 0x70` → `k = v-0xC`, 表 `gUnk_0839D9B8`; 否则 `k = v-0x71`,
-  表 `gUnk_0839DBB1` (两表都是 **101 条 × 5 字节**, 0x0839DBB1-0x0839D9B8 = 0x1F9 = 101*5);
-  `Rng_LcgNext() % 100` 与 0x3B 比较分两路, 再 `% 100` 与 `tbl[k][1]`(低路)/`tbl[k][3]`(高路)
-  比较, 命中取 `tbl[k][0]` / `tbl[k][2]`, 加 `bonus` 后为 val;
-- val 非 0 则并入 `gUnk_03000E08[]` (按 field_0 找同 id 累加 field_2, 否则新开一条并 `gUnk_03000E30++`);
-- 末尾逐条 `sub_800AA60(field_0, field_2)` (= AddInventoryItem), 返回 `gUnk_03000E30`,
-  并把 `gUnk_03000E08` 地址写入 `*arg0`。
-
-### 卡点 (唯一, 且属 global-alloc 域)
-寄存器角色整体错位一档: **目标 loop1 索引=r4、objs=r5、count=r6、loop2 索引=r6**,
-我这边 **objs=r4、i=r5** (r4↔r5 互换), 以及 loop2 索引落不同寄存器。指令**形状逐条一致**。
-
-### 已穷举无效的手段
-- 局部声明序 (指针在前/在后、去掉未使用的 `s8 res` 声明) — **完全无变化** (恒 6030);
-- 把两处 GetObjPool 合并成一个变量 — 更差 (6010→结构错);
-- permuter (`-j 1`, 260s): 只把分降到 2930, 但**根因是把 `u16 Rng_LcgNext()` 改成 `int`**
-  —— 改回 `u16` 立刻退回 6030, 即"给另一个程序打分"(经验 96)。**不可采纳**,
-  `output-2930-1/` 等产物请勿直接合入。
-
-### 判据留档
-- `sub_804E9DC` 的 `%` 走 **`__modsi3`(有符号)**, 而其他已匹配调用点 (sub_802761C/sub_8034BFC/
-  sub_803586C…) 走 **`__umodsi3`** → 说明别处源码显式转 unsigned, 本函数是纯 `int` 域。
-- `Rng_LcgNext` 定义在 sio_link.c 返回 u16, 但 GCC2 在此处**不插零扩展**,
-  所以 `u16` 原型 (code_0.h:397) 是正确的, 不要改成 int。
-
-### 下一步建议
-需要 qtydump/`-dl` 级分析 (经验 88/119/214/216/218 的 global-alloc 判定族),
-或找到与 sub_804E9DC 同族的**已匹配**函数 (battle_rewards.c 里有多处 `values[8]` + 掉落循环)
-抄其声明序/变量切分。悬赏见 `claim.sh --table`。
+- 战后卡片掉落与图鉴结算核心:
+  1. 重置 `gBattleCardDrops[0..9]` 且 `gBattleCardDropCount = 0`。
+  2. 两次 `Battle_CollectSlots` 扫描友方参战角色装备效果: `sub_804E76C(..., 5, 2)` 命中则 `rateMode = 1`；`sub_804E76C(..., 5, 3)` 命中则 `rateMode = 2`。
+  3. 遍历敌方怪物: 跳过 `pool+0x493 == 7`。
+     - 普通怪 (`v <= 0x70`): `k = v - 0xC`。若属性 `pool+0x494 == obj20B48[0xAC]` 匹配，按 `rateMode` (0: 查表 `gUnk_0839D9B8[k][4]`; 1: 50% 门槛; 2: 100% 必然命中); 不匹配则走常规查表。
+     - 特殊怪 (`v > 0x70`): `k = v - 0x71` (若 `k > 0xB` 则 `k--`); 若 `pool+0x4A6 != 0x79` 则命中。
+  4. 查重合并写入 `gBattleCardDrops`: 命中已有项 `count++`，否则追加新卡片并 `gBattleCardDropCount++`。
+  5. 存档图鉴计数更新: 遍历 `gBattleCardDrops`，按 `sub_80187B4() & 0x20` 分支调用 `SaveTimer_Inc` (+0xA0 或 +0x3B) 递增半字节图鉴收集数。
+  6. 输出 `*arg0 = (u32)gBattleCardDrops`，返回 `gBattleCardDropCount`。详见 `docs/handoffs/MATCH-sub_804EC04-20260916.md`。
 
 ## sub_800F128 (0x0800F128, menu_ui, 技能菜单逐项绘制) — ⏸ 2026-09-10 glm (语义全解, 差纯寄存器漂移)
 ### 语义 (已完整还原)
@@ -8218,3 +8211,60 @@ bytecmp 240B 全等 + fncheck OK 176B + 全量 make/sha1 通过 (812/1059, 76.7%
 - 主要改名：`sio_link.c` → `battle_task_services.c`；`battle_obj_core.c` → `battle_object_engine.c`；`scene_obj_fx.c` → `battle_menu_windows.c`；`battle_rewards.c` → `battle_special_targets.c`；`obj_pool.c` → `battle_itemuse_rewards.c`；`battle_engine.c` → `battle_flow_rules.c`；`battle_anim.c` → `battle_palette_wipe.c`；`event_actor/event_hub/cutscene_mgr/obj_state/scene_interact` → `battle_stage_actor/battle_stage_dialogue/battle_stage_effects/battle_stage_state/battle_stage_transition`。
 - 同步 `linker.ld`、`Makefile DBG_GAP`、`scripts/gen_debug_ld.py`、当前头注释和 `functions.tsv` module 列；重新生成 `linker_debug.ld`。
 - 验证：`make` + `sha1sum -c ll.sha1` 通过；纯文件名/模块名重划分未改变函数字节。详见 `docs/MODULE_MODEL_20260916.md`。
+
+
+## code_0.h 拆分 + 模块 API header — ✅ 2026-09-16 opencode-header-split
+
+- 删除 `include/code_0.h`，新增 `include/battle_types.h` 和 24 个按当前 src 模块划分的 API 头文件；所有 `src/*.c` 的旧 `code_0.h` include 已替换为模块头集合。
+- 拆分原则：K&R 原型原样搬运，不按函数名猜测改签名；共享 struct (`ObjHead`/`BattleObj`/`ObjAnimIdxBlk`/`ObjAnimEntry`/`ObjFadeSeq`) 集中到 `battle_types.h`。
+- 修正包含链：`iwram.h` 改为在末尾 include `menu.h`，避免 `menu.h` 生成原型反向 include `iwram.h` 时看到未定义类型。
+- 验证：`touch src/*.c && make` + `sha1sum -c ll.sha1` 通过；全量 ROM 字节不变。详见 `docs/handoffs/HEADER-SPLIT-CODE0-20260916.md`。
+
+
+## anim_slot.c 物理拆分 — ✅ 2026-09-16 opencode-module-rename
+
+- 按连续 ROM 地址把 `src/anim_slot.c` 拆为 `anim_slot_core`、`map_zone`、`option_scene_loader`、`map_portrait_viewport`、`screen_fx_loader`、`sprite_bg_sheet_loader`、`map_misc_runtime`、`chest_objects` 8 个 C TU。
+- `anim_slot.h` 改名 `map_scene_runtime.h`；每个新 TU 增加自己的 API 头。
+- `linker.ld` / `functions.tsv` / debug linker 同步；函数名和函数体未动。
+- 验证：`make` + `sha1sum -c ll.sha1` 通过；详见 `docs/handoffs/SPLIT-ANIM-SLOT-20260916.md`。
+
+
+## Rng_LcgNext fnptr 强转全仓清理 — ✅ 2026-09-16 opencode-1
+
+- `Rng_LcgNext` 原型 u32 (体内自掩码 `(seed>>16)&0x7FFF`, ROM 无返回扩展), 历史遗留的 52 处 `((u32/int/s32 (*)(void))Rng_LcgNext)()` 函数指针强转全部移除: u32-cast 处→直调, int/s32-cast 处→`(int)`/`(s32)` 值 cast (ROM `__modsi3` 为 signed 证据, 见 BattleDrops_Roll / sub_804C8E0)。
+- 逐点验证: 每改一处 `make clean && make -j4 && sha1sum -c ll.sha1` 全绿 (52/52)。禁止再用 fnptr 强转 (用户规则, 见 EXPERIENCE 262)。
+
+## sub_802DE04 匹配 — ✅ 2026-09-16 opencode-1 (破 BLOCKED-802DE04 的 5 字节 home 墙)
+
+- 战斗对象"吸血/回复"演出状态机 (0x0839CD5C 表 idx 0x28 handler, case20 `hp += min(maxHp-hp, maxHp>>1)`, case9 返回 2)。
+- 根因: `sub_8048D64` 共享原型 u16 与原始调用 TU 宽返回声明不符 → egcs 插入 HI 伪拷贝改变 sum home。解法: 原型升 u32 + 体内 `return (u16)diff` 保字节 (sub_8048D64 fncheck OK 30B 不变, 全仓无其他调用者)。
+- 验证: bytecmp 32B=8 bl 基线 0 真差; fncheck OK 472B; make+sha1 全绿; 901/1059。详见 docs/handoffs/MATCH-802DE04-20260916.md 与 EXPERIENCE 262。
+
+## 2026-09-16 sub_80257D8 匹配 (opencode-80257d8)
+
+`0x080257D8` 战斗对象"抓取协作对象并位移"演出状态机 (gObjActStep: 0→3→4→5→6→7→9), 双参
+(obj, arg1=同池被拉动对象), 0x0839CD5C 指针表 idx0。case5 帧窗口 0x64..0x69 用 sub_801768C 把
+arg1->posX 拉到 gUnk_08393A48[arg1->memberIdx]。fncheck OK 444B, 全量 SHA1 绿 904/1059。
+
+GCC2.9 三处硬坑 (详见 docs/handoffs/MATCH-80257D8-20260916.md §4):
+① `s32 off = 帧计数; off -= 0x64;` 必须两步 (一步写法先做 24 位提取, +2 指令);
+② 条件 `(u8)off <= 5` 才有 lsls/lsrs 掩码;
+③ `gObjActSavedX = x = call(...)` 一次复合赋值 (拆两句多 4 条指令)。
+
+注: permuter/sub_80257D8/ 被并发进程反复覆写, 权威 C 体只认 src/battle_menu_windows.c。
+
+
+## sub_801E30C 匹配 — ✅ 2026-09-16 opencode-1
+
+- 战斗效果扣血引擎第 3 变体 (sub_801E4D4/801E690 同族, ROM 死代码): `gUnk_0839CC4C` 装备道具配对表 / `skills[animSubIdx]` 双索引 → `gUnk_08393B28[].targetMode` 单体/群体扣血+回绕入队。
+- ★ 破译 ROM 真 UB: `adds r0, r6, #3` 无前置定义 = 原始源码未赋值指针局部读到序言残留的调用方 sb; 复现靠 ①`p = anim + 3` 独立语句防 combine 偏移折叠 ②`q = (const u16 *)tbl` 基址物化定字面池 home ③队列入队走 `Inl_QueuePushObj(重算member表达式)` 固定实参先行序。
+- 验证: bytecmp OK 456B 全等 (无 bl); fncheck OK; E4D4/E690 回归 OK; make+sha1 全绿; 904/1059。详见 docs/handoffs/MATCH-801E30C-20260916.md 与 EXPERIENCE 263。
+
+## sub_8033988 匹配 — ✅ 2026-09-16 agent_8033988
+
+- 演出状态机, 与已匹配 `sub_8033E2C` (同 0x0839D4CC 动作表族) 同骨架, 但无 headB (0x3C) 双头动画/目标槽位段。
+- 状态机: case0 备份 posX/posY + `sub_8020DE4` + 备份 palSlot/f_1E → case38-46 前置动画 0x374/0x375/0x376 + `sub_801CBA4` 调色板恢复 + 场景复位 0x1747 → case18-23 `sub_8019B98(2,3,0xE,1)` + 9 参窗口 `sub_804BF14` + 双向插值淡出淡入 (`sub_801768C`) + `BattleUiFlag(0x20)` → case24 `sub_801EEE4(arg,pool,1,0,0x3E7)==1` → case9 复位返回 2; 尾部统一 `sub_803F658`。
+- ★ 关键形状: 目标序言 `sub sp, #0x1c`, 但函数体最长栈访问只到 `[sp, #0x10]` (9 参 `sub_804BF14` 的 5 个栈实参)。这 8 字节"幽灵栈帧"由未使用的局部数组 `u8 values[8];` 复刻残留产生 (EXPERIENCE 经验 174); 加上后 `sub sp` 即从 #0x14 变 #0x1c, 文本尺寸 1188B = 目标。同族 sub_8032EA0/sub_80334B8 同为 0x1c 帧, 佐证模板复刻。
+- 头部: `include/battle_stage_dialogue.h` 的 `void sub_8033988();` → `u32 sub_8033988(BattleObj *arg);` (返回 u32 被消费)。
+- 验证: fncheck OK 1188B (86 池重定位, 25 bl 槽忽略); 25 处 bl 与 ROM 逐一一致; sub_8033E2C/sub_8034440 回归 OK; make+SHA1 绿 (483b2c37...), 908/1059 (85.7%)。
+- 候选: permuter/sub_8033988/base.c。详见 docs/handoffs/MATCH-8033988-20260916.md。

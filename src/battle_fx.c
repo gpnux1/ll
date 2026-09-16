@@ -1,4 +1,5 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_fx.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "gba/macro.h"
@@ -9,7 +10,6 @@
 #include "save.h"
 #include "sound.h"
 
-// INCLUDE_ASM("asm/nonmatchings", BattleFx_Reset);
 // @ 0x0804F210
 void BattleFx_Reset(void)
 {

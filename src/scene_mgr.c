@@ -1,4 +1,15 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "scene_mgr.h"
+#include "map_scene_runtime.h"
+#include "battle_task_services.h"
+#include "engine_core.h"
+#include "map_view.h"
+#include "menu_ui.h"
+#include "player_stats.h"
+#include "script_vm.h"
+#include "sound.h"
+#include "sprite_engine.h"
+#include "vram_transfer.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "globals.h"
@@ -7,7 +18,6 @@
 #include "include_asm.h"
 #include "iwram.h"
 #include "m4a.h"
-#include "sound.h"
 
 extern void IntrMain();
 

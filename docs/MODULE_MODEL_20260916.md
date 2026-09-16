@@ -54,3 +54,21 @@ ll.gba: 成功
 ```
 
 全量 ROM 字节未变；本次是文件/模块标签重划分，不是函数位移。
+
+
+## 2026-09-16 anim_slot.c 拆分
+
+`src/anim_slot.c` 原来混合了动画槽、地图区域、选项场景、头像/视口、屏幕 FX、精灵表/BG、宝箱等代码，文件名不合理。按连续 ROM `.text` 地址拆为：
+
+```text
+src/anim_slot_core.c            0x08007964..0x08007ADC
+src/map_zone.c                  0x08007ADC..0x08007D5C
+src/option_scene_loader.c       0x08007D5C..0x08008620
+src/map_portrait_viewport.c     0x08008620..0x080088B4
+src/screen_fx_loader.c          0x080088B4..0x08008A3C
+src/sprite_bg_sheet_loader.c    0x08008A3C..0x08008CC0
+src/map_misc_runtime.c          0x08008CC0..0x08008F28
+src/chest_objects.c             0x08008F28..0x0800908C
+```
+
+原 `include/anim_slot.h` 改名为 `include/map_scene_runtime.h`，并生成各模块头。函数体未移动、函数名未改；仅按原地址连续切片，`linker.ld` 保持对象顺序。

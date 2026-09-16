@@ -2,6 +2,8 @@
 #define _SOUND_H
 
 #include "gba/types.h"
+#include "iwram.h"
+#include "battle_types.h"
 
 void SoundMain_Frame();
 void SoundTracks_Frame();

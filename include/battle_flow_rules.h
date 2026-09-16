@@ -1,0 +1,208 @@
+#ifndef BATTLE_FLOW_RULES_H
+#define BATTLE_FLOW_RULES_H
+
+#include "gba/types.h"
+#include "iwram.h"
+#include "battle_types.h"
+
+/* Module API declarations (was include/code_0.h). */
+
+u32 sub_804473C(BattleObj *arg0, u8 *arg1);
+
+u32 sub_80448A8(BattleObj *arg0, u8 *arg1);
+
+u32 sub_8044A40();
+
+u32 sub_8044F4C(BattleObj *, BattleObj *);
+
+u16 sub_8045098(BattleObj *, BattleObj *); // 战斗伤害浮动: 按 arg0->pad_A4[0]-0x19 选基础值/随机幅度, Rng 抖动 + sub_8047D28 命中修正, 返回夹 0..0x3E7
+
+void sub_804519C();
+
+u8 sub_8045328(BattleObj *, BattleObj *, u8); // 2026-09-13 gpnux: 命中判定; arg0=行动发起方, arg1=目标对象, arg2=基准权重(调用点 0x50). 2026-09-11 zcode-engine: sub_8046480 调用点反汇编证据 (lsls/lsrs/cmp #1)
+
+u16 sub_80453D8(void);
+
+u16 sub_804542C(void);
+
+u8 sub_80454A4(u16);
+
+u16 sub_80455A0(u8, u8);
+
+void sub_8045688(u8, u8, u8);
+
+void sub_80457AC();
+
+s8 sub_8045860(u8, u8 *);
+
+u8 sub_8045940(BattleObj *obj, u8 *buf);
+
+u8 sub_8045A10(BattleObj *, u8);
+
+u8 sub_8045A74(u8 *, u8 *, u8, u8, u8);
+
+void sub_8045B90(BattleObj *obj, u8 index);
+
+void sub_8045BF4(BattleObj *obj);
+
+void sub_8045D00(BattleObj *, u8, u16, s8 *); // 池目标候选收集: mode 0/4=自身 1/2=同族/外形 3=敌侧 5=我方 6=无
+
+void sub_8045EB8(u8 *);
+
+u8 sub_8045F10(BattleObj *, u16);
+
+void sub_8045F94(BattleObj *obj, u16 arg1);
+
+void sub_8046060(BattleObj *obj, u16 arg1);
+
+void sub_804612C(BattleObj *obj, u16 arg1, u16 arg2);
+
+u8 sub_804621C(BattleObj *, u8 *, u8);
+
+u32 sub_80462E4(BattleObj *, u8 *, u16);
+
+u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode);
+
+u8 sub_8046558(u8 *, u8 *, u8, u8); // 收集符合条件的对象池槽号到 out 数组, 返回数量; 契约由 sub_803E58C 调用点推定 (未匹配)
+
+void sub_804666C();
+
+void sub_80466F0();
+
+void sub_8046C50();
+
+void sub_8046CD4();
+
+u8 sub_8046E18(u8 *, s32, s32); // 2026-09-11 zcode-engine: 宽参+窄局部 (经验71), 匹配调用方传参无截断证据
+
+u16 sub_8046F0C(BattleObj *obj); // 2026-09-11 zcode-engine: 调用点返回值按 u16 用 (lsls/lsrs #0x10), 无已匹配调用者
+
+u16 sub_8047024(BattleObj *obj, u8 kind);
+
+u8 sub_80471AC();
+
+u32 sub_80472E8();
+
+void sub_804753C(BattleObj *, u8, u8);
+
+u8 sub_80476DC();
+
+u8 sub_8047B1C(BattleObj *obj);
+
+u8 sub_8047D28(BattleObj *obj, u8 mask);
+
+u8 sub_8047DC8(BattleObj *obj);
+
+s32 sub_8047FCC(u16);
+
+void sub_80480EC();
+
+void sub_80481B8();
+
+u8 sub_8048310(void);
+
+u8 sub_8048458(BattleObj *obj);
+
+void sub_80485A4();
+
+u8 sub_8048690(BattleObj *arg0, BattleObj *arg1, u8 arg2);
+
+u8 sub_8048764(u8 *);
+
+u8 sub_804877C(u8);
+
+u8 sub_80487A4(u8);
+
+u8 sub_80487CC(u8);
+
+u16 sub_8048818(u8, u8);
+
+u8 sub_8048868(u8, u8);
+
+u8 sub_80488CC(u8 *, u8);
+
+u8 sub_8048934(BattleObj *arg0, u8 arg1);
+
+u8 sub_8048984(u8 *, u8);
+
+u8 sub_80489A4(u8 *, u8);
+
+u16 sub_80489C8(u8 *, u16);
+
+u8 sub_80489E8(BattleObj *base, u8 *output, u8 mode, u16 flags);
+
+u8 sub_8048A68(BattleObj *arg0);
+
+void sub_8048A88(u8 *, s8, s8);
+
+void sub_8048ACC(u8 *, u8, u8);
+
+void sub_8048B30(u8, u8, u16);
+
+void sub_8048B5C(u8 *, u8);
+
+u8 sub_8048B88(BattleObj *arg0);
+
+u8 sub_8048BAC(BattleObj *arg0);
+
+void sub_8048BD0(BattleObj *arg0);
+
+u8 sub_8048C30(BattleObj *obj);
+
+u8 sub_8048C80(BattleObj *obj);
+
+u8 sub_8048CEC(BattleObj *obj);
+
+void sub_8048D40(BattleObj *arg0);
+
+u32 sub_8048D64(BattleObj *arg0, u16 arg1);
+
+u8 sub_8048D84(u8 *, u8 *);
+
+void sub_8048DA4();
+
+void sub_8048F0C();
+
+u8 sub_8048FB8(void);
+
+void sub_80492C0();
+
+void sub_80494F0();
+
+u32 sub_80497B0(u16 *arg0, u16 arg1);
+
+u32 sub_80498E0();
+
+u32 sub_8049958(u16 *dest);
+
+u8 sub_8049AD8(u8 arg0);
+
+void sub_8049B70();
+
+u8 sub_8049C1C(u8 *); // 2026-09-11 zcode-engine: void*→u8* (定义侧 arg0[0] 字节读写), 无已匹配调用者
+
+u8 sub_8049D58(u8); // 唯一调用点 sub_8018070: 入参/返回均 u8
+
+u8 sub_8049DF8(void *, void *);
+
+void sub_804A148();
+
+u8 sub_804A368(void *);
+
+void sub_804AA2C(u16 mask);
+
+void sub_804AB10(void);
+
+void sub_804AB40();
+
+void sub_804ABD0(void);
+
+u32 sub_804ABF8(u16 *dest, u8 arg1);
+
+void sub_804AC60(void);
+
+u16 *sub_804ACC0(u8);
+
+void sub_804AD24();
+
+#endif // BATTLE_FLOW_RULES_H

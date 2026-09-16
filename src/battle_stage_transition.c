@@ -1,4 +1,7 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_stage_transition.h"
+#include "battle_task_services.h"
+#include "sound.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "gba/macro.h"
@@ -7,8 +10,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
-
 
 // @ 0x08031580
 u8 sub_8031580(BattleObj *obj)

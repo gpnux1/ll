@@ -1,4 +1,4 @@
-#include "code_0.h"
+#include "battle_types.h"
 
 /* 0x08393B28: 战斗对象动画/特效资源表。
  * 由 baserom.gba 原字节转成 C 数组定义；每项 0x14 字节，共 992 项。

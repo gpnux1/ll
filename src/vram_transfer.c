@@ -1,4 +1,3 @@
-#include "code_0.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "globals.h"
@@ -473,7 +472,9 @@ INCLUDE_ASM("asm/matchings", Sprite_WriteOam);
  */
 
 // @ 0x08004FA8
-void Chara_StartScriptAnim(u8 arg0, u8 arg1)
+void Chara_StartScriptAnim(arg0, arg1)
+    u8 arg0;
+    u8 arg1;
 {
     Actor *ptr2E80;
     ptr2E80 = &gActors[arg0];

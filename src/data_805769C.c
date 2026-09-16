@@ -1,5 +1,18 @@
 #include "data_805769C.h"
-#include "code_0.h"
+#include "battle_types.h"
+#include "map_scene_runtime.h"
+#include "battle_flow_rules.h"
+#include "battle_menu_windows.h"
+#include "engine_core.h"
+#include "map_view.h"
+#include "menu.h"
+#include "menu_ui.h"
+#include "player_stats.h"
+#include "save.h"
+#include "script_vm.h"
+#include "sprite_engine.h"
+#include "text_engine.h"
+#include "vram_transfer.h"
 
 /*
     MultiSioIntr
@@ -1711,7 +1724,6 @@ const u16 gSaveMenuUiPalettes[] = INCBIN_U16("data/raw_data/gSaveMenuUiPalettes.
 /* gAnimModelGroups (0x0808B814, 24884 B): gUnk_087EA1A0[] 动画模型记录链 (248 组变长, 见 AnimSlot_Parse) */
 // 0x0808B814
 const u8 gAnimModelGroups[] = INCBIN_U8("data/raw_data/gAnimModelGroups.bin");
-
 
 /* gMapNpcSlotGroups (0x08091948, 2216 B): NPC 槽组表 (MapScene_LoadNpcSlotIds/Sprites_LoadMapNPCs) */
 // 0x08091948

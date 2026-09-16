@@ -1,4 +1,9 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_stage_state.h"
+#include "battle_flow_rules.h"
+#include "battle_stage_effects.h"
+#include "battle_task_services.h"
+#include "sound.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +13,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 // @ 0x08044394
 void sub_8044394(BattleObj *obj)

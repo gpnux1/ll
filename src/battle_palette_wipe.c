@@ -1,4 +1,13 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_palette_wipe.h"
+#include "map_scene_runtime.h"
+#include "battle_flow_rules.h"
+#include "battle_itemuse_rewards.h"
+#include "battle_menu_windows.h"
+#include "battle_object_engine.h"
+#include "battle_stage_actor.h"
+#include "battle_task_services.h"
+#include "sound.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +17,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 // @ 0x0804AD54
 void sub_804AD54(u16 *ptr)
@@ -547,7 +555,7 @@ INCLUDE_ASM("asm/matchings", sub_804B834);
  * ③span 低4位掩码先算成 u32 m 再 `(arg4<<4)|m`; ④返回值必须经 `u8 *slot=gUnk+off; slot[1]`
  * (直接 `gUnk[off+1]` 会把 +1 单独相加, 差 2 指令/6B)。
  * 注意 (2026-09-13): arg3 是有符号方向, 但本函数体内只用 `entry[8] = arg3 >> 7` 与
- * `t = arg3; if (t < 0) abs = -t;`, 声明成 s8 会改变调用方物化 (见 code_0.h 原型说明)。 */
+ * `t = arg3; if (t < 0) abs = -t;`, 声明成 s8 会改变调用方物化 (见 battle_types.h 原型说明)。 */
 #if 0
 s8 sub_804B834(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
 {
@@ -785,7 +793,7 @@ INCLUDE_ASM("asm/matchings", sub_804BDD8);
  *   dir=arg3>>7 (arg3 为带符号方向, 负数取绝对值放低4位)。
  * 返回 BG 调色板表中同槽的 palSlot, 供调用者作为"目标槽"使用。
  * 由 sub_80285A0 等演出状态机在启动槽位淡变时调用。
- * 注意 (2026-09-13): arg3 为有符号方向, 声明成 s8 会改变调用方物化 (见 code_0.h 原型)。 */
+ * 注意 (2026-09-13): arg3 为有符号方向, 声明成 s8 会改变调用方物化 (见 battle_types.h 原型)。 */
 #if 0
 s8 sub_804BDD8(u8 arg0, u8 arg1, u8 arg2, s8 arg3, u8 arg4)
 {
@@ -854,7 +862,89 @@ void sub_804BE90(u8 arg0, u8 arg1)
     }
 }
 // @ 0x0804BF14
-INCLUDE_ASM("asm/nonmatchings", sub_804BF14);
+/* 启动 BG 调色板淡变动画 (opcode 3, 由 sub_804B4D0 逐帧插值消费): 与 sub_804B96C 逐指令同构,
+ * 仅把 OBJ 系统换成 BG 系统 —— 表 gBgPalAnim (0x03000BE8)、占用位图 gBgPalSlotUsed (0x03000AE2),
+ * 槽占用/备份改用 sub_804C5B8/sub_804C638。语义与 sub_804B96C 完全一致。 */
+s32 sub_804BF14(u8 arg0, u8 arg1, s8 arg2, s8 arg3, s8 arg4, u8 arg5, u8 arg6, s8 arg7, u8 arg8)
+{
+    u8 i;
+    u8 b;
+    u32 slot;
+
+    if (arg2 > 0x1F)
+        arg2 = 0x1F;
+    if (arg3 > 0x1F)
+        arg3 = 0x1F;
+    if (arg4 > 0x1F)
+        arg4 = 0x1F;
+
+    slot = arg0 * 16;
+    for (i = 0; i < arg1; i++)
+    {
+        if ((gBgPalAnim[arg0 + i].ctrl & 0xF) == 3)
+            continue;
+
+        switch (arg8)
+        {
+        case 2:
+            sub_804C638(arg0 + i);
+            gBgPalAnim[arg0 + i].ctrl = 0x23;
+            gBgPalAnim[arg0 + i].palSlot = arg0 + i;
+            gBgPalAnim[arg0 + i].period = arg5;
+            if (arg6 != 0 && arg6 < arg5)
+                gBgPalAnim[arg0 + i].dir = arg6;
+            else
+                gBgPalAnim[arg0 + i].dir = gBgPalAnim[arg0 + i].period;
+            gBgPalAnim[arg0 + i].counter = arg5 - 1;
+            gBgPalAnim[arg0 + i].frameIdx = 0;
+            gBgPalAnim[arg0 + i].dR = arg2;
+            gBgPalAnim[arg0 + i].dG = arg3;
+            gBgPalAnim[arg0 + i].dB = arg4;
+            gBgPalAnim[arg0 + i].shift = 0;
+            break;
+
+        case 3:
+            if (arg7 >= 0)
+                b = arg7;
+            else
+                b = 0;
+            for (; b <= 0xF; b++)
+            {
+                if (!((gBgPalSlotUsed >> b) & 1))
+                    break;
+            }
+
+            if (b <= 0xF)
+            {
+                sub_804C5B8(b, 1);
+                sub_804C638(arg0 + i);
+                gBgPalAnim[arg0 + i].ctrl = 3;
+                gBgPalAnim[arg0 + i].palSlot = b;
+                gBgPalAnim[arg0 + i].period = arg5;
+                if (arg6 != 0 && arg6 < arg5)
+                    gBgPalAnim[arg0 + i].dir = arg6;
+                else
+                    gBgPalAnim[arg0 + i].dir = gBgPalAnim[arg0 + i].period;
+                gBgPalAnim[arg0 + i].counter = arg5 - 1;
+                gBgPalAnim[arg0 + i].frameIdx = 0;
+                gBgPalAnim[arg0 + i].dR = arg2;
+                gBgPalAnim[arg0 + i].dG = arg3;
+                gBgPalAnim[arg0 + i].dB = arg4;
+                gBgPalAnim[arg0 + i].shift = 0;
+            }
+            else
+            {
+                gBgPalAnim[arg0 + i].ctrl = 0xFF;
+                gBgPalAnim[arg0 + i].palSlot = -1;
+                gBgPalAnim[arg0 + i].period = 0;
+                gBgPalAnim[arg0 + i].counter = 0;
+            }
+            break;
+        }
+    }
+
+    return (s8)gBgPalAnim[arg0].palSlot;
+}
 // @ 0x0804C10C
 void sub_804C10C(u8 start, u8 count)
 {
@@ -1328,7 +1418,7 @@ u8 sub_804C8E0(BattleObj *obj, u8 arg1)
             }
         }
     }
-    return values[((s32 (*)(void))Rng_LcgNext)() % count];
+    return values[(s32)Rng_LcgNext() % count];
 }
 // @ 0x0804C9B4
 void sub_804C9B4(void)
@@ -1350,7 +1440,7 @@ void sub_804C9B4(void)
             obj->fxKind = 0;
             pool = (BattleObj *)GetObjPool();
             count = sub_80489E8(pool, values, 1, 0x7F);
-            value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+            value = values[(s32)Rng_LcgNext() % count];
             obj->f_BD = value;
             break;
         }
@@ -1367,9 +1457,9 @@ void sub_804CA2C(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1390,9 +1480,9 @@ void sub_804CAA0(BattleObj *obj)
     count = sub_80489E8(base, values, 1, 0x17F);
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1411,9 +1501,9 @@ void sub_804CB18(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1432,9 +1522,9 @@ void sub_804CB8C(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1455,9 +1545,9 @@ void sub_804CC00(BattleObj *obj)
     count = sub_80489E8(base, values, 1, 0x17F);
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1476,9 +1566,9 @@ void sub_804CC78(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1497,9 +1587,9 @@ void sub_804CCEC(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1518,9 +1608,9 @@ void sub_804CD60(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1539,9 +1629,9 @@ void sub_804CDD4(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {
@@ -1560,9 +1650,9 @@ void sub_804CE48(BattleObj *obj)
     obj->fxKind = 0;
     if ((s8)gObjTargetCache[obj->slot] < 0)
     {
-        value = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        value = values[(s32)Rng_LcgNext() % count];
         obj->f_BD = value;
-        gObjTargetCache[obj->slot] = values[((s32 (*)(void))Rng_LcgNext)() % count];
+        gObjTargetCache[obj->slot] = values[(s32)Rng_LcgNext() % count];
     }
     else
     {

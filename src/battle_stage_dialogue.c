@@ -1,4 +1,12 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "battle_stage_dialogue.h"
+#include "battle_flow_rules.h"
+#include "battle_object_engine.h"
+#include "battle_palette_wipe.h"
+#include "battle_stage_actor.h"
+#include "battle_stage_state.h"
+#include "battle_task_services.h"
+#include "sound.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
 #include "gba/macro.h"
@@ -7,8 +15,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
-
 
 // @ 0x08032548
 // NPC 对话状态机 (gObjActStep: 0=开始 1=移动 2=等待 3=按键 5=选择 8=收尾 9=结束):
@@ -401,9 +407,371 @@ INCLUDE_ASM("asm/nonmatchings", sub_8032EA0);
 // @ 0x080334B8
 INCLUDE_ASM("asm/nonmatchings", sub_80334B8);
 // @ 0x08033988
-INCLUDE_ASM("asm/nonmatchings", sub_8033988);
+// 0x0839D4CC 同族演出状态机 (sub_8033E2C 的姊妹变体):
+// case0 备份 posX/posY/palSlot/f_1E, sub_8020DE4 清零, 步进至 0x26 (38);
+// case38-46 前置动画 0x374/0x375/0x376 与音效, sub_801CBA4 调色板恢复, 复位场景 0x1747;
+// case18-23 sub_8019B98(2,3,0xE,1) 后 9 参窗口 sub_804BF14, 双向插值淡出淡入 + BattleUiFlag(0x20);
+// case24 sub_801EEE4(arg, pool, 1, 0, 0x3E7) == 1 后步进至 case9;
+// case9 复位 (sub_801A2AC/sub_8045B90) 返回 2; 尾部统一 sub_803F658。
+u32 sub_8033988(BattleObj *arg)
+{
+    u32 ret;
+    u32 pool;
+    // 8 字节数组在本函数中未被使用, 但 GCC2 仍为其保留栈帧 (对应目标 sub sp,#0x1c);
+    // 同族 sub_8032EA0/sub_80334B8 同帧宽, 是状态机模板的复刻残留
+    u8 values[8];
+
+    ret = 0;
+    pool = GetObjPool();
+    switch (gObjActStep)
+    {
+    case 0:
+        gObjActSavedX = arg->posX;
+        gObjActSavedY = arg->posY;
+        sub_8020DE4();
+        gObjActSavedPal = arg->headA.palSlot;
+        gObjActSavedF2A = arg->headA.f_1E;
+        gObjActStepTimer = 0;
+        gObjActStep = 0x26;
+        break;
+    case 38: // 0x26
+        sub_8020974((ObjHead *)(&arg->headA), 0x374, 0x1B4, 0xD, 2);
+        gObjActStep = 0x27;
+        break;
+    case 39: // 0x27
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        Sfx_Play(0x31, 0, 0);
+        gObjActStep = 0x28;
+        break;
+    case 40: // 0x28
+        if (arg->headA.frameIdx == 0x3A)
+            Sfx_Play(0x58, 0, 0);
+        if (arg->headA.frameIdx == 0x87)
+            Sfx_Play(0x31, 0, 0);
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_8020974((ObjHead *)(&arg->headA), 0x375, 0x1B4, 0xD, 2);
+        gObjActStep = 0x29;
+        break;
+    case 41: // 0x29
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2A;
+        break;
+    case 42: // 0x2A
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_8020974((ObjHead *)(&arg->headA), 0x376, 0x1B4, 0xD, 2);
+        gObjActStep = 0x2B;
+        break;
+    case 43: // 0x2B
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2C;
+        break;
+    case 44: // 0x2C
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_801CBA4(arg, 0, gObjActSavedF2A, gObjActSavedPal, 0);
+        gObjActStep = 0x2D;
+        break;
+    case 45: // 0x2D
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2E;
+        break;
+    case 46: // 0x2E
+        sub_801A348();
+        gSceneFadeOut = 0;
+        sub_801A2AC(0x1747, 0, 0x10);
+        gObjActStep = 0x12;
+        break;
+    case 18: // 0x12
+        if (sub_8019B98(2, 3, 0xE, 1) != 0)
+        {
+            gObjActStepTimer = 0;
+            sub_804BF14(0, 3, 7, 0xE, 0x1C, 4, 4, -1, 2);
+            Sfx_Play(0x20, 0, 0);
+            gObjActStep = 0x13;
+        }
+        break;
+    case 19: // 0x13
+        if (gObjActStepTimer <= 0x13)
+        {
+            if (gObjActStepTimer == 4)
+                sub_804C728(0, 3, 0x10);
+            gSceneFadeOut = sub_801768C(0, 0x10, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x14;
+        break;
+    case 20: // 0x14
+        if (gObjActStepTimer <= 9)
+        {
+            gSceneFadeIn = sub_801768C(0x10, -0x10, 0xA, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, gSceneFadeIn);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x15;
+        break;
+    case 21: // 0x15
+        if (gObjActStepTimer <= 0x45)
+        {
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x16;
+        break;
+    case 22: // 0x16
+        if (gObjActStepTimer <= 9)
+        {
+            gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, gSceneFadeIn);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x17;
+        break;
+    case 23: // 0x17
+        if (gObjActStepTimer <= 0x13)
+        {
+            gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        BattleUiFlag_Set(0x20);
+        gObjActStep = 0x18;
+        break;
+    case 24: // 0x18
+        if (sub_801EEE4(arg, GetObjPool(), 1, 0, 0x3E7) == 1)
+            gObjActStep = 9;
+        break;
+    case 9:
+        sub_801A2AC(0, 0, 0);
+        sub_8045B90(arg, arg->pad_A1);
+        ret = 2;
+        break;
+    }
+    sub_803F658(arg);
+    return ret;
+}
 // @ 0x08033E2C
-INCLUDE_ASM("asm/nonmatchings", sub_8033E2C);
+// 0x0839D4CC 动作表项 7 演出状态机:
+// case0 登记敌侧目标(sub_80489E8)并保存动画/位置参数;
+// case38-46 播放起手前置动画序列与音效(0x374/0x375/0x376), 淡出画面(0x1747);
+// case18-23 窗口设置(sub_804BF14 9参), 双向淡出淡入插值(sub_801768C)并置 BattleUiFlag(0x20);
+// case24-29 双头动画(sub_8020CC4), 目标槽位标记(ptr[0xBE]=0xFF, ptr[0xAB]=7, sub_80207A4), 异常清位;
+// case9 重置(sub_801A2AC/sub_8045B90)返回 2; 尾部统一部署 sub_803F658。
+u32 sub_8033E2C(BattleObj *arg)
+{
+    u32 ret;
+    u32 pool;
+    u8 i;
+    u8 *ptr;
+    u16 keys;
+
+    ret = 0;
+    pool = GetObjPool();
+    switch (gObjActStep)
+    {
+    case 0:
+        gObjActSavedX = arg->posX;
+        gObjActSavedY = arg->posY;
+        gObjActSavedPal = arg->headA.palSlot;
+        gObjActSavedF2A = arg->headA.f_1E;
+        gObjActStepTimer = 0;
+        gTargetSlotCount = sub_80489E8((BattleObj *)pool, gTargetSlotList, 1, 0x7F);
+        gObjActStep = 0x26;
+        break;
+    case 38: // 0x26
+        sub_8020974((ObjHead *)(&arg->headA), 0x374, 0x1B4, 0xD, 2);
+        gObjActStep = 0x27;
+        break;
+    case 39: // 0x27
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        Sfx_Play(0x31, 0, 0);
+        gObjActStep = 0x28;
+        break;
+    case 40: // 0x28
+        if (arg->headA.frameIdx == 0x3A)
+            Sfx_Play(0x58, 0, 0);
+        if (arg->headA.frameIdx == 0x87)
+            Sfx_Play(0x31, 0, 0);
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_8020974((ObjHead *)(&arg->headA), 0x375, 0x1B4, 0xD, 2);
+        gObjActStep = 0x29;
+        break;
+    case 41: // 0x29
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2A;
+        break;
+    case 42: // 0x2A
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_8020974((ObjHead *)(&arg->headA), 0x376, 0x1B4, 0xD, 2);
+        gObjActStep = 0x2B;
+        break;
+    case 43: // 0x2B
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2C;
+        break;
+    case 44: // 0x2C
+        if (!(arg->headA.kindFlags & 0x1000))
+            break;
+        sub_801CBA4(arg, 0, gObjActSavedF2A, gObjActSavedPal, 0);
+        gObjActStep = 0x2D;
+        break;
+    case 45: // 0x2D
+        if (arg->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 0x2E;
+        break;
+    case 46: // 0x2E
+        sub_801A348();
+        gSceneFadeOut = 0;
+        sub_801A2AC(0x1747, 0, 0x10);
+        gObjActStep = 0x12;
+        break;
+    case 18: // 0x12
+        if (sub_8019B98(3, 3, 0xE, 1) != 0)
+        {
+            gObjActStepTimer = 0;
+            sub_804BF14(0, 3, 7, 0xE, 0x1C, 4, 4, -1, 2);
+            Sfx_Play(0x20, 0, 0);
+            gObjActStep = 0x13;
+        }
+        break;
+    case 19: // 0x13
+        if (gObjActStepTimer <= 0x13)
+        {
+            if (gObjActStepTimer == 4)
+                sub_804C728(0, 3, 0x10);
+            gSceneFadeOut = sub_801768C(0, 0x10, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x14;
+        break;
+    case 20: // 0x14
+        if (gObjActStepTimer <= 9)
+        {
+            gSceneFadeIn = sub_801768C(0x10, -0x10, 0xA, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, gSceneFadeIn);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x15;
+        break;
+    case 21: // 0x15
+        if (gObjActStepTimer <= 0x45)
+        {
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x16;
+        break;
+    case 22: // 0x16
+        if (gObjActStepTimer <= 9)
+        {
+            gSceneFadeIn = sub_801768C(0, 0x10, 0xA, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, gSceneFadeIn);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x17;
+        break;
+    case 23: // 0x17
+        if (gObjActStepTimer <= 0x13)
+        {
+            gSceneFadeOut = sub_801768C(0x10, -0x10, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1747, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        BattleUiFlag_Set(0x20);
+        if (sub_80187B4() & 0x220)
+            gObjActStep = 9;
+        else
+            gObjActStep = 0x18;
+        break;
+    case 24: // 0x18
+        sub_8020CC4(arg, 0x3C, 0x73, 0x1B4, 0xE, 0x37F, 0x14);
+        arg->headB.f_2A = 0;
+        sub_801A2AC(0x410, 0, 7);
+        gObjActStep = 0x19;
+        break;
+    case 25: // 0x19
+        if (arg->headB.kindFlags & 0x800)
+            break;
+        Sfx_Play(0xA5, 0, 0);
+        gObjActStep = 0x1A;
+        break;
+    case 26: // 0x1A
+        if (!(arg->headB.kindFlags & 0x1000))
+            break;
+        sub_8020CC4(arg, 0x3C, 0x73, 0x1B4, 0xE, 0x380, 0x114);
+        gObjActStepTimer = 0;
+        gObjActStep = 0x1B;
+        break;
+    case 27: // 0x1B
+        if (arg->headB.kindFlags & 0x800)
+            break;
+        for (i = 0; i < gTargetSlotCount; i++)
+        {
+            ptr = (u8 *)(pool + gTargetSlotList[i] * 0xC8);
+            ptr[0xBE] = 0xFF;
+            ptr[0xAB] = 7;
+            sub_80207A4();
+        }
+        gObjActStep = 0x1C;
+        break;
+    case 28: // 0x1C
+        if (gObjActStepTimer <= 0x27)
+            gObjActStepTimer += 1;
+        else
+        {
+            keys = arg->headB.kindFlags & 0xFEFF;
+            arg->headB.kindFlags = keys;
+            gObjActStep = 0x1D;
+        }
+        break;
+    case 29: // 0x1D
+        if (!(arg->headB.kindFlags & 0x1000))
+            break;
+        sub_804C3A4(arg->headB.palSlot, sub_801B954((ObjHead *)(&arg->headB)));
+        keys = arg->state & 0xDFFF;
+        arg->state = keys;
+        gObjActStep = 9;
+        break;
+    case 9:
+        sub_801A2AC(0, 0, 0);
+        sub_8045B90(arg, arg->pad_A1);
+        ret = 2;
+        break;
+    }
+    sub_803F658(arg);
+    return ret;
+}
 // @ 0x08034440
 u32 sub_8034440(BattleObj *arg)
 {
@@ -767,7 +1135,7 @@ u32 sub_8034BFC(BattleObj *arg)
             count = sub_80489E8(pool, buf, 1, 7);
             for (i = 0; i < count; i++)
             {
-                if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)
+                if (Rng_LcgNext() % 0x64 <= 0x27)
                     sub_8045F94((BattleObj *)(pool + buf[i] * 0xC8), 3);
             }
             gObjActStep = 9;
@@ -1061,7 +1429,7 @@ u32 sub_803586C(BattleObj *arg)
             {
                 if ((gObjActGroupSlots[i] & 0xF0) == 0x10)
                 {
-                    if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)
+                    if (Rng_LcgNext() % 0x64 <= 0x27)
                         sub_8045F94((BattleObj *)(pool + (gObjActGroupSlots[i] & 0xF) * 0xC8), 2);
                 }
             }
@@ -1148,7 +1516,7 @@ u32 sub_8035B04(BattleObj *arg)
             {
                 if ((gObjActGroupSlots[i] & 0xF0) == 0x10)
                 {
-                    if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)
+                    if (Rng_LcgNext() % 0x64 <= 0x27)
                         sub_8045F94((BattleObj *)(pool + (gObjActGroupSlots[i] & 0xF) * 0xC8), 3);
                 }
             }
@@ -1235,7 +1603,7 @@ u32 sub_8035D9C(BattleObj *arg)
             {
                 if ((gObjActGroupSlots[i] & 0xF0) == 0x10)
                 {
-                    if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)
+                    if (Rng_LcgNext() % 0x64 <= 0x27)
                         sub_8045F94((BattleObj *)(pool + (gObjActGroupSlots[i] & 0xF) * 0xC8), 5);
                 }
             }
@@ -1322,7 +1690,7 @@ u32 sub_8036034(BattleObj *arg)
             {
                 if ((gObjActGroupSlots[i] & 0xF0) == 0x10)
                 {
-                    if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x27)
+                    if (Rng_LcgNext() % 0x64 <= 0x27)
                         sub_8045F94((BattleObj *)(pool + (gObjActGroupSlots[i] & 0xF) * 0xC8), 6);
                 }
             }
@@ -1409,7 +1777,7 @@ u32 sub_80362CC(BattleObj *arg)
             {
                 if ((gObjActGroupSlots[i] & 0xF0) == 0x10)
                 {
-                    if (((u32 (*)(void))Rng_LcgNext)() % 0x64 <= 0x13)
+                    if (Rng_LcgNext() % 0x64 <= 0x13)
                         sub_8045F94((BattleObj *)(pool + (gObjActGroupSlots[i] & 0xF) * 0xC8), 4);
                 }
             }
@@ -2575,8 +2943,101 @@ u32 sub_8038C84(BattleObj *arg0, u8 *arg1)
     sub_803F658((BattleObj *)arg0);
     return ret;
 }
+#if 1
+INCLUDE_ASM("asm/matchings", sub_8038E44);
+
+#else
 // @ 0x08038E44
-INCLUDE_ASM("asm/nonmatchings", sub_8038E44);
+// NPC 对话状态机变体 (gObjActStep 十态同 sub_8038C84; 起手 bl sub_80187E8 采样按键/连发状态):
+// 与 sub_8038C84 同骨架, 仅三处不同: case1 到位检查 sub_803E58C mode=2 (非 0) 且开场动画固定
+// 0x3C8 (非 0x3C7); case3 拆成"帧号==0x24 时 Sfx_Play(0x31)+等 0x1E 帧"与"帧号>0x43 时
+// Sfx_Play(0x31)+等 0x28 帧→5"两段 (sub_8038C84 只有一帧>0x39→5)。case0/2/5/8/9 与收尾完全同。
+u32 sub_8038E44(BattleObj *arg0, u8 *arg1)
+{
+    u32 ret;
+    u16 keys;
+    u32 zero;
+    u32 zero2;
+    u16 *b6ptr;
+    u16 b4;
+
+    ret = 0;
+    sub_80187E8();
+    switch (gObjActStep)
+    {
+    case 0:
+        gObjActSavedX = arg0->posX;
+        gObjActSavedY = arg0->posY;
+        gObjActStepTimer = 0;
+        sub_80444A4(arg0);
+        sub_803F5B4(arg0);
+        zero = 0;
+        zero2 = 0;
+        b6ptr = &(arg0->f_B6);
+        b4 = zero2;
+        *b6ptr = zero2;
+        arg0->f_B4 = b4;
+        gObjActStep = 1;
+        gObjActParam = zero;
+        break;
+    case 1:
+        if (sub_803E58C(arg0, arg1, 2) == 1)
+        {
+            sub_8020974(&arg0->headA, 0x3C8, 0x1B4, 0xD, 2);
+            if (arg1[0xBE] <= 0xA)
+            {
+                keys = arg0->headA.kindFlags | 0x20;
+                arg0->headA.kindFlags = keys;
+            }
+            gObjActStep = 2;
+        }
+        break;
+    case 2:
+        if (arg0->headA.kindFlags & 0x800)
+        {
+            break;
+        }
+        gObjActStep = 3;
+        break;
+    case 3:
+        if (arg0->headA.frameIdx == 0x24)
+        {
+            Sfx_Play(0x31, 1, 0);
+            sub_8044514(0x1E);
+        }
+        if (arg0->headA.frameIdx > 0x43)
+        {
+            Sfx_Play(0x31, 1, 0);
+            sub_8044514(0x28);
+            gObjActStep = 5;
+        }
+        break;
+    case 5:
+        if (arg0->headA.kindFlags & 0x1000)
+        {
+            sub_804C3A4(arg0->headA.palSlot, (u8)sub_801B954(&arg0->headA));
+            gObjActParam = 0xC;
+            gObjActStep = 8;
+        }
+        break;
+    case 8:
+        if (sub_803E58C(arg0, arg1, 0) == 1)
+        {
+            gObjActStep = 9;
+        }
+        break;
+    case 9:
+        if (gActWaitBusy0 == 0 && gActWaitBusy1 == 0 && gActWaitBusy2 == 0)
+        {
+            sub_8045B90(arg0, arg0->pad_A1);
+            ret = 1;
+        }
+        break;
+    }
+    sub_803F658(arg0);
+    return ret;
+}
+#endif
 // @ 0x08039024
 u32 sub_8039024(BattleObj *arg0, BattleObj *arg1)
 {
@@ -2793,8 +3254,191 @@ u32 sub_80393E0(BattleObj *obj)
     return ret;
 }
 
-// @ 0x08039724
+#if 1
 INCLUDE_ASM("asm/nonmatchings", sub_8039724);
+
+#else
+
+// @ 0x08039724
+// 战斗对象"多段演出/目标池清理"状态机 (gObjActStep: 0 → 0x12..0x20 → 9)。
+// case0 备份 posX/posY/palSlot/f_1E + sub_80444A4/sub_803F5B4 装配 + f_B4/f_B6 清零
+//   + sub_8020974(0x3DA) 装载 + gTargetSlotCount=sub_80489E8(pool,gTargetSlotList,1,0x7F) 取敌侧候选;
+// 0x12 等 headA.kindFlags&0x800 → Sfx(0x42); 0x13 等 &0x1000 → 释放调色板 + 清 0x1000
+//   + sub_8020974(0x3DB,..,0x502) 换动画; 0x14 等 0x800 → 清 0x100 + Sfx(0x26);
+// 0x15 等 Sfx_TrackBusy(1) ==0 → sub_8020974(0x3DC); 0x16 等 0x800 → Sfx(0x3A);
+// 0x17 等 0x1000 → 释放调色板 + headA.kindFlags|=0x100 + sub_801A348 → 0x18;
+// 0x18 sub_8019B98(4,3,0xE,0)!=0 → Sfx(0x6D) + gSceneFadeOut=0 + sub_801A2AC(0x1C42,0,0x10);
+// 0x19 清步计数 + sub_804BDD8(0xE,1,1,-1,0xF); 0x1A 帧计数<=0x13 时 sub_801768C(0,0xC,0x14,t,2)
+//   淡入否则置 0xC 收尾 → 0x1B; 0x1B 帧计数<=0x31 自增, 超时按 sub_80187B4()&0x220 决定是否
+//   遍历 gTargetSlotList 把每个候选对象 slot(+0xBE)=0xFF、variantClass(+0xAB)=7 并 sub_80207A4 → 0x1C;
+// 0x1C 帧计数<=0x13 时 sub_801768C(0xC,-0xC,0x14,t,2) 淡出, 超时 Sfx_StopTrack(1)+sub_801A2AC(0,0,0)
+//   + obj->state&=0x2000 + sub_804BE90(0xE,1) + 清 DISPCNT bit9 → 0x1D;
+// 0x1D sub_8020974(0x3DD,..,0x102); 0x1E 等 0x800 清 0x100 → 0x1F;
+// 0x1F 等 0x1000 释放调色板 + sub_80207DC 收尾绘制 → 0x20; 0x20 等 0x800 → 9; 9 sub_8045B90 ret=1.
+// 尾部 sub_803F658。bytecmp: 仅 34 个 bl 槽除外, 其余字节全等。
+u32 sub_8039724(BattleObj *obj)
+{
+    u32 ret;
+    u32 pool;
+    int b4;
+    u8 *ptr;
+    u8 i;
+
+    ret = 0;
+    pool = GetObjPool();
+    switch (gObjActStep)
+    {
+    case 0:
+        gObjActSavedPal = obj->headA.palSlot;
+        gObjActSavedF2A = obj->headA.f_1E;
+        gObjActSavedX = obj->posX;
+        gObjActSavedY = obj->posY;
+        gObjActStepTimer = 0;
+        sub_80444A4(obj);
+        sub_803F5B4(obj);
+        obj->f_B6 = 0;
+        obj->f_B4 = 0;
+        sub_8020974(&obj->headA, 0x3DA, 0x1B4, 0xD, 2);
+        gTargetSlotCount = sub_80489E8(pool, gTargetSlotList, 1, 0x7F);
+        gObjActStep = 0x12;
+        break;
+    case 18:
+        if (obj->headA.kindFlags & 0x800)
+            break;
+        Sfx_Play(0x42, 1, 0);
+        gObjActStep = 0x13;
+        break;
+    case 19:
+        if (!(obj->headA.kindFlags & 0x1000))
+            break;
+        b4 = obj->headA.palSlot;
+        sub_804C3A4(b4, (u8)sub_801B954(&obj->headA));
+        obj->headA.kindFlags &= 0xEFFF;
+        sub_8020974(&obj->headA, 0x3DB, 0x1B4, 0xD, 0x502);
+        gObjActStepTimer = 0;
+        gObjActStep = 0x14;
+        break;
+    case 20:
+        if (obj->headA.kindFlags & 0x800)
+            break;
+        obj->headA.kindFlags &= 0xFEFF;
+        Sfx_Play(0x26, 1, 0);
+        gObjActStep = 0x15;
+        break;
+    case 21:
+        if ((u8)Sfx_TrackBusy(1) != 0)
+            break;
+        sub_8020974(&obj->headA, 0x3DC, 0x1B4, 0xD, 2);
+        gObjActStep = 0x16;
+        break;
+    case 22:
+        if (obj->headA.kindFlags & 0x800)
+            break;
+        Sfx_Play(0x3A, 1, 0);
+        gObjActStep = 0x17;
+        break;
+    case 23:
+        if (!(obj->headA.kindFlags & 0x1000))
+            break;
+        b4 = obj->headA.palSlot;
+        sub_804C3A4(b4, (u8)sub_801B954(&obj->headA));
+        obj->headA.kindFlags |= 0x100;
+        sub_801A348();
+        gObjActStep = 0x18;
+        break;
+    case 24:
+        if (sub_8019B98(4, 3, 0xE, 0) == 0)
+            break;
+        Sfx_Play(0x6D, 1, 0);
+        gSceneFadeOut = 0;
+        sub_801A2AC(0x1C42, 0, 0x10);
+        gObjActStep = 0x19;
+        break;
+    case 25:
+        gObjActStepTimer = 0;
+        sub_804BDD8(0xE, 1, 1, -1, 0xF);
+        gObjActStep = 0x1A;
+        break;
+    case 26:
+        if (gObjActStepTimer <= 0x13)
+        {
+            gSceneFadeOut = sub_801768C(0, 0xC, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1C42, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        gSceneFadeOut = 0xC;
+        sub_801A2AC(0x1C42, 0xC, 0x10);
+        gObjActStep = 0x1B;
+        break;
+    case 27:
+        if (gObjActStepTimer <= 0x31)
+        {
+            gObjActStepTimer += 1;
+            break;
+        }
+        if (!(sub_80187B4() & 0x220))
+        {
+            for (i = 0; i < gTargetSlotCount; i++)
+            {
+                ptr = (u8 *)(pool + gTargetSlotList[i] * 0xC8);
+                ptr[0xBE] = 0xFF;
+                ptr[0xAB] = 7;
+                sub_80207A4();
+            }
+        }
+        gObjActStepTimer = 0;
+        gObjActStep = 0x1C;
+        break;
+    case 28:
+        if (gObjActStepTimer <= 0x13)
+        {
+            gSceneFadeOut = sub_801768C(0xC, -0xC, 0x14, gObjActStepTimer, 2);
+            sub_801A2AC(0x1C42, gSceneFadeOut, 0x10);
+            gObjActStepTimer += 1;
+            break;
+        }
+        gObjActStepTimer = 0;
+        Sfx_StopTrack(1);
+        sub_801A2AC(0, 0, 0);
+        obj->state &= 0x2000;
+        sub_804BE90(0xE, 1);
+        *(volatile u16 *)(0x80 << 0x13) &= 0xFDFF;
+        gObjActStep = 0x1D;
+        break;
+    case 29:
+        sub_8020974(&obj->headA, 0x3DD, 0x1B4, 0xD, 0x102);
+        gObjActStep = 0x1E;
+        break;
+    case 30:
+        if (obj->headA.kindFlags & 0x800)
+            break;
+        obj->headA.kindFlags &= 0xFEFF;
+        gObjActStep = 0x1F;
+        break;
+    case 31:
+        if (!(obj->headA.kindFlags & 0x1000))
+            break;
+        b4 = obj->headA.palSlot;
+        sub_804C3A4(b4, (u8)sub_801B954(&obj->headA));
+        sub_80207DC(obj, obj->posX, obj->posY, gObjActSavedF2A, gObjActSavedPal);
+        gObjActStep = 0x20;
+        break;
+    case 32:
+        if (obj->headA.kindFlags & 0x800)
+            break;
+        gObjActStep = 9;
+        break;
+    case 9:
+        sub_8045B90(obj, obj->pad_A1);
+        ret = 1;
+        break;
+    }
+    sub_803F658(obj);
+    return ret;
+}
+    #endif
 // @ 0x08039C38
 INCLUDE_ASM("asm/nonmatchings", sub_8039C38);
 // @ 0x0803A478

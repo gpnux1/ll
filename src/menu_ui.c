@@ -1,4 +1,13 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "menu_ui.h"
+#include "map_scene_runtime.h"
+#include "engine_core.h"
+#include "menu.h"
+#include "player_stats.h"
+#include "sound.h"
+#include "sprite_engine.h"
+#include "text_engine.h"
+#include "vram_transfer.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +17,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 INCLUDE_ASM("asm/nonmatchings", sub_800ACC8);
 
@@ -491,7 +499,6 @@ void UiSprite_BeginSlide(u8 idx, u8 mode) {
     sprite->moveStartX = sprite->x;
     sprite->moveStartY = sprite->y;
 
-
     switch(mode)
     {
         case 1:
@@ -673,6 +680,49 @@ void MenuUi_SpawnAuxSprites(u8 arg0) {
 */
 // @ 0x0800EB98
 INCLUDE_ASM("asm/matchings", MenuUi_SpawnAuxSprites);
+/*
+extern u8* gUnk_087EB2C4[];
+struct Unk_03003AC0* sub_8004C28(struct Unk_03003AC0*, u8 , u16 , u16 , u16 );
+
+// struct Unk_03003AC0*
+void sub_800EB98(u8 arg0) {
+    s16 x;
+    u8* src;
+    u8 count;
+    u8 i;
+    Unk_03000058* obj;
+
+    src = gUnk_087EB2C4[arg0];
+    count = *src++;
+    obj = gUnk_030000BC;
+
+    for(i = 0; i < count; i++)
+    {
+        obj->field_4 = *src++;
+        x = *src;
+        obj->x = x;
+        // obj->x = *src++;
+        src++;
+        obj->field_0 = 0x84;
+        obj->field_10 = (0xE0 << 2) + (*src++);
+        obj->field_3 = i + 0x76; 
+        obj->field_1 = 0;
+        obj->field_2 = 0;
+        
+        sub_8004C28(&gUnk_03003AC0[obj->field_3], 1, x, obj->field_4 | 0x4000, (obj->field_10 & 0x3FF) | 0xB000); 
+        // sub_8004C28(&gUnk_03003AC0[obj->field_3], 1, obj->x, obj->field_4 | 0x4000, (obj->field_10 & 0x3FF) | 0xB000); 
+        obj++;
+    }
+
+    while(i < 10)
+    {
+        obj->field_0 = 0;
+        obj++;
+        i++;
+    }
+}
+
+*/
 
 // @ 0x0800EC54
 INCLUDE_ASM("asm/nonmatchings", sub_800EC54);
@@ -1267,7 +1317,72 @@ u8 WarpTable_Check(void)
 // @ 0x080104F8
 INCLUDE_ASM("asm/nonmatchings", sub_80104F8);
 // @ 0x08010624
-INCLUDE_ASM("asm/nonmatchings", sub_8010624);
+void sub_8010624(u8 arg0, u8 arg1)
+{
+    u16 i;
+    u16 x;
+    u16 y;
+    int target;
+
+    if (arg1 == 0)
+    {
+        for (i = 0; i <= 4; i++)
+        {
+            if (gActors[19 + i].field_13 != 0x80)
+            {
+                gActors[19 + i].field_14 = 0;
+                gActors[19 + i].field_13 = 0x80;
+                if (gActors[19 + i].sprNodeIdx != 0)
+                    Sprite_FreeChain(&gSpriteNodePool[gActors[19 + i].sprNodeIdx]);
+            }
+        }
+        return;
+    }
+
+    if (arg1 == 1)
+    {
+        for (i = 0; i <= 4; i++)
+        {
+            if (gActors[19 + i].field_13 != 0x80)
+            {
+                gActors[19 + i].field_14 = 0;
+                gActors[19 + i].field_13 = 0x80;
+                if (gActors[19 + i].sprNodeIdx != 0)
+                    Sprite_FreeChain(&gSpriteNodePool[gActors[19 + i].sprNodeIdx]);
+            }
+        }
+    }
+
+    if (arg0 == 0xFF)
+    {
+        x = gCameraPosX + 0x18;
+        y = gCameraPosY + 0x30;
+        target = 0;
+    }
+    else
+    {
+        target = arg0;
+        x = ((target * 5 + 7) << 3) + gCameraPosX;
+        y = gCameraPosY + 0x30;
+    }
+
+    target += 19;
+    if (arg1 == 2)
+    {
+        if (gActors[target].field_13 != 0x80)
+        {
+            gActors[target].field_14 = 0;
+            gActors[target].field_13 = 0x80;
+            if (gActors[target].sprNodeIdx != 0)
+                Sprite_FreeChain(&gSpriteNodePool[gActors[target].sprNodeIdx]);
+        }
+    }
+
+    Chara_StartScriptAnim(target, 0);
+    gActors[target].x = x;
+    gActors[target].y = y;
+    gActors[target].field_13 = 0;
+}
 // @ 0x08010770
 /* 道具/技能菜单的"确认使用"处理 (被 sub_800B374 附近的菜单确认逻辑调用)。
  * arg0 = 0: 对全队执行 (回复类道具, gItemUseEffectType==5 时走全队 hp 恢复循环,

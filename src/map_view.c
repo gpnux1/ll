@@ -1,4 +1,8 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "map_view.h"
+#include "map_scene_runtime.h"
+#include "sound.h"
+#include "vram_transfer.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -8,7 +12,6 @@
 #include "iwram.h"
 #include "m4a.h"
 #include "save.h"
-#include "sound.h"
 
 // @ 0x08005020
 INCLUDE_ASM("asm/nonmatchings", sub_8005020);

@@ -1,4 +1,9 @@
-#include "code_0.h"
+#include "battle_types.h"
+#include "text_engine.h"
+#include "battle_itemuse_rewards.h"
+#include "menu.h"
+#include "menu_ui.h"
+#include "vram_transfer.h"
 #include "data_805769C.h"
 #include "gba/defines.h"
 #include "gba/gba.h"
@@ -456,7 +461,6 @@ u8 SkillMenu_GetSkill(u8 arg0)
 
     return 0xFF;
 }
-// INCLUDE_ASM("asm/nonmatchings", Inv_FindFirstHeld);
 
 // @ 0x08016978
 u8 Inv_FindFirstHeld(void)
@@ -473,7 +477,6 @@ u8 Inv_FindFirstHeld(void)
 
     return 0;
 }
-// INCLUDE_ASM("asm/nonmatchings", Inv_FindPrevHeld);
 
 // @ 0x080169AC
 u8 Inv_FindPrevHeld(void)
