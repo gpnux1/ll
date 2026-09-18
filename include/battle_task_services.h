@@ -91,7 +91,7 @@ void sub_8018D9C();
 
 u32 sub_8018E34();
 
-void sub_8018EA8(u16, u8, u8, unsigned int, u8); /* 3 位数图块显示: (值, x, y, 调色板高, 调色板低); 唯一 C 调用者 sub_801CF90 (其余为 asm) */
+void sub_8018EA8(); /* 3 位数图块显示: (值, x, y, 调色板, 标志); 唯一 C 调用者 sub_801CF90 */
 
 void sub_8018FC0(u8, u8, u8, u8, u8, u8, u8); /* 图块绘制 (槽号, x, y, 调色板3参, 标志); 唯一 C 调用者 sub_801CF90 */
 

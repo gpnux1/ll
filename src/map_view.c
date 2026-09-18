@@ -291,8 +291,47 @@ void MapBg_LoadFull(u8 arg0)
 
 // @ 0x0800661C
 INCLUDE_ASM("asm/nonmatchings", MapScene_Load);
+
 // @ 0x080071EC
-INCLUDE_ASM("asm/nonmatchings", MapScene_LoadNpcSlotIds);
+// 按场景描述符的 npcSlotGroupId 装载 8 个 NPC 槽 (槽 2..9) 的图形/调色板 ID:
+// 先把槽 0..11 的 gSlotGfxId/gSlotPalId 全部置 0xFF, 再从 gMapNpcSlotGroups 的
+// 第 (group-1)*18+1 项起读 8 个 gfx ID 写 gSlotGfxId[2..9], 接着 8 个 pal ID 写 gSlotPalId[2..9]。
+// 注: i/group/idx 的多重别名与 `i = 17` 的移位量载体是字节匹配必需的调度形状 (见 handoff)。
+void MapScene_LoadNpcSlotIds(u8 arg0)
+{
+    u16 i;
+    u16 group;
+    u16 idx;
+
+    if (gObjGraphicsSetId & 0x80)
+        return;
+
+    for (idx = 0; idx < 12; idx++)
+    {
+        gSlotGfxId[idx] |= 0xFF;
+        gSlotPalId[idx] |= 0xFF;
+    }
+
+    idx = gMapSceneDescriptors[arg0].npcSlotGroupId;
+    i = idx;
+    group = i;
+    if (group == 0)
+        return;
+
+    idx = group;
+    i = 17;
+    idx = ((((idx - 1) * 9) << i) | 0x10000) >> 16;
+    for (i = 0; i < 8; i++)
+    {
+        gSlotGfxId[i + 2] = gMapNpcSlotGroups[idx];
+        idx++;
+    }
+    for (i = 0; i < 8; i++)
+    {
+        gSlotPalId[i + 2] = gMapNpcSlotGroups[idx];
+        idx++;
+    }
+}
 /* 地图场景精灵初始化 (进入场景时): 槽 0 = 主角 (gPartyMemberIds[0]) 图块+调色板,
  * 槽 1 = 固定 11 号模型 (跟随者/光影?); 若场景描述符 npcSlotGroupId 有 NPC 集,
  * 把槽 2..9 里已在用的图块/调色板模型 (gSlotGfxId/gSlotPalId, 0xFF=空) 重载进 OBJ VRAM

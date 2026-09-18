@@ -49,9 +49,9 @@ u16 sub_801B95C(ObjHead *);
 
 void sub_801B964();
 
-u8 sub_801BE34(void *);
+u8 sub_801BE34(BattleObj *pool);
 
-u8 sub_801C484(void *);
+u8 sub_801C484(BattleObj *pool);
 
 void sub_801CA08(BattleObj *, u8, u16, u8, u8);
 
@@ -97,7 +97,7 @@ void sub_801DF90(BattleObj *, BattleObj *);
 
 u8 sub_801E040(void);
 
-u8 sub_801E1D8(void);
+u8 sub_801E1D8();
 
 u32 sub_801E30C(BattleObj *, BattleObj *); // ROM 中无调用者(死代码); 同族 E4D4/E690, 索引源=装备道具配对表/技能表 + [r6(UB残留 sb)+3] 间接字节
 
@@ -117,7 +117,7 @@ void sub_801EE6C(BattleObj *);
 
 u8 sub_801EEE4();
 
-void sub_801F3FC();
+u8 sub_801F3FC();
 
 u8 sub_801F76C(BattleObj *); // 返回战斗对象动作类别 0-3 (唯一调用者 801EA70 按 u8 使用返回值; 体内按 r3 返回 0/1/2/3)
 
@@ -135,9 +135,9 @@ void sub_80200E8(BattleObj *, PlayerStats *, u8); // 战斗对象数值装载: a
 
 void sub_8020228(u8 *, BattleObj *, u8); // 敌方对象属性装载: 按 slot 索引 gUnk_083987EC (0x2C/项) 装 HP/MP/五维/lv/animPtr; slot>0x70 清 statMods 转 sub_802031C; 尾部 +0xAC=arg2
 
-void sub_802031C();
+void sub_802031C(u8 *, BattleObj *); // 特殊槽(slot>=0x71)属性装载: 按 obj->slot 索引 gUnk_0839ABCC (0x40/项) 装 animPtr/HP/MP/五维/noa/f_C3/pad_C4; 再按 (slot-0x71) 0..0x10 分派 sub_8020648 施加能力加成 (部分类型额外置 obj->state|=4); 首参在体内未被读取 (调用方 sub_8020228 的 arg0 透传)
 
-void sub_8020648();
+void sub_8020648(u8, BattleObj *, u16, u16, u16, u16, u16, u16, u16); // 特殊对象能力倍率施加: scale=max(lv, lvFloor) 夹 0x32 写入 obj->lv, 六个增量分别 ×scale 截 u16 后饱和加进 maxHp+hp (arg3 同值双写) / atc / def / agl / men / res
 
 u8 sub_8020798();
 
@@ -165,7 +165,7 @@ void sub_8020A0C(BattleObj *, u8);
 
 u8 sub_8020A7C(BattleObj *);
 
-u8 sub_8020AB0(void);
+u8 sub_8020AB0();
 
 void sub_8020AE4();
 
@@ -179,7 +179,7 @@ void sub_8020B90(BattleObj *);
 
 u8 sub_8020BC0(BattleObj *);
 
-u8 sub_8020BF0(BattleObj *);
+u8 sub_8020BF0();
 
 u8 sub_8020C2C(void);
 
@@ -215,7 +215,7 @@ void sub_8020F08();
 
 void sub_8020F4C(BattleObj *);
 
-void sub_8020FB8(BattleObj *, u16, u16, u16, u8);
+void sub_8020FB8(BattleObj *, s32, s32, u16, u8);
 
 void sub_802103C(BattleObj *, u8, u16);
 

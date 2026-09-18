@@ -277,6 +277,7 @@ extern u16 gUnk_0300061E;
 extern u16 gUnk_03000620;
 extern u16 gUnk_03000622;
 extern u8 gUnk_03000624;
+extern u8 gActSeqState;          /* 0x03000625: 战斗行动执行状态机 PC (sub_801BE34 / sub_801C484) */
 /* ---- 伤害数字弹出 (sub_801D568 族: 弹槽 tile 基号=*4+0x158, 相位/级数控制滚动) */
 extern u8 gDmgPopupSlot;
 extern u8 gDmgPopupPhase;
@@ -319,16 +320,22 @@ extern u8 gUnk_0300071C;
 extern u32 gUnk_03000730;
 extern u8 gUnk_0300073C;
 extern u8 gUnk_0300073D;
+extern u8 gActHitSegCount;       /* 0x0300073E: 行动命中段计数 (与 obj->noa 比较) */
+extern u8 gActDmgPhase;          /* 0x0300073F: 行动伤害结算相位 (0未结算/1待演出/2已结算) */
+extern u8 gActDmgMode;           /* 0x03000740: 行动结算模式 (sub_801F3FC 传参) */
+extern u16 gActDmgAmount;        /* 0x03000742: 本次行动累计伤害 */
 extern u8 gUnk_03000744;
 extern u8 gUnk_03000765;
 extern u8 gUnk_08393A30[];
 extern u8 gUnk_08393A48[]; ///< 0x08393A48 成员 X 坐标字符表 (sub_80257D8 case5 插值起点 / sub_8032948 存 gObjActSavedX); 同族 gUnk_08393A4D 为 Y
 extern u8 gUnk_0839DF90[]; ///< sub_802A154 case30/36 用的 (x,y) 对表 (各 2 字节)
+extern u8 gUnk_0839DF67[]; ///< 0x0839DF67 战斗对象演出坐标偏移表 {0,0x78,0x1E,0x5A} (sub_8039C38 case37 按 gObjActParam%4 取)
 extern float gCosTable[];
 extern float gSinTable[];
 extern u8 gUnk_03000748[];
 extern u8 gUnk_03000758[];
 extern u8 gUnk_03000763;
+extern u8 gUnk_03000764;         /* 0x03000764: 行动状态机结算标记 */
 extern u8 gUnk_03000768;
 extern u8 gUnk_03000769;
 extern u8 gUnk_0300076B;
@@ -404,6 +411,10 @@ extern u8 gActWaitCnt0;
 extern u8 gActEventCount;
 extern u16 gActWaitFrames;
 extern u8 gActWaitCnt1;
+/* 0x03000860 当前演出槽特效表项指针 (sub_80422B8 case0 按 obj->slot 命中
+ * gObjActSlotFxTable 的项, 未命中取 [0]; case1/函数尾部读其 animIdx/frameIdx/timer。
+ * 唯一消费者 = sub_80422B8 (code.s 仅 3 处引用, 全在本函数) */
+extern const struct ObjActSlotFx *gObjActSlotFxCur;
 extern u8 gUnk_03000864; ///< 0x03000864 (原 gUnk_03000864) 战斗对象逃跑判定结果 (0=成功, 1=失败; sub_803FF54 消费)
 extern u8 gObjActDoneCount; ///< 0x03000865 (原 gUnk_03000865) 对象演出完成计数: sub_803FF54 步进器 case 在 obj->slot=0xFF/variantClass=7/gObjActStep=0x38 后 ++; sub_804448C 清 0 (BattleTask_Run 开场), getter sub_8044498 供 ObjGroup_AnyEvent 等待 !=0
 extern u8 gSceneFadeOut;
@@ -414,6 +425,8 @@ extern u16 gUnk_0300086C; ///< sub_803E58C 动画基准表项 (0x350/0x353/0x356
 extern u8 gObjActMoveFromX;
 extern u8 gObjActMoveFromY; ///< sub_802D728 锚点动画源坐标 X/Y (obj->posX+0x1D / obj->posY-0x2F)
 extern u8 gUnk_03000870[];  ///< 0x03000870 目标对象保存 X 坐标表 (sub_80401AC 逃跑演出用)
+extern u8 gObjActSavedArgX; ///< 0x03000880 协作对象(arg1)演出前 posX 快照 (sub_803C328 case0 存/case42 还原)
+extern u8 gObjActSavedArgY; ///< 0x03000881 协作对象(arg1)演出前 posY 快照 (同上)
 extern u16 gActHitDmgAmount; ///< 0x03000882 (原 gUnk_03000882) 战斗脚本族 (sub_8040690/8042E70 等) 从 BattleObj.dmgAmount(+0xB2) 快照的当前伤害值; getter sub_8044420, 合击/连锁处理 (sub_801BE34/801C484) 累加进 0x03000742; 战斗脚本 case 起手清 0
 extern u8 gObjActSfxLatch;
 extern u16 gActWaitSfxId;   ///< 0x03000886 (原 gUnk_03000886) 演出等待结束音效号: sub_8044514 置默认 0x37, sub_8044574 由脚本参数给定; 等待结束时 Sfx_Play(本值,0,gActWaitSfxParam) (sub_803F658 合击状态机等)

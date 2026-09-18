@@ -27,23 +27,32 @@ u8 sub_8022458(u8); // 唯一调用点 sub_8018070: 入参 0x7F, 返回 u8
 
 void sub_8022550();
 
-void sub_8022710();
+u8 sub_8022710(BattleObj *, BattleObj *, u8);
 
 void sub_8022F2C();
 
-void sub_80230BC();
+u8 sub_80230BC(BattleObj *, BattleObj *, BattleObj *, u16);
 
-void sub_8023320();
+/* 战斗菜单目标选定过渡状态机。objects = sub_802192C 栈上收集的我方成员指针
+ * 数组(容量 5, 按 sub_8045F10==1 且 slot!=9 过滤压缩, 有效长度未传入);
+ * 数组游标 = (s8)gUnk_0300076B。唯一调用者 sub_802192C 仍是 INCLUDE_ASM。 */
+void sub_8023320(BattleObj **objects);
 
-void sub_8023414();
+void sub_8023414(BattleObj **members, u16 inputFlags);
 
 void sub_8023820();
 
-void sub_80244BC();
+/* 技能名绘制 (字形段表 0x0839B462 第 skillId 段)。全原型必要: 定义侧 u8 row / u16 idx
+ * 带默认提升, 空参数列表声明会与之冲突 (同 sub_80246E8)。调用点 sub_8023820 case 9。 */
+void sub_80244BC(u16 *tileBuf, BattleObj *obj, u8 row, u16 idx);
 
 void sub_8024618();
 
-void sub_80246E8();
+/* 3 位数字 (技能 MP 消耗) 绘制。全原型必要: 定义侧 u8 row / u16 idx 带默认提升, 空参数
+ * 列表声明会与之冲突 (gcc: "argument type that has a default promotion")。当前唯一调用者
+ * sub_8023820 case 9 仍是 INCLUDE_ASM; 若将来写它的 C, 注意调用点 3 号实参需 u8 截断
+ * (目标 asm lsls#0x18/lsrs#0x18), 4 号实参来自 ldrb → 无需截断。 */
+void sub_80246E8(u16 *tileBuf, BattleObj *obj, u8 row, u16 idx);
 
 void sub_8024820();
 
@@ -63,7 +72,7 @@ void sub_802576C(u8 *);
 
 u8 sub_80257D8(BattleObj *, BattleObj *); // 战斗对象"抓取目标并位移"演出状态机 (gUnk_03000820: 0→3→4→5→6→7→9); arg1=同池被抓取协作对象, case5 用 sub_801768C 把 arg1->posX 在帧窗口 0x64..0x69 插值
 
-void sub_8025994();
+u32 sub_8025994(BattleObj *actor, BattleObj *targets);
 
 u32 sub_8025DA8(BattleObj *, BattleObj *);
 

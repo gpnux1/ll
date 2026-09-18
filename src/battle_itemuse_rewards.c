@@ -413,7 +413,7 @@ typedef struct
     u32 w[12]; /* obj+0x3C 起 0x30 字节的状态块 */
 } ObjBlk;
 
-u8 BattleFx_Update(void)
+u32 BattleFx_Update(void)
 {
     u8 result;
     u8 i;

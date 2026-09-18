@@ -11,6 +11,8 @@ MEMORY {
 
 gMapNpcSlotGroups = 0x08091948;
 gObjSizeTable = 0x08393A24;
+gUnk_08393A18 = 0x08393A18; /* OBJ widths in 8-pixel tiles, shape * 4 + size */
+gUnk_08393A24 = 0x08393A24; /* OBJ heights in 8-pixel tiles, shape * 4 + size */
 gCosTable = 0x0839C26C;   /* float[360] 余弦表 (淡出波) */
 gSinTable = 0x0839BCCC;   /* float[360] 正弦表 (淡出波) */
 gSkillLearnTable = 0x08093418;
@@ -30,6 +32,8 @@ gMapViewportBoundsTable = 0x08089BC4;
 gUnk_0808EA0C = 0x0808EA0C;
 gUnk_080BABA0 = 0x080BABA0;
 gBgLoadTable = 0x0839D8EC;      /* BgLoadEntry[17]: 战斗背景组表 {pal,map,chunkBase,chunkCount} (sub_8019B98) */
+gObjActSlotFxTable = 0x0839D47C; /* ObjActSlotFx[6]: 按 obj->slot 取特效参数表 (唯一消费者 sub_80422B8) */
+gUnk_0839DF67 = 0x0839DF67;     /* u8[4] 战斗对象演出坐标偏移表 {0,0x78,0x1E,0x5A} (sub_8039C38 case37) */
 gBgLoadChunks = 0x087ED544;     /* LZ77 图块指针表, 由 BgLoadEntry.chunkBase 索引 (sub_8019B98) */
 gUnk_082893EC = 0x082893EC;
 gUnk_087E94F8 = 0x087E94F8;    /* = &gUnk_087E94FC[-1]: 特殊事件表基址 (CheckFacingEvent) */
@@ -67,6 +71,7 @@ gUnk_0839CC4C_entries = 0x0839CC4C;
 gUnk_0839CE38 = 0x0839CE38;
 gUnk_0839CEFC = 0x0839CEFC;
 gUnk_083987EC = 0x083987EC;
+gUnk_0839ABCC = 0x0839ABCC;    /* 特殊槽 (slot>=0x71) 战斗对象属性块表, 0x40B/项 (sub_802031C 用) */
 gUnk_083989B0 = 0x083989B0;    /* 菜单/对话图标表 A (sub_8018E34 用) */
 gUnk_083989CB = 0x083989CB;    /* 菜单/对话图标表 B (sub_8018E34 用) */
 gUnk_083989DC = 0x083989DC;    /* 菜单/对话图标表 C (sub_8018E34 用) */
@@ -76,6 +81,8 @@ gUnk_08393A3C = 0x08393A3C;
 gUnk_08393A40 = 0x08393A40;
 gUnk_08393A48 = 0x08393A48;    /* u8 成员数×? 坐标表 X (sub_8032948 case25 用) */
 gUnk_08393A4D = 0x08393A4D;    /* u8 成员数×? 坐标表 Y (sub_8032948 case25 用) */
+gUnk_08393B19 = 0x08393B19;
+gUnk_08393B20 = 0x08393B20;
 /* gUnk_08393B28 已搬到 src/data_08393B28.c (const ObjAnimEntry gUnk_08393B28[992]) */
 gUnk_0839D5BC = 0x0839D5BC;
 gUnk_0839D9B8 = 0x0839D9B8;   /* 战后掉落概率表 A (101项 × 5B, BattleDrops_Roll 查) */
@@ -308,6 +315,7 @@ SECTIONS {
         . = 0x00000620; gUnk_03000620 = .;
         . = 0x00000622; gUnk_03000622 = .;
         . = 0x00000624; gUnk_03000624 = .;
+        . = 0x00000625; gActSeqState = .;
         . = 0x0000062C; gUnk_0300062C = .;
         . = 0x00000630; gUnk_03000630 = .;
         . = 0x00000638; gUnk_03000638 = .;
@@ -326,13 +334,19 @@ SECTIONS {
         . = 0x00000716; gUnk_03000716 = .;
         . = 0x00000718; gUnk_03000718 = .;
         . = 0x0000071C; gUnk_0300071C = .;
-        . = 0x00000730; gUnk_03000730 = .; gUnk_03000730_arr = .;
+        . = 0x00000730; gUnk_03000730 = .;
+        . = 0x00000730; gUnk_03000730_arr = .;
         . = 0x0000073C; gUnk_0300073C = .;
         . = 0x0000073D; gUnk_0300073D = .;
+        . = 0x0000073E; gActHitSegCount = .;
+        . = 0x0000073F; gActDmgPhase = .;
+        . = 0x00000740; gActDmgMode = .;
+        . = 0x00000742; gActDmgAmount = .;
         . = 0x00000744; gUnk_03000744 = .;
         . = 0x00000748; gUnk_03000748 = .;
         . = 0x00000758; gUnk_03000758 = .;
         . = 0x00000763; gUnk_03000763 = .;
+        . = 0x00000764; gUnk_03000764 = .;
         . = 0x00000765; gUnk_03000765 = .;
         . = 0x00000768; gUnk_03000768 = .;
         . = 0x00000769; gUnk_03000769 = .;
@@ -376,15 +390,19 @@ SECTIONS {
         . = 0x00000858; gActEventCount = .;
         . = 0x0000085A; gActWaitFrames = .;
         . = 0x0000085C; gActWaitCnt1 = .;
+        . = 0x00000860; gObjActSlotFxCur = .;
         . = 0x00000864; gUnk_03000864 = .;
         . = 0x00000865; gObjActDoneCount = .;
         . = 0x00000867; gSceneFadeOut = .;
         . = 0x00000868; gSceneFadeIn = .;
         . = 0x0000086A; gObjActBranch = .;
         . = 0x0000086B; gObjActParam = .;
+        . = 0x0000086C; gUnk_0300086C = .;
         . = 0x0000086E; gObjActMoveFromX = .;
         . = 0x0000086F; gObjActMoveFromY = .;
         . = 0x00000870; gUnk_03000870 = .;
+        . = 0x00000880; gObjActSavedArgX = .;
+        . = 0x00000881; gObjActSavedArgY = .;
         . = 0x00000882; gActHitDmgAmount = .;
         . = 0x00000884; gObjActSfxLatch = .;
         . = 0x00000886; gActWaitSfxId = .;

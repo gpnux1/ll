@@ -17,32 +17,32 @@ u8 sub_8040690(BattleObj *obj, BattleObj *arg1);
 
 u8 sub_8040EE8(BattleObj *obj, BattleObj *arg1);
 
-void sub_8041308();
+u8 sub_8041308(BattleObj *obj, BattleObj *arg1);
 
-void sub_80416F0();
+u8 sub_80416F0(BattleObj *obj, BattleObj *arg1);
 
-void sub_80419E0();
+u32 sub_80419E0(BattleObj *obj, BattleObj *arg1);
 
-void sub_8041EDC();
+u8 sub_8041EDC(BattleObj *obj, BattleObj *arg1);
 
 u8 sub_8042200(BattleObj *obj);
 
-void sub_80422B8();
+u8 sub_80422B8(BattleObj *obj, BattleObj *arg1);
 
-void sub_8042784();
+u8 sub_8042784(BattleObj *obj, BattleObj *arg1);
 
 u8 sub_8042AB4(BattleObj *obj);
 
-void sub_8042B90();
+u8 sub_8042B90(BattleObj *obj, BattleObj *arg1);
 
 void sub_8042E70();
 
-void sub_8043554();
+u32 sub_8043554(BattleObj *obj);
 
-void sub_8043938();
+u32 sub_8043938(BattleObj *);
 
-void sub_8043B5C();
+u32 sub_8043B5C(BattleObj *obj, BattleObj *arg1);
 
-void sub_8043F90();
+u32 sub_8043F90(BattleObj *obj);
 
 #endif // BATTLE_STAGE_EFFECTS_H

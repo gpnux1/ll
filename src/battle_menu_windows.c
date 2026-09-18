@@ -18,6 +18,9 @@
 #include "save.h"
 #include "sound.h"
 
+extern u8 gUnk_08393A48[];
+extern u8 gUnk_08393A4D[];
+
 // @ 0x08021130
 void MenuSlot_ResetAll(void)
 {
@@ -285,20 +288,405 @@ INCLUDE_ASM("asm/matchings", sub_8022550);
 INCLUDE_ASM("asm/nonmatchings", sub_8022710);
 // @ 0x08022F2C
 INCLUDE_ASM("asm/nonmatchings", sub_8022F2C);
+typedef union {
+    u32 raw;
+    struct {
+        unsigned int low_0_3 : 4;
+        unsigned int field_4_7 : 4;
+        unsigned int direction : 4;
+        unsigned int confirm : 1;
+        unsigned int field_13_15 : 3;
+    } bits;
+} BattleTargetInput;
+typedef char BattleTargetInputSizeCheck[sizeof(BattleTargetInput) == 4 ? 1 : -1];
+
 // @ 0x080230BC
-INCLUDE_ASM("asm/nonmatchings", sub_80230BC);
+u8 sub_80230BC(BattleObj *actor, BattleObj *pool, BattleObj *cursor, u16 input)
+{
+    BattleTargetInput keys;
+    u8 result;
+    BattleObj *target;
+
+    result = 0;
+    switch ((s8)gUnk_03000769)
+    {
+    case 0:
+        actor->f_BD = 5;
+        if (pool[5].slot == 0xFF)
+        {
+            do
+            {
+                actor->f_BD++;
+                if (actor->f_BD == 0xC)
+                    actor->f_BD = 5;
+            } while (pool[actor->f_BD].slot == 0xFF);
+        }
+        target = &pool[actor->f_BD];
+        sub_801ED40(target, 0x10);
+        sub_8020FB8(cursor, target->headA.f_2B + ((u8)sub_801EC3C(target, 0) >> 1),
+                    target->headA.f_2C - ((u8)sub_801EC3C(target, 1) >> 1), 5, 2);
+        sub_8022F2C((u16 *)0x02035AC0, target, 0xA, 2);
+        gUnk_03000769 = 6;
+        gMenuSelSlot0 = -1;
+        gMenuSelSlot1 = -1;
+        break;
+    case 6:
+        if ((cursor->state & 0xF0) == 0x10)
+            break;
+        target = &pool[actor->f_BD];
+        if (input & 0x100)
+        {
+            actor->f_BD = sub_8022710(target, pool, 0);
+            Sfx_Play(0, 0, 0);
+        }
+        else if (input & 0x200)
+        {
+            Sfx_Play(0, 0, 0);
+            actor->f_BD = sub_8022710(target, pool, 1);
+        }
+        else if (input & 0x400)
+        {
+            Sfx_Play(0, 0, 0);
+            actor->f_BD = sub_8022710(target, pool, 2);
+        }
+        else if (input & 0x800)
+        {
+            Sfx_Play(0, 0, 0);
+            actor->f_BD = sub_8022710(target, pool, 3);
+        }
+        if (input & 0xF00)
+        {
+            sub_801EE6C(target);
+            target = &pool[actor->f_BD];
+            sub_801ED40(target, 0x10);
+            sub_8020FB8(cursor, target->headA.f_2B + ((u8)sub_801EC3C(target, 0) >> 1),
+                        target->headA.f_2C - ((u8)sub_801EC3C(target, 1) >> 1), 5, 2);
+            sub_8022F2C((u16 *)0x02035AC0, target, 0xA, 2);
+        }
+        keys.raw = input;
+        if (keys.bits.confirm != 0 && keys.bits.direction == 0 && keys.bits.low_0_3 == 0)
+        {
+            Sfx_Play(1, 0, 0);
+            sub_801EE6C(target);
+            gUnk_03000769 = 0x1E;
+        }
+        break;
+    case 0x1E:
+        actor->fxKind = 0;
+        gUnk_0300076C |= 2;
+        sub_8019F08((u16 *)0x02035AC0, 1, 0xA, 2, 9, 2);
+        result = 1;
+        break;
+    }
+    return result;
+}
 // @ 0x08023320
-INCLUDE_ASM("asm/nonmatchings", sub_8023320);
+// 战斗菜单"目标选定过渡"状态机: objects = 调用者收集的我方成员指针数组(≤5),
+// (s8)gUnk_0300076B 为当前数组游标。case1 确认当前项: 清当前项 headA.f_2A
+// (+0x36) 并对 state(+0xB0)|=4, 游标非 0 时同时清 objects[i+1].f_2A;
+// 游标为 0 时只置 gUnk_0300076C|=0x30。case3 回退: 清当前(及 i>0 时前一项)
+// 的 f_2A, 当前 state|=4, gUnk_0300076C|=0x20。两分支均清 gUnk_0300076E 并
+// 落到 case0 的 *state=0x1E 收尾(经入口缓存的状态指针写, 复现 GCC2.9 的
+// r4/r6 寄存器形状)。字段命名依据见 docs/handoffs/MATCH-CANDIDATE-8023320-20260917.md。
+void sub_8023320(BattleObj **objects)
+{
+    u8 *state = &gUnk_03000769;
+
+    switch (*(s8 *)state)
+    {
+    case 1:
+        gUnk_0300076E = 0;
+        if (*(s8 *)&gUnk_0300076B == 0)
+        {
+            gUnk_0300076C |= 0x30;
+        }
+        else
+        {
+            objects[*(s8 *)&gUnk_0300076B]->headA.f_2A = 0;
+            objects[*(s8 *)&gUnk_0300076B]->state |= 4;
+            objects[*(s8 *)&gUnk_0300076B + 1]->headA.f_2A = 0;
+            gUnk_0300076C |= 0x10;
+        }
+        gUnk_03000769 = 0x1E;
+        break;
+    case 3:
+        gUnk_0300076E = 0;
+        objects[*(s8 *)&gUnk_0300076B]->headA.f_2A = 0;
+        if (*(s8 *)&gUnk_0300076B > 0)
+            objects[*(s8 *)&gUnk_0300076B - 1]->headA.f_2A = 0;
+        objects[*(s8 *)&gUnk_0300076B]->state |= 4;
+        gUnk_0300076C |= 0x20;
+        /* fallthrough */
+    case 0:
+        *state = 0x1E;
+        break;
+    }
+}
 // @ 0x08023414
-INCLUDE_ASM("asm/nonmatchings", sub_8023414);
+void sub_8023414(BattleObj **members, u16 inputFlags)
+{
+    BattleObj *current;
+    BattleObj *adjacent;
+    switch (gUnk_0300076C & 0xF0)
+    {
+    case 0x10:
+        current = members[(s8)gUnk_0300076B];
+        adjacent = members[(s8)gUnk_0300076B + 1];
+        current->posX = sub_801768C(gUnk_08393A48[current->memberIdx], 0x23 - gUnk_08393A48[current->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        current->posY = sub_801768C(gUnk_08393A4D[current->memberIdx], 0x23 - gUnk_08393A4D[current->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        adjacent->posX = sub_801768C(0x23, gUnk_08393A48[adjacent->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        adjacent->posY = sub_801768C(0x23, gUnk_08393A4D[adjacent->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        if (gUnk_0300076E <= 14)
+        {
+            if (inputFlags & 0x1000)
+                gUnk_0300076E = 15;
+            else
+                gUnk_0300076E++;
+        }
+        else
+        {
+            adjacent->headA.f_2A = 3;
+            gUnk_0300076E = 0;
+            adjacent->state &= 0xFFFB;
+            gUnk_0300076C &= 0xFF0F;
+        }
+        break;
+    case 0x20:
+        current = members[(s8)gUnk_0300076B];
+        adjacent = members[(s8)gUnk_0300076B - 1];
+        current->posX = sub_801768C(gUnk_08393A48[current->memberIdx], 0x23 - gUnk_08393A48[current->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        current->posY = sub_801768C(gUnk_08393A4D[current->memberIdx], 0x23 - gUnk_08393A4D[current->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        adjacent->posX = sub_801768C(0x23, gUnk_08393A48[adjacent->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        adjacent->posY = sub_801768C(0x23, gUnk_08393A4D[adjacent->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        if (gUnk_0300076E <= 14)
+        {
+            if (inputFlags & 0x1000)
+                gUnk_0300076E = 15;
+            else
+                gUnk_0300076E++;
+        }
+        else
+        {
+            adjacent->headA.f_2A = 3;
+            gUnk_0300076E = 0;
+            adjacent->state &= 0xFFFB;
+            gUnk_0300076C &= 0xFF0F;
+        }
+        break;
+    case 0x30:
+        current = members[0];
+        members[0]->posX = sub_801768C(0x23, gUnk_08393A48[current->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        members[0]->posY = sub_801768C(0x23, gUnk_08393A4D[members[0]->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        if (gUnk_0300076E <= 14)
+        {
+            if (inputFlags & 0x1000)
+                gUnk_0300076E = 15;
+            else
+                gUnk_0300076E++;
+        }
+        else
+        {
+            members[0]->headA.f_2A = 3;
+            members[0]->state &= 0xFFFB;
+            gUnk_0300076E = 0;
+            gUnk_0300076C &= 0xFF0F;
+        }
+        break;
+    case 0x40:
+        current = members[(s8)gUnk_0300076B];
+        current->posX = sub_801768C(0x23, gUnk_08393A48[current->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        current->posY = sub_801768C(0x23, gUnk_08393A4D[current->memberIdx] - 0x23, 15, (s16)gUnk_0300076E, 2);
+        if (gUnk_0300076E <= 14)
+        {
+            if (inputFlags & 0x1000)
+                gUnk_0300076E = 15;
+            else
+                gUnk_0300076E++;
+        }
+        else
+        {
+            current->headA.f_2A = 3;
+            current->state &= 0xFFFB;
+            gUnk_0300076E = 0;
+            gUnk_0300076C &= 0xFF0F;
+        }
+        break;
+    case 0x50:
+        current = members[0];
+        members[0]->posX = sub_801768C(gUnk_08393A48[current->memberIdx], 0x23 - gUnk_08393A48[current->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        members[0]->posY = sub_801768C(gUnk_08393A4D[members[0]->memberIdx], 0x23 - gUnk_08393A4D[members[0]->memberIdx], 15, (s16)gUnk_0300076E, 2);
+        if (gUnk_0300076E <= 14)
+        {
+            if (inputFlags & 0x1000)
+                gUnk_0300076E = 15;
+            gUnk_0300076E++;
+        }
+        else
+        {
+            gUnk_0300076E = 0;
+            gUnk_0300076C &= 0xFF0F;
+        }
+        break;
+    }
+}
 // @ 0x08023820
 INCLUDE_ASM("asm/nonmatchings", sub_8023820);
 // @ 0x080244BC
-INCLUDE_ASM("asm/nonmatchings", sub_80244BC);
+/* 字形段表 0x0839B462 (段间以 0xF00 分隔) 与同族的 sub_804ACC0/sub_804AC60 共用;
+ * 登记处与 battle_flow_rules.c 一致, 为 TU 局部 extern。 */
+extern u16 gUnk_0839B462[];
+/* script_vm.h 的 K&R/宽原型逐字同型 (本 TU 未 include 该头)。 */
+extern void sub_8050434();
+extern u32 TileDma_GetCtx(u32 *);
+
+/* 在战斗菜单窗口行上绘制技能名 (字形段表的第 skillId 段)。
+ *   arg0 = BG0 map 基址 (0x02035AC0); arg1 = 施法者对象; arg2 = 窗口内行 (0..2);
+ *   arg3 = 技能槽 id (gMenuListItems[] 元素 0..7; >7 时跳过样式位与槽查表, 直接当段号用)。
+ * 段号 = obj->skills[arg3], 段定位 = 数 0xF00 分隔符到第 段号 个 (≥ 段表尾 → 停在尾后)。
+ * 字形码 ≤0xDF = 静态字模 (tile = 码 * 2); >0xDF = 动态字模: 在 gTileDmaAllocTable
+ * (TileDma_GetCtx 写出的表指针, 返回值为登记数) 中查下标 k, tile = (k + 0xE0) * 2。
+ * 调色板同 sub_80246E8: 行样式位 gMenuListRowBits 置位 (MP ≥ 消耗) → 11, 灰化 → 12。
+ * 每位写上下两格 (dst[i] / dst[i + 0x20]), 空格/终止 = 字形码 0xF00。 */
+void sub_80244BC(u16 *tileBuf, BattleObj *obj, u8 row, u16 idx)
+{
+    u32 dmaCtx;
+    u16 *dst;
+    u16 *entry;
+    u8 *ptr;
+    u16 value;
+    u16 ctxCount;
+    int attr;
+    u16 i;
+    u16 found;
+    u16 k;
+    u16 tile;
+
+    dst = (u16 *)((u8 *)tileBuf + (row * 0x80 + 0x210));
+    attr = 1;
+    if (idx <= 7)
+    {
+        attr &= ~(gMenuListRowBits >> (row + (s8)gMenuListTop));
+        ptr = (u8 *)obj + 0x99;
+        idx = ptr[idx];
+    }
+    attr = (u8)(attr + 0xB);
+
+    i = 0;
+    found = 0;
+    if (i < idx)
+    {
+        do
+        {
+            if (gUnk_0839B462[i] == 0xF00)
+                found++;
+            i++;
+        } while (found < idx);
+    }
+    entry = &gUnk_0839B462[i];
+
+    value = 0x4F00;
+    if (row != 0)
+        value = 0x6F1E;
+    sub_8050434((u32)entry, value);
+
+    ctxCount = (u16)TileDma_GetCtx(&dmaCtx);
+
+    for (i = 0; entry[i] != 0xF00; i++)
+    {
+        if (entry[i] <= 0xDF)
+        {
+            dst[i] = (entry[i] & 0xFF) * 2 + (attr << 12);
+            dst[i + 0x20] = (entry[i] & 0xFF) * 2 + 1 + (attr << 12);
+        }
+        else
+        {
+            k = 0;
+            for (; k < ctxCount; k++)
+            {
+                if (entry[i] == ((u16 *)dmaCtx)[k])
+                    break;
+            }
+            tile = (u16)(k + 0xE0);
+            dst[i] = (attr << 12) + tile * 2;
+            dst[i + 0x20] = (attr << 12) + (tile * 2 + 1);
+        }
+    }
+}
 // @ 0x08024618
 INCLUDE_ASM("asm/nonmatchings", sub_8024618);
 // @ 0x080246E8
-INCLUDE_ASM("asm/nonmatchings", sub_80246E8);
+/* 在战斗菜单窗口行上绘制 3 位十进制数字 (技能 MP 消耗); 由 sub_8023820 case 9 逐行调用。
+ *   arg0 = BG0 map 基址 (0x02035AC0, 行距 0x40 字节); arg1 = 施法者战斗对象;
+ *   arg2 = 窗口内行号 (0..2); arg3 = 技能槽 id (gMenuListItems[] 的元素, 0..7)。
+ * 数值 = sub_8048934(obj, idx) 的 MP 消耗; 字形字符码 '0'..'9' = 0xA2..0xAB, tilemap 条目
+ * = 调色板号 (bit12-15) + 字符码 * 2, 每位画上下两格 (+0x20 半字 = 下一 map 行)。
+ * 调色板: 行样式位 gMenuListRowBits 置位 (MP >= 消耗, 可用) → 11, 否则灰化 12。
+ * 前导零: 十位与百位都为 0 时十位留空 (空格 tile = 调色板基值 + 1); 百位非 0 时写 '0'
+ * 字符码 (0xA2) 本身 —— 调用方数值 ≤ 0x46 故不触发, 忠实保留 ROM 行为。 */
+void sub_80246E8(u16 *tileBuf, BattleObj *obj, u8 row, u16 idx)
+{
+    u16 digits[3];
+    u16 *dst;
+    u8 palette;
+    s32 bits;
+    u8 v;
+    u16 i;
+    u32 base;
+    u8 code;
+
+    dst = (u16 *)((u8 *)tileBuf + (row * 0x80 + 0x224));
+    if (idx > 0x27)
+        return;
+
+    bits = gMenuListRowBits >> (row + (s8)gMenuListTop);
+    palette = 1;
+    palette &= ~bits;
+
+    v = sub_8048934(obj, idx);
+
+    digits[0] = (u8)((u32)v / 100);
+    digits[1] = (v - digits[0] * 100) / 10;
+    digits[2] = v - (digits[0] * 100 + digits[1] * 10);
+
+    for (i = 0; i <= 2; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            if (digits[i] != 0)
+                digits[i] = 0xA2;
+            break;
+        case 1:
+            if (digits[i] == 0 && digits[0] == 0)
+                digits[i] = 0;
+            else
+                digits[i] += 0xA2;
+            break;
+        case 2:
+            digits[i] += 0xA2;
+            break;
+        }
+    }
+
+    code = palette + 0xB;
+
+    i = 0;
+    base = code << 12;
+
+    for (; i <= 2; i++)
+    {
+        if (digits[i] != 0)
+        {
+            dst[i] = base + digits[i] * 2;
+            dst[i + 0x20] = base + (u16)(digits[i] * 2 + 1);
+        }
+        else
+        {
+            dst[i] = base + 1;
+            dst[i + 0x20] = base + 1;
+        }
+    }
+}
 // @ 0x08024820
 void sub_8024820(void)
 {
@@ -529,7 +917,132 @@ u8 sub_80257D8(BattleObj *obj, BattleObj *arg1)
     return result;
 }
 // @ 0x08025994
-INCLUDE_ASM("asm/nonmatchings", sub_8025994);
+extern u8 gUnk_08393A4D[];
+extern u8 gUnk_08393B19[];
+extern u8 gUnk_08393B20[];
+
+u32 sub_8025994(BattleObj *actor, BattleObj *targets)
+{
+    BattleObj *target;
+    u16 i;
+    u32 done;
+
+    done = 0;
+    switch (gObjActStep)
+    {
+    case 0:
+        gObjActStep = 3;
+        sub_801B81C(&actor->headB, 120, 120, 0x2EA, 10,
+            (u32)gUnk_08393B28[((u16 *)actor->animPtr)[4] + 1].animScriptPtr,
+            (u32)gUnk_08393B28[((u16 *)actor->animPtr)[4] + 1].palettePtr,
+            gUnk_08393B28[((u16 *)actor->animPtr)[4] + 1].gfxBaseIdx,
+            gUnk_08393B28[((u16 *)actor->animPtr)[4] + 1].gfxTotal, 4);
+        actor->state |= 0x2000;
+        actor->headB.kindFlags |= 0x100;
+        actor->headB.f_2A = 2;
+        sub_80444A4(actor);
+        sub_803F5B4(actor);
+        break;
+    case 3:
+        if (actor->headB.kindFlags & 0x800)
+            break;
+        gObjActSavedF2A = actor->headA.f_1E;
+        gObjActSavedPal = actor->headA.palSlot;
+        sub_801CE80(actor, 5, 0x1B4, 7, 0);
+        actor->headA.f_2A = 3;
+        actor->headA.kindFlags |= 0x100;
+        gObjActStepTimer = 0;
+        gObjActStep = 4;
+        break;
+    case 4:
+        if (actor->headA.gfxPos == actor->headA.gfxTotal - 1)
+        {
+            actor->state |= 0x40;
+            actor->headA.f_2B += 24;
+        }
+        if (actor->headA.kindFlags & 0x800)
+            break;
+        actor->headA.kindFlags &= 0xFEFF;
+        actor->headB.kindFlags &= 0xFEFF;
+        gObjActStep = 5;
+        break;
+    case 5:
+        if (actor->headB.frameIdx == 0x2A)
+            Sfx_Play(0x5C, 1, 0);
+        if (actor->headA.frameIdx == 0x55)
+        {
+            for (i = 0; i < 5; i++)
+            {
+                target = &targets[i];
+                if (sub_8045F10(target, 1) != 0)
+                {
+                    target->state |= 4;
+                    target->headA.kindFlags |= 0x200;
+                }
+            }
+            Sfx_Play(0x64, 1, 0);
+        }
+        else if (actor->headA.frameIdx == 0xD6)
+        {
+            for (i = 0; i < 5; i++)
+            {
+                target = &targets[i];
+                if (sub_8045F10(target, 1) != 0)
+                {
+                    target->state &= 0xFFFB;
+                    target->headA.kindFlags &= 0xFDFF;
+                }
+            }
+            actor->headA.f_2A = 0;
+            actor->headB.f_2A = 0;
+            Sfx_Play(0x50, 1, 0);
+            sub_8044514(40);
+        }
+        if (actor->headB.kindFlags & 0x1000)
+        {
+            actor->headB.kindFlags &= 0xEFFF;
+            actor->state &= 0xDFFF;
+            gObjActStep = 6;
+            sub_80207DC(actor, actor->posX, actor->posY, gObjActSavedF2A, gObjActSavedPal);
+            actor->state &= 0xFFBF;
+        }
+        break;
+    case 6:
+        sub_80209C8(actor);
+        gObjActStep = 7;
+        for (i = 0; i < 5; i++)
+        {
+            target = &targets[i];
+            if (sub_8045F10(target, 0x110) == 1)
+                target->dmgAmount = sub_804473C(actor, (u8 *)target);
+        }
+        break;
+    case 7:
+        for (i = 0; i < 5; i++)
+        {
+            target = &targets[i];
+            if (sub_8045F10(target, 0x110) == 1)
+            {
+                target->headA.kindFlags &= 0xEFFF;
+                if (target->slot <= 10)
+                    sub_80207DC(target, gUnk_08393A48[target->memberIdx], gUnk_08393A4D[target->memberIdx], target->headA.f_1E, target->headA.palSlot);
+                else
+                    sub_80207DC(target, gUnk_08393B19[target->memberIdx], gUnk_08393B20[target->memberIdx], target->headA.f_1E, target->headA.palSlot);
+            }
+        }
+        gObjActStep = 9;
+        break;
+    case 9:
+        if (gActWaitBusy0 == 0 && gActWaitBusy1 == 0 && gActWaitBusy2 == 0)
+        {
+            done = 1;
+            actor->headA.f_2A = 3;
+        }
+        break;
+    }
+    sub_803F658(actor);
+    return done;
+}
 // @ 0x08025DA8
 /* 战斗对象"协作/投掷/协同突进"演出状态机 (双参: obj=主动方, arg1=目标/协作方)。
  * 由 sub_803F444 经 0x0839CD5C 指针表分派。

@@ -49,7 +49,7 @@ s32 sub_804B96C(u8, u8, s8, s8, s8, u8, u8, s8, u8);
 
 void sub_804BB64(u8, u8);
 
-u8 sub_804BBDC(u8, u32, u32, u32, u32, u32, u32, u32);
+s32 sub_804BBDC(u8, u8, s8, s8, s8, u8, s8, u8); // BG 调色板流式动画 (opcode1, 与 sub_804B654 同构)
 
 void sub_804BD54(u8, u8);
 

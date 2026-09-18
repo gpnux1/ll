@@ -4,6 +4,7 @@
 #include "battle_object_engine.h"
 #include "battle_palette_wipe.h"
 #include "battle_special_targets.h"
+#include "battle_stage_state.h"
 #include "battle_task_services.h"
 #include "player_stats.h"
 #include "script_vm.h"
@@ -237,9 +238,176 @@ u32 sub_8044F4C(BattleObj *arg0, BattleObj *arg1)
     return dmg;
 }
 // @ 0x08045098
-INCLUDE_ASM("asm/nonmatchings", sub_8045098);
+u16 sub_8045098(BattleObj *source, BattleObj *target)
+{
+    s16 delta;
+    s16 value;
+    s16 damage;
+
+    switch (source->pad_A4[0])
+    {
+    case 0x19:
+    case 0x1A:
+    case 0x1B:
+    case 0x1C:
+    case 0x1D:
+    case 0x1E:
+    case 0x1F:
+    case 0x20:
+    case 0x21:
+    case 0x22:
+    case 0x23:
+    case 0x24:
+    case 0x25:
+    case 0x26:
+    case 0x27:
+    case 0x28:
+    case 0x29:
+    case 0x2A:
+    case 0x2B:
+        damage = 40;
+        value = 15;
+        break;
+    case 0x2C:
+        damage = 40;
+        value = 15;
+        break;
+    case 0x2D:
+        damage = 40;
+        value = 15;
+        break;
+    case 0x2E:
+        damage = 40;
+        value = 15;
+        break;
+    case 0x2F:
+        damage = 40;
+        value = 15;
+        break;
+    case 0x30:
+        damage = 70;
+        value = 10;
+        break;
+    case 0x31:
+        damage = 70;
+        value = 10;
+        break;
+    default:
+        damage = 40;
+        value = 15;
+        break;
+    }
+    delta = -(Rng_LcgNext() % value);
+    if (delta != 0)
+    {
+        s16 signedDamage = damage;
+        damage = signedDamage + delta;
+    }
+    switch (sub_8047D28(target, sub_8047DC8(source)))
+    {
+    case 1:
+        damage = damage * 2;
+        break;
+    case 2:
+        damage = (s16)damage / 2;
+        break;
+    case 0:
+        break;
+    }
+    value = damage;
+    if ((s16)value < 0)
+        damage = 0;
+    if ((s16)damage > 999)
+        damage = 999;
+    return damage;
+}
 // @ 0x0804519C
-INCLUDE_ASM("asm/nonmatchings", sub_804519C);
+// slot 12..112 的路径仅在 fxKind 为 0/1 时初始化 effect 和 threshold。
+// 随机门限使用按位与 0x64，不是模 100。
+extern u8 gUnk_0839D5BC[101][6];
+void sub_804519C(BattleObj *source, BattleObj *target)
+{
+    u8 effect;
+    u8 threshold;
+
+    if (source->slot <= 10)
+    {
+        threshold = 0;
+        effect = 0;
+        if ((s8)source->fxKind == 0)
+        {
+            if (sub_804E6DC(source, 1) >= 0)
+            {
+                threshold = 25;
+                effect = 3;
+            }
+            if (sub_804E6DC(source, 2) >= 0)
+            {
+                threshold = 50;
+                effect = 6;
+            }
+            if (sub_804E6DC(source, 11) >= 0)
+            {
+                threshold = 20;
+                effect = 5;
+            }
+            if ((u8)(Rng_LcgNext() & 0x64) < threshold)
+                sub_80445E8(target, effect);
+        }
+    }
+    else if ((u8)(source->slot - 12) <= 100)
+    {
+        switch ((s8)source->fxKind)
+        {
+        case 0:
+            effect = gUnk_0839D5BC[source->slot - 12][0];
+            threshold = gUnk_0839D5BC[source->slot - 12][2];
+            break;
+        case 1:
+            effect = gUnk_0839D5BC[source->slot - 12][1];
+            threshold = gUnk_0839D5BC[source->slot - 12][3];
+            break;
+        }
+        if ((u8)(Rng_LcgNext() & 0x64) < threshold)
+        {
+            if (sub_804E76C(target, 2, 9) < 0 && sub_804E76C(target, 2, 12) < 0)
+            {
+                switch (effect)
+                {
+                case 1:
+                    if (sub_804E76C(target, 2, 10) >= 0)
+                        effect = 0;
+                    break;
+                case 2:
+                    if (sub_804E76C(target, 2, 10) >= 0 || sub_804E76C(target, 2, 14) >= 0)
+                        effect = 0;
+                    break;
+                case 3:
+                    if (sub_804E76C(target, 2, 10) >= 0)
+                        effect = 0;
+                    break;
+                case 4:
+                    if (sub_804E76C(target, 2, 11) >= 0)
+                        effect = 0;
+                    break;
+                case 5:
+                    if (sub_804E76C(target, 2, 11) >= 0)
+                        effect = 0;
+                    break;
+                case 6:
+                    if (sub_804E76C(target, 2, 11) >= 0)
+                        effect = 0;
+                    break;
+                case 8:
+                    if (sub_804E76C(target, 2, 13) >= 0)
+                        effect = 0;
+                    break;
+                }
+                sub_80445E8(target, effect);
+            }
+        }
+    }
+}
 // @ 0x08045328
 // 命中判定: 目标 variantClass ∈{2,3,4} 或攻击者 fxKind==1 → 必中。
 // 否则按 2*(agl差) + (atc - 目标def) + (arg2 - 攻击者[0x8B]) 算权重 v, 钳制 [30,100];
@@ -1245,7 +1413,77 @@ u32 sub_8046480(BattleObj *arg0, u8 *buf, u8 mode)
     return count;
 }
 // @ 0x08046558
-INCLUDE_ASM("asm/nonmatchings", sub_8046558);
+u8 sub_8046558(BattleObj *source, u8 *out, u8 mask, u16 classMask)
+{
+    u8 candidates[12];
+    u8 i;
+    u8 j;
+    u8 k;
+    u8 endSlot;
+    u8 count;
+    u8 total;
+    u8 group;
+    u8 slot;
+    u8 *pool;
+    u8 *slots;
+    u32 otherSide;
+    u32 stride;
+
+    pool = (u8 *)GetObjPool();
+    if (source->slot <= 10)
+        otherSide = 0;
+    else
+        otherSide = 1;
+    if (otherSide == 0)
+    {
+        for (i = 0; i <= 4; i++)
+            out[i] = 0;
+    }
+    else
+    {
+        for (i = 0; i <= 6; i++)
+            out[i] = 0;
+    }
+    slots = candidates;
+    count = 0;
+    if (otherSide == 0)
+    {
+        for (k = 0; k <= 4; k++)
+            slots[k] = 0;
+        k = 0;
+        endSlot = 5;
+    }
+    else
+    {
+        for (k = 0; k <= 6; k++)
+            slots[k] = 0;
+        k = 5;
+        endSlot = 12;
+    }
+    while (k < endSlot)
+    {
+        if ((u8)sub_8045F10((BattleObj *)(pool + k * 0xC8), classMask) == 2)
+        {
+            slots[count] = k;
+            count = count + 1;
+        }
+        k = k + 1;
+    }
+    total = count;
+    j = 0;
+    for (i = 0; i < total; i++)
+    {
+        group = source->pad_AC[0] & mask;
+        stride = 0xC8;
+        slot = candidates[i];
+        if ((*(u8 *)(slot * stride + (u32)pool + 0xAC) & mask) == group)
+        {
+            out[j] = slot;
+            j = j + 1;
+        }
+    }
+    return j;
+}
 // @ 0x0804666C
 // 行动点收集+处理: 清空 buf[0..4] 后调 sub_804DE8C (重置道具/状态区), 收集 obj[0xBE]<=0xA 且
 // sub_8045F10(obj,0x43)==2 的对象槽号到 buf, 再对每个收集到的槽号调 sub_80466F0(obj, 槽号)。
@@ -1320,7 +1558,84 @@ void sub_8046C50(void)
         base[indices[j] * 0xC8 + 0xBC] = 4;
 }
 // @ 0x08046CD4
-INCLUDE_ASM("asm/nonmatchings", sub_8046CD4);
+static inline u8 BattleGroups_HaveLowNibbleSumAtMostFive(BattleObj *a, BattleObj *b)
+{
+    if ((a->pad_AC[0] & 15) + (b->pad_AC[0] & 15) <= 5)
+        return 1;
+    return 0;
+}
+u8 sub_8046CD4(BattleObj *source, u8 *out)
+{
+    u8 candidates[7];
+    u8 i;
+    u8 k;
+    u8 count;
+    u8 written;
+
+    u8 *pool;
+
+    int accepted;
+
+    written = 0;
+    pool = GetObjPool();
+    if (source->slot <= 10)
+    {
+        u8 endSlot;
+        u8 *slots;
+        if (out != 0)
+            for (i = 0; i <= 6; i++)
+                out[i] = 0;
+        slots = candidates;
+        count = 0;
+        for (k = 0; k <= 6; k++)
+            slots[k] = 0;
+        k = 5;
+        endSlot = 12;
+        do
+        {
+            if (sub_8045F10((BattleObj *)(pool + k * 0xC8), 0x7F) == 2)
+            {
+                slots[count] = k;
+                count++;
+            }
+            k++;
+        } while (k < endSlot);
+    }
+    else
+    {
+        u8 endSlot;
+        u8 *slots;
+        if (out != 0)
+            for (i = 0; i <= 4; i++)
+                out[i] = 0;
+        slots = candidates;
+        count = 0;
+        for (k = 0; k <= 4; k++)
+            slots[k] = 0;
+        k = 0;
+        endSlot = 5;
+        do
+        {
+            if (sub_8045F10((BattleObj *)(pool + k * 0xC8), 0x7F) == 2)
+            {
+                slots[count] = k;
+                count++;
+            }
+            k++;
+        } while (k < endSlot);
+    }
+    for (i = 0; i < count; i++)
+    {
+        accepted = BattleGroups_HaveLowNibbleSumAtMostFive(source, (BattleObj *)(pool + candidates[i] * 0xC8));
+        if (accepted != 0)
+        {
+            if (out != 0)
+                out[written] = candidates[i];
+            written++;
+        }
+    }
+    return written;
+}
 // @ 0x08046E18
 INCLUDE_ASM("asm/nonmatchings", sub_8046E18);
 // @ 0x08046F0C
@@ -1454,11 +1769,264 @@ u16 sub_8047024(BattleObj *obj, u8 kind)
     return ret;
 }
 // @ 0x080471AC
-INCLUDE_ASM("asm/nonmatchings", sub_80471AC);
+u8 sub_80471AC(void)
+{
+    u8 combined[12];
+    u8 first[5];
+    u8 second[7];
+    u8 countA;
+    u8 countB;
+    u8 total;
+    u8 i;
+    u8 *pool;
+    u8 result;
+
+    result = 0;
+    pool = (u8 *)GetObjPool();
+    {
+        u8 *list;
+        u8 count;
+        u8 slot;
+        u8 end;
+        list = first;
+        count = 0;
+        for (slot = 0; slot <= 4; slot++)
+            list[slot] = 0;
+        slot = 0;
+        end = 5;
+        do
+        {
+            if (sub_8045F10((BattleObj *)(pool + slot * 0xC8), 0x1FF) == 2)
+            {
+                list[count] = slot;
+                count++;
+            }
+            slot++;
+        } while (slot < end);
+        countA = count;
+    }
+    {
+        u8 *list;
+        u8 count;
+        u8 slot;
+        u8 end;
+        list = second;
+        count = 0;
+        for (slot = 0; slot <= 6; slot++)
+            list[slot] = 0;
+        slot = 5;
+        end = 12;
+        do
+        {
+            if (sub_8045F10((BattleObj *)(pool + slot * 0xC8), 0x1FF) == 2)
+            {
+                list[count] = slot;
+                count++;
+            }
+            slot++;
+        } while (slot < end);
+        countB = count;
+    }
+    for (i = 0; i < countA; i++)
+        combined[i] = first[i];
+    for (i = 0; i < countB; i++)
+        combined[i + countA] = second[i];
+    total = countA + countB;
+    for (i = 0; i < total; i++)
+    {
+        BattleObj *obj = (BattleObj *)(combined[i] * 0xC8 + (u32)pool);
+        if ((obj->headA.kindFlags & 0x800) || (obj->headB.kindFlags & 0x800))
+        {
+            result = 1;
+            break;
+        }
+    }
+    return result;
+}
 // @ 0x080472E8
-INCLUDE_ASM("asm/nonmatchings", sub_80472E8);
+u32 sub_80472E8(BattleObj *obj, u16 skillId, u16 suppliedPower)
+{
+    u32 power = 5;
+
+    if (obj->slot <= 10)
+    {
+        switch ((s8)obj->fxKind)
+        {
+        case 0:
+            return 0;
+        case 1:
+            switch (skillId)
+            {
+            case 0:
+            case 1:
+            case 2:
+            case 38:
+            case 39:
+            case 40:
+            case 41:
+            case 42:
+            case 43:
+            case 48:
+            case 54:
+            case 56:
+            case 57:
+            case 58:
+                return 0;
+            case 15:
+                power = 3;
+                if (sub_804E6DC(obj, 13) >= 0)
+                    power = 4;
+                break;
+            case 16:
+                power = 5;
+                if (sub_804E6DC(obj, 13) >= 0)
+                    power = 7;
+                break;
+            case 22:
+                return 7;
+            case 23:
+                return 3;
+            case 24:
+                return 8;
+            case 26:
+                power = 4;
+                if (sub_804E6DC(obj, 10) >= 0)
+                    power = 6;
+                break;
+            case 27:
+                power = 6;
+                if (sub_804E6DC(obj, 10) >= 0)
+                    power = 9;
+                break;
+            case 28:
+                power = 2;
+                if (sub_804E6DC(obj, 10) >= 0)
+                    power = 4;
+                break;
+            case 14:
+            case 50:
+                power = 9;
+                if (sub_804E6DC(obj, 13) >= 0)
+                    power = 13;
+                break;
+            case 49:
+                return suppliedPower;
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            case 25:
+            case 29:
+            case 30:
+            case 31:
+            case 32:
+            case 33:
+            case 34:
+            case 35:
+            case 36:
+            case 37:
+            case 44:
+            case 45:
+            case 46:
+            case 47:
+            case 51:
+            case 52:
+            case 53:
+            case 55:
+            case 59:
+                return 30;
+            }
+            break;
+        case 2:
+            switch (obj->pad_A4[0])
+            {
+            case 25:
+            case 26:
+            case 31:
+            case 45:
+                return 4;
+            case 46:
+            case 48:
+            case 49:
+                return 5;
+            }
+            break;
+        }
+        return power;
+    }
+    return 0;
+}
 // @ 0x0804753C
-INCLUDE_ASM("asm/nonmatchings", sub_804753C);
+// kind 0..4 选 statMods[kind] 按 amount% 增长; 上限 = 参考属性/10*5 (≈50%), 仅增长前检查。
+// kind1 异常: 上限用 atc (+0x74) 而增量基数用 def (+0x76), 原样保留。
+// kind0 额外把增长后的低 8 位写 0x0300090A (全 ROM 唯一写点, 消费者未定)。
+void sub_804753C(BattleObj *obj, u8 kind, u8 amount)
+{
+    u16 cap;
+
+    switch (kind)
+    {
+    case 0:
+    {
+        u16 base = obj->atc;
+        cap = base / 10;
+        cap *= 5;
+        if (obj->statMods[0] < cap)
+        {
+            obj->statMods[0] += (u32)((float)base * ((float)amount / 100.0f));
+            *(u8 *)0x0300090A = obj->statMods[0];
+        }
+        break;
+    }
+    case 1:
+    {
+        cap = obj->atc / 10;
+        cap *= 5;
+        if (obj->statMods[1] < cap)
+            obj->statMods[1] += (u32)((float)obj->def * ((float)amount / 100.0f));
+        break;
+    }
+    case 2:
+    {
+        u16 base = obj->agl;
+        cap = base / 10;
+        cap *= 5;
+        if (obj->statMods[2] < cap)
+            obj->statMods[2] += (u32)((float)base * ((float)amount / 100.0f));
+        break;
+    }
+    case 3:
+    {
+        u16 base = obj->men;
+        cap = base / 10;
+        cap *= 5;
+        if (obj->statMods[3] < cap)
+            obj->statMods[3] += (u32)((float)base * ((float)amount / 100.0f));
+        break;
+    }
+    case 4:
+    {
+        u16 base = obj->res;
+        cap = base / 10;
+        cap *= 5;
+        if (obj->statMods[4] < cap)
+            obj->statMods[4] += (u32)((float)base * ((float)amount / 100.0f));
+        break;
+    }
+    }
+}
 // @ 0x080476DC
 INCLUDE_ASM("asm/nonmatchings", sub_80476DC);
 // @ 0x08047B1C
@@ -1678,7 +2246,50 @@ s32 sub_8047FCC(u16 arg0)
     return ret;
 }
 // @ 0x080480EC
-INCLUDE_ASM("asm/nonmatchings", sub_80480EC);
+s32 sub_80480EC(void)
+{
+    u8 slots[5];
+    u8 found;
+    u8 level = 50;
+    u8 *pool = (u8 *)GetObjPool();
+
+    {
+        u8 *list = slots;
+        u8 count = 0;
+        u8 slot;
+        u8 end;
+
+        for (slot = 0; slot <= 4; slot++)
+            list[slot] = 0;
+        slot = 0;
+        end = 5;
+        do
+        {
+            if (sub_8045F10((BattleObj *)((u32)pool + slot * sizeof(BattleObj)), 0x1FF) == 2)
+            {
+                list[count] = slot;
+                count++;
+            }
+            slot++;
+        } while (slot < end);
+        found = count;
+    }
+    {
+        u8 index;
+        u8 selectedIndex;
+        for (index = 0; index < found; index++)
+        {
+            if (((BattleObj *)(pool + slots[index] * sizeof(BattleObj)))->slot <= 1)
+            {
+                selectedIndex = index;
+                break;
+            }
+        }
+        if (index < found)
+            level = ((BattleObj *)(pool + slots[selectedIndex] * sizeof(BattleObj)))->lv;
+    }
+    return level;
+}
 // @ 0x080481B8
 INCLUDE_ASM("asm/nonmatchings", sub_80481B8);
 // @ 0x08048310
@@ -1686,9 +2297,155 @@ INCLUDE_ASM("asm/nonmatchings", sub_8048310);
 // @ 0x08048458
 INCLUDE_ASM("asm/nonmatchings", sub_8048458);
 // @ 0x080485A4
-INCLUDE_ASM("asm/nonmatchings", sub_80485A4);
+u8 sub_80485A4(BattleObj *obj, u8 mode)
+{
+    BattleObj *special;
+    u8 matches = 0;
+
+    if (obj->slot <= 0xA)
+        return 0;
+
+    if ((u8)(obj->slot - 0xC) <= 0x64)
+    {
+        u8 actionMode;
+
+        switch ((s8)obj->fxKind)
+        {
+        case 0:
+        {
+            const u8 *table = (const u8 *)gUnk_0839D5BC;
+            int entry = obj->slot - 0xC;
+            int offset = entry * 6;
+            const u8 *modes = table + 4;
+            actionMode = modes[offset];
+            break;
+        }
+        case 1:
+        {
+            const u8 *table = (const u8 *)gUnk_0839D5BC;
+            int entry = obj->slot - 0xC;
+            int offset = entry * 6;
+            const u8 *modes = table + 5;
+            actionMode = modes[offset];
+            break;
+        }
+        default:
+            actionMode = 0x32;
+            break;
+        }
+
+        if (mode == actionMode)
+            matches = 1;
+    }
+    else
+    {
+        special = obj;
+        if (special->slot > 0x70)
+        {
+            switch (special->slot)
+            {
+            case 0x76:
+            case 0x7B:
+            case 0x7F:
+                switch ((s8)special->fxKind)
+                {
+                case 0:
+                    break;
+                default:
+                    matches = 1;
+                    break;
+                }
+                break;
+            case 0x7D:
+            case 0x7E:
+                matches = 1;
+                break;
+            case 0x71:
+                matches = 0;
+                break;
+            case 0x72:
+                matches = 0;
+                break;
+            case 0x73:
+                matches = 0;
+                break;
+            case 0x74:
+                matches = 0;
+                break;
+            case 0x75:
+                matches = 0;
+                break;
+            case 0x77:
+                matches = 0;
+                break;
+            case 0x78:
+                matches = 0;
+                break;
+            case 0x79:
+                matches = 0;
+                break;
+            case 0x7A:
+                matches = 0;
+                break;
+            case 0x80:
+                matches = 0;
+                break;
+            case 0x81:
+                matches = 0;
+                break;
+            }
+        }
+    }
+    return matches;
+}
+extern u8 gUnk_0839CC4C[];
+
+static inline u8 Battle_IsRemainingHpNonPositive(s32 remainingHp)
+{
+    if ((s16)remainingHp <= 0)
+        return 1;
+    else
+        return 0;
+}
+
 // @ 0x08048690
-INCLUDE_ASM("asm/nonmatchings", sub_8048690);
+u8 sub_8048690(BattleObj *attacker, BattleObj *target, u8 hitIndex)
+{
+    u8 result;
+    u8 *entry;
+    u8 *thresholds;
+    u8 *limits;
+    u8 threshold;
+    u8 defeated;
+    s32 remainingHp;
+    s16 *hp;
+    s16 *damage;
+
+    result = 0;
+    entry = (u8 *)gUnk_083988A8 + attacker->slot * 24;
+    thresholds = entry + 0xC;
+    threshold = thresholds[hitIndex];
+    if (sub_804E6DC(attacker, 6) >= 0)
+        threshold = threshold + 50;
+    else if (sub_804E6DC(attacker, 7) >= 0)
+        threshold = threshold + 30;
+    else if (sub_804E6DC(attacker, 5) >= 0)
+        threshold = threshold + 25;
+    limits = entry + 9;
+    if (hitIndex < limits[gUnk_0839CC4C[attacker->equipSlots[0] * 4]])
+    {
+        if ((u8)(Rng_LcgNext() % 100) < threshold)
+        {
+            hp = (s16 *)&target->hp;
+            damage = (s16 *)&target->dmgAmount;
+            remainingHp = *hp - *damage;
+            defeated = Battle_IsRemainingHpNonPositive(remainingHp);
+            if (defeated == 0)
+                result = 1;
+        }
+    }
+    return result;
+}
 // @ 0x08048764
 u8 sub_8048764(u8 *arg0)
 {
@@ -2055,7 +2812,7 @@ void sub_8048BD0(BattleObj *arg0)
     }
 }
 extern u8 gUnk_0839BB4C[];
-extern u8 gUnk_0839D5BC[];
+extern u8 gUnk_0839D5BC[101][6];
 
 // @ 0x08048C30
 u8 sub_8048C30(BattleObj *obj)
@@ -2086,7 +2843,7 @@ u8 sub_8048C30(BattleObj *obj)
     {
         if ((u8)(obj->slot - 0xC) <= 0x64)
         {
-            const u8 *tbl = gUnk_0839D5BC;
+            const u8 *tbl = (const u8 *)gUnk_0839D5BC;
             int k2 = obj->slot - 0xC;
             int idx = k2 * 6;
             const u8 *p = tbl + 4;

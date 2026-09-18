@@ -153,4 +153,28 @@ typedef struct ObjAnimEntry
 
 extern const ObjAnimEntry gUnk_08393B28[];
 
+/* 0x0839D47C 战斗对象"按槽号取特效参数"表 (E0: 6 项 × 12B = 72B, scripts/data.json
+ * word_839D47C size=72; E1/E2: 仅 sub_80422B8 消费)。
+ * 键 = BattleObj.slot (+0xBE), 命中项决定：
+ *   animIdx  -> gUnk_08393B28 索引, 供 sub_801B81C 装配 obj->headB 特效头；
+ *   frameIdx -> 与 obj->headA.frameIdx 相等时触发装配 (case1)；
+ *   timer    -> 与 gObjActStepTimer 相等时开 40 帧演出等待窗 (函数尾部)；
+ *   xOff/yOff-> 装配锚点相对 obj->posX/posY 的 u8 偏移。
+ * 实测 6 项: slot 0x22/0x47 (anim 836/838, frame 90, timer 100, +135,+0),
+ * 0x52 (835, 77, 77, +140,+15), 0x56 (835, 76, 76, +140,+231),
+ * 0x57 (830, 79, 90, +155,+216), 0x59 (840, 90, 100, +135,+0)。 */
+typedef struct ObjActSlotFx
+{
+    u16 slotId;    /* +0 匹配键 = BattleObj.slot */
+    u16 animIdx;   /* +2 gUnk_08393B28 动画表索引 */
+    u16 frameIdx;  /* +4 触发帧号 (对比 obj->headA.frameIdx) */
+    u16 timer;     /* +6 触发计时 (对比 gObjActStepTimer) */
+    u8 xOff;       /* +8 锚点 X 偏移 (加 obj->posX) */
+    u8 pad_9;      /* +9 未验证 */
+    u8 yOff;       /* +A 锚点 Y 偏移 (加 obj->posY) */
+    u8 pad_B;      /* +B 未验证 */
+} ObjActSlotFx;
+
+extern const ObjActSlotFx gObjActSlotFxTable[];
+
 #endif // BATTLE_TYPES_H

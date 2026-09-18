@@ -31,7 +31,7 @@ s8 sub_804E76C(BattleObj *obj, u8 arg1, u8 arg2);
 
 void BattleFxObjs_Add();
 
-u8 BattleFx_Update(void);
+u32 BattleFx_Update(void);
 
 u8 BattleDrops_Roll(u32 *arg0);
 

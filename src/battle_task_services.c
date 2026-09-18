@@ -1027,9 +1027,113 @@ u32 sub_8018E34(void)
     return ret;
 }
 // @ 0x08018EA8
-INCLUDE_ASM("asm/nonmatchings", sub_8018EA8);
+/* 战斗界面角色 3 位数图块显示 (数值, x, y, 调色板, 标志):
+ * 将 val 限制在 0..999 并拆分为百、十、个 3 个数字。
+ * 执行前导零消隐: 百位为 0 则置空白图块 0x40; 十位为 0 且百位为空白则亦置空白 0x40。
+ * 随后在 BG1 缓冲 gUnk_020352C0 的 (x..x+2, y) 写入 3 块数字图块 (基址 0x280 + digit)。 */
+void sub_8018EA8(val, x, y, pal, flag)
+u16 val;
+u8 x;
+u8 y;
+u8 pal;
+u8 flag;
+{
+    u16 digits[3];
+    u8 i;
+    BgScData *tile;
+    u16 *bg = gUnk_020352C0;
+    u16 *p;
+
+    if (val > 999)
+    {
+        val = 999;
+    }
+    digits[0] = val / 100U;
+    digits[1] = (val - digits[0] * 100) / 10;
+    digits[2] = val - (digits[0] * 100 + digits[1] * 10);
+
+    for (i = 0; i <= 2; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            if (digits[0] == 0)
+            {
+                digits[0] = 0x40;
+            }
+            break;
+        case 1:
+            p = &digits[1];
+            if (*p == 0 && digits[0] > 10)
+            {
+                *p = 0x40;
+            }
+            break;
+        case 2:
+            break;
+        }
+
+        tile = (BgScData *)&bg[(y * 32) + (x + i)];
+        tile->CharNo = 0x280 + digits[i];
+        tile->HFlip = 0;
+        tile->VFlip = 0;
+        tile->Pltt = flag + pal;
+    }
+}
 // @ 0x08018FC0
-INCLUDE_ASM("asm/nonmatchings", sub_8018FC0);
+/* 战斗角色面板标签与徽标绘制 (槽号, x, y, 调色板3参, 标志):
+ * 在 BG1 缓冲 gUnk_020352C0 (0x020352C0) 写入:
+ *  - y-2 行 (HP行): x-1 处写入边框图块 0x2A1, x 处写入 HP 标签图块 0x29F
+ *  - y-1 行 (MP行): x-1 处写入边框图块 0x2A1, x 处写入 MP 标签图块 0x2A0
+ *  - y   行 (徽标): x..x+3 处写入 4 块角色槽位名字/徽标图块 (0x28A + slot*4 + i) */
+void sub_8018FC0(u8 slot, u8 x, u8 y, u8 palB, u8 palA, u8 sel, u8 flag)
+{
+    u16 *bg = gUnk_020352C0;
+    BgScData *tile;
+    u8 i;
+    int row2;
+    int row1;
+    int idx;
+
+    row2 = (y - 2) * 32;
+    idx = row2 - 1;
+    idx += x;
+    tile = (BgScData *)&bg[idx];
+    tile->CharNo = 0x2A1;
+    tile->HFlip = 0;
+    tile->VFlip = 0;
+    tile->Pltt = palB + flag;
+
+    row1 = (y - 1) * 32;
+    idx = row1 - 1;
+    idx += x;
+    tile = (BgScData *)&bg[idx];
+    tile->CharNo = 0x2A1;
+    tile->HFlip = 0;
+    tile->VFlip = 0;
+    tile->Pltt = palB + flag;
+
+    tile = (BgScData *)&bg[row2 + x];
+    tile->CharNo = 0x29F;
+    tile->HFlip = 0;
+    tile->VFlip = 0;
+    tile->Pltt = palA + flag;
+
+    tile = (BgScData *)&bg[row1 + x];
+    tile->CharNo = 0x2A0;
+    tile->HFlip = 0;
+    tile->VFlip = 0;
+    tile->Pltt = flag + sel;
+
+    for (i = 0; i <= 3; i++)
+    {
+        tile = (BgScData *)&bg[y * 32 + (x + i)];
+        tile->CharNo = 0x28A + slot * 4 + i;
+        tile->HFlip = 0;
+        tile->VFlip = 0;
+        tile->Pltt = palB + flag;
+    }
+}
 // @ 0x08019148
 /* BG0 复位: 清零 EWRAM 0x02035AC0 与 VRAM 0x06007000 各 0x400 个半字, 开 BG0,
  * 再把 BG0CNT 配成 CharBase 2 / ScreenBase 0xE (最终值 0xE08)。

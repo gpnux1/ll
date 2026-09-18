@@ -760,7 +760,84 @@ void sub_804BB64(u8 start, u8 count)
     }
 }
 // @ 0x0804BBDC
-INCLUDE_ASM("asm/nonmatchings", sub_804BBDC);
+/* 启动 BG 调色板流式动画 (opcode 1, 由 sub_804B3C0 逐帧插值消费): 与 sub_804B654
+ * (OBJ 表) 逐指令同构, 仅把 OBJ 系统换成 BG 系统 —— 表 gBgPalAnim (0x03000BE8)、
+ * 占用位图 gBgPalSlotUsed (0x03000AE2), 槽占用/备份改用 sub_804C5B8/sub_804C638。
+ * 语义与 sub_804B654 完全一致 (跳过正在运行流式动画 ctrl&0xF==1 的槽):
+ *   mode 2 → ctrl=0x31 (指定槽), mode 3 → 扫描空槽 ctrl=0x11, 无空槽则置空 ctrl=0xFF。
+ * 由 sub_8020D50(闪白)/演出状态机以 mode 2/3 调用 (battle_object_engine.c:3622 等)。 */
+s32 sub_804BBDC(u8 arg0, u8 arg1, s8 arg2, s8 arg3, s8 arg4, u8 arg5, s8 arg6, u8 arg7)
+{
+    u8 i;
+    u8 b;
+    u32 slot;
+
+    if (arg2 > 0x1F)
+        arg2 = 0x1F;
+    if (arg3 > 0x1F)
+        arg3 = 0x1F;
+    if (arg4 > 0x1F)
+        arg4 = 0x1F;
+
+    slot = arg0 * 16;
+    for (i = 0; i < arg1; i++)
+    {
+        if ((gBgPalAnim[arg0 + i].ctrl & 0xF) == 1)
+            continue;
+
+        switch (arg7)
+        {
+        case 2:
+            sub_804C638(arg0 + i);
+            gBgPalAnim[arg0 + i].ctrl = 0x31;
+            gBgPalAnim[arg0 + i].palSlot = arg0 + i;
+            gBgPalAnim[arg0 + i].period = arg5;
+            gBgPalAnim[arg0 + i].counter = 0;
+            gBgPalAnim[arg0 + i].frameIdx = 0;
+            gBgPalAnim[arg0 + i].dR = arg2;
+            gBgPalAnim[arg0 + i].dG = arg3;
+            gBgPalAnim[arg0 + i].dB = arg4;
+            gBgPalAnim[arg0 + i].shift = 0;
+            break;
+
+        case 3:
+            if (arg6 >= 0)
+                b = arg6;
+            else
+                b = 0;
+            for (; b <= 0xF; b++)
+            {
+                if (!((gBgPalSlotUsed >> b) & 1))
+                    break;
+            }
+
+            if (b <= 0xF)
+            {
+                sub_804C5B8(b, 1);
+                sub_804C638(arg0 + i);
+                gBgPalAnim[arg0 + i].ctrl = 0x11;
+                gBgPalAnim[arg0 + i].palSlot = b;
+                gBgPalAnim[arg0 + i].period = arg5;
+                gBgPalAnim[arg0 + i].counter = 0;
+                gBgPalAnim[arg0 + i].frameIdx = 0;
+                gBgPalAnim[arg0 + i].dR = arg2;
+                gBgPalAnim[arg0 + i].dG = arg3;
+                gBgPalAnim[arg0 + i].dB = arg4;
+                gBgPalAnim[arg0 + i].shift = 0;
+            }
+            else
+            {
+                gBgPalAnim[arg0 + i].ctrl = 0xFF;
+                gBgPalAnim[arg0 + i].palSlot = -1;
+                gBgPalAnim[arg0 + i].period = 0;
+                gBgPalAnim[arg0 + i].counter = 0;
+            }
+            break;
+        }
+    }
+
+    return (s8)gBgPalAnim[arg0].palSlot;
+}
 // @ 0x0804BD54
 void sub_804BD54(u8 arg0, u8 arg1)
 {
